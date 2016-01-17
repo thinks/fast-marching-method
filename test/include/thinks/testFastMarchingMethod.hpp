@@ -2,6 +2,7 @@
 #define THINKS_TESTFASTMARCHINGMETHOD_HPP_INCLUDED
 
 #include <array>
+#include <bitset>
 #include <cassert>
 #include <utility>
 #include <vector>
@@ -124,9 +125,11 @@ struct Neighborhood
 {
   static std::array<std::array<std::int32_t, N>, 2 * N> offsets()
   {
-    std::array<std::array<std::int32_t, N>, 2 * N> n;
-    for (std::size_t i = 0; i < N; ++i) {
-      for (std::size_t j = 0; j < N; ++j) {
+    using namespace std;
+
+    array<array<int32_t, N>, 2 * N> n;
+    for (size_t i = 0; i < N; ++i) {
+      for (size_t j = 0; j < N; ++j) {
         if (j == i) {
           n[2 * i + 0][j] = +1;
           n[2 * i + 1][j] = -1;
@@ -275,7 +278,7 @@ std::vector<T> inputBuffer(
   auto input_buffer = vector<T>(
     linearSize(grid_size),
     numeric_limits<T>::quiet_NaN());
-  auto input_grid = Grid<T, 2>(grid_size, input_buffer.front());
+  auto input_grid = Grid<T, N>(grid_size, input_buffer.front());
   for (auto i = size_t{0}; i < frozen_indices.size(); ++i) {
     input_grid.cell(frozen_indices[i]) = frozen_distances[i];
   }
@@ -338,130 +341,150 @@ std::vector<std::array<T, N>> distance_gradients(
 }
 
 
-template<typename T> inline
-void circleUnsignedFrozenCells(
-  std::array<T, 2> const& center,
-  T const radius,
-  std::array<std::size_t, 2> const& grid_size,
-  std::array<T, 2> const& voxel_size,
-  std::vector<std::array<std::int32_t, 2>>* frozen_indices,
-  std::vector<T>* frozen_distances,
-  std::vector<T>* distance_ground_truth_buffer = nullptr)
+template<typename T, std::size_t N> inline
+std::array<T, N> cellCenter(
+  std::array<std::int32_t, N> const& index,
+  std::array<T, N> const& voxel_size)
 {
   using namespace std;
 
-  auto distance_ground_truth_grid = unique_ptr<Grid<T, 2>>();
-  if (distance_ground_truth_buffer != nullptr) {
-    distance_ground_truth_buffer->resize(linearSize(grid_size));
-    distance_ground_truth_grid.reset(
-      new Grid<T, 2>(grid_size, distance_ground_truth_buffer->front()));
+  array<T, N> cell_center;
+  for (size_t i = 0; i < N; ++i) {
+    cell_center[i] = (index[i] + T(0.5)) * voxel_size[i];
   }
-
-  for (int32_t i = 0; i < static_cast<int32_t>(grid_size[0]); ++i) {
-    for (int32_t j = 0; j < static_cast<int32_t>(grid_size[1]); ++j) {
-      auto const index = array<int32_t, 2>{{i, j}};
-      auto const cell_corners = array<array<T, 2>, 4>
-      {{
-        {{(i + 0) * voxel_size[0], (j + 0) * voxel_size[1]}},
-        {{(i + 1) * voxel_size[0], (j + 0) * voxel_size[1]}},
-        {{(i + 0) * voxel_size[0], (j + 1) * voxel_size[1]}},
-        {{(i + 1) * voxel_size[0], (j + 1) * voxel_size[1]}}
-      }};
-
-      auto inside_count = int32_t{0};
-      auto outside_count = int32_t{0};
-
-      for (auto const& cell_corner : cell_corners) {
-        auto const d = distance(center, cell_corner);
-        if (d < radius) {
-          ++inside_count;
-        }
-        else {
-          ++outside_count;
-        }
-      }
-
-      auto const cell_center = array<T, 2>{{
-        (i + T(0.5)) * voxel_size[0],
-        (j + T(0.5)) * voxel_size[1]
-      }};
-
-      if (inside_count > 0 && outside_count > 0) {
-        // Sphere passes through this cell. Compute and store distance
-        // to cell center.
-        frozen_indices->push_back(index);
-        frozen_distances->push_back(fabs(distance(center, cell_center) - radius));
-      }
-
-      if (distance_ground_truth_buffer != nullptr) {
-        auto const delta = sub(center, cell_center);
-        distance_ground_truth_grid->cell(index) = fabs(magnitude(delta) - radius);
-      }
-    }
-  }
+  return cell_center;
 }
 
 
-template<typename T> inline
-void circleSignedFrozenCells(
-  std::array<T, 2> const& center,
+constexpr std::size_t pow2(std::size_t const n)
+{
+  using namespace std;
+
+  // NOTE: Cannot use loops in constexpr functions in C++11.
+  return n == 0 ? 1 : 2 * pow2(n - 1);
+}
+
+
+template<typename T, std::size_t N> inline
+std::array<std::array<T, N>, pow2(N)> cellCorners(
+  std::array<std::int32_t, N> const& index,
+  std::array<T, N> const& voxel_size)
+{
+  using namespace std;
+
+  array<array<T, N>, pow2(N)> cell_corners;
+
+  for (size_t i = 0; i < pow2(N); ++i) {
+    auto const bits = bitset<N>(i);
+    for (size_t k = 0; k < N; ++k) {
+      cell_corners[i][k] =
+        (index[k] + static_cast<int32_t>(bits[k])) * voxel_size[k];
+    }
+  }
+  return cell_corners;
+}
+
+
+template<std::size_t N>
+class IndexIterator
+{
+public:
+  explicit IndexIterator(std::array<std::size_t, N> const& size)
+    : size_(size)
+  {
+    using namespace std;
+
+    fill(begin(index_), end(index_), 0);
+  }
+
+  std::array<std::int32_t, N> index() const
+  {
+    return index_;
+  }
+
+  bool next()
+  {
+    using namespace std;
+
+    auto i = int32_t{N - 1};
+    while (i >= 0) {
+      assert(size_[i] >= 1);
+      if (static_cast<size_t>(index_[i]) < size_[i] - 1) {
+        ++index_[i];
+        return true;
+      }
+      else {
+        index_[i--] = 0;
+      }
+    }
+    return false;
+  }
+
+private:
+  std::array<std::size_t, N> size_;
+  std::array<std::int32_t, N> index_;
+};
+
+
+template<typename T, std::size_t N, typename D> inline
+void hyperSphereFrozenCells(
+  std::array<T, N> const& center,
   T const radius,
-  std::array<std::size_t, 2> const& grid_size,
-  std::array<T, 2> const& voxel_size,
-  std::vector<std::array<std::int32_t, 2>>* frozen_indices,
+  std::array<std::size_t, N> const& grid_size,
+  std::array<T, N> const& voxel_size,
+  D const distance_op,
+  std::vector<std::array<std::int32_t, N>>* frozen_indices,
   std::vector<T>* frozen_distances,
-  std::vector<std::array<T, 2>>* normals,
+  std::vector<std::array<T, N>>* normals = nullptr,
   std::vector<T>* distance_ground_truth_buffer = nullptr)
 {
   using namespace std;
 
-  auto distance_ground_truth_grid = unique_ptr<Grid<T, 2>>();
+  auto distance_ground_truth_grid = unique_ptr<Grid<T, N>>();
   if (distance_ground_truth_buffer != nullptr) {
     distance_ground_truth_buffer->resize(linearSize(grid_size));
     distance_ground_truth_grid.reset(
-      new Grid<T, 2>(grid_size, distance_ground_truth_buffer->front()));
+      new Grid<T, N>(grid_size, distance_ground_truth_buffer->front()));
   }
 
-  for (int32_t i = 0; i < static_cast<int32_t>(grid_size[0]); ++i) {
-    for (int32_t j = 0; j < static_cast<int32_t>(grid_size[1]); ++j) {
-      auto const index = array<int32_t, 2>{{i, j}};
-      auto const cell_corners = array<array<T, 2>, 4>
-      {{
-        {{(i + 0) * voxel_size[0], (j + 0) * voxel_size[1]}},
-        {{(i + 1) * voxel_size[0], (j + 0) * voxel_size[1]}},
-        {{(i + 0) * voxel_size[0], (j + 1) * voxel_size[1]}},
-        {{(i + 1) * voxel_size[0], (j + 1) * voxel_size[1]}}
-      }};
+  auto index_iter = IndexIterator<N>(grid_size);
+  auto valid_index = bool{true};
+  while (valid_index) {
+    auto const index = index_iter.index();
+    auto const cell_corners = cellCorners(index, voxel_size);
 
-      auto inside_count = int32_t{0};
-      auto outside_count = int32_t{0};
+    auto inside_count = size_t{0};
+    auto outside_count = size_t{0};
 
-      for (auto const& cell_corner : cell_corners) {
-        auto const d = distance(center, cell_corner);
-        if (d < radius) {
-          ++inside_count;
-        }
-        else {
-          ++outside_count;
-        }
+    for (auto const& cell_corner : cell_corners) {
+      auto const d = distance(center, cell_corner);
+      if (d < radius) {
+        ++inside_count;
       }
-
-      auto const cell_center = array<T, 2>{{
-        (i + T(0.5)) * voxel_size[0],
-        (j + T(0.5)) * voxel_size[1]
-      }};
-
-      if (inside_count > 0 && outside_count > 0) {
-        frozen_indices->push_back(index);
-        frozen_distances->push_back(distance(cell_center, center) - radius);
-        normals->push_back(normalized(sub(cell_center, center)));
-      }
-
-      if (distance_ground_truth_buffer != nullptr) {
-        auto const delta = sub(center, cell_center);
-        distance_ground_truth_grid->cell(index) = magnitude(delta) - radius;
+      else {
+        ++outside_count;
       }
     }
+
+    auto const cell_center = cellCenter(index, voxel_size);
+    auto const distance = distance_op(center, radius, cell_center);
+
+    if (inside_count > 0 && outside_count > 0) {
+      // The inferface passes through this cell. Compute and store
+      // the unsigned distance from the interface to the cell center.
+      frozen_indices->push_back(index);
+      frozen_distances->push_back(distance);
+
+      if (normals != nullptr) {
+        normals->push_back(normalized(sub(cell_center, center)));
+      }
+    }
+
+    if (distance_ground_truth_buffer != nullptr) {
+      distance_ground_truth_grid->cell(index) = distance;
+    }
+
+    valid_index = index_iter.next();
   }
 }
 
@@ -499,11 +522,14 @@ GradientMagnitudeStats<T, N> UnsignedGradientMagnitudeStats()
 
   auto frozen_indices = vector<array<int32_t, N>>();
   auto frozen_distances = vector<T>();
-  circleUnsignedFrozenCells(
+  hyperSphereFrozenCells<T, N>(
     center,
     radius,
     grid_size,
     voxel_size,
+    [](auto const& center, auto const radius, auto const& cell_center) {
+      return fabs(distance(center, cell_center) - radius);
+    },
     &frozen_indices,
     &frozen_distances);
 
@@ -549,11 +575,14 @@ GradientMagnitudeStats<T, N> SignedGradientMagnitudeStats()
   auto frozen_indices = vector<array<int32_t, N>>();
   auto frozen_distances = vector<T>();
   auto normals = vector<array<T, N>>();
-  circleSignedFrozenCells(
+  hyperSphereFrozenCells<T, N>(
     center,
     radius,
     grid_size,
     voxel_size,
+    [](auto const& center, auto const radius, auto const& cell_center) {
+      return distance(center, cell_center) - radius;
+    },
     &frozen_indices,
     &frozen_distances,
     &normals);
@@ -619,13 +648,17 @@ DistanceValueStats<T, N> UnsignedDistanceValueStats()
   auto frozen_indices = vector<array<int32_t, N>>();
   auto frozen_distances = vector<T>();
   auto distance_ground_truth_buffer = vector<T>();
-  circleUnsignedFrozenCells(
+  hyperSphereFrozenCells<T, N>(
     center,
     radius,
     grid_size,
     voxel_size,
+    [](auto const& center, auto const radius, auto const& cell_center) {
+      return fabs(distance(center, cell_center) - radius);
+    },
     &frozen_indices,
     &frozen_distances,
+    nullptr, // normals.
     &distance_ground_truth_buffer);
 
   auto const input_buffer = inputBuffer(
@@ -676,11 +709,14 @@ DistanceValueStats<T, N> SignedDistanceValueStats()
   auto frozen_distances = vector<T>();
   auto normals = vector<array<T, N>>();
   auto distance_ground_truth_buffer = vector<T>();
-  circleSignedFrozenCells(
+  hyperSphereFrozenCells<T, N>(
     center,
     radius,
     grid_size,
     voxel_size,
+    [](auto const& center, auto const radius, auto const& cell_center) {
+      return distance(center, cell_center) - radius;
+    },
     &frozen_indices,
     &frozen_distances,
     &normals,

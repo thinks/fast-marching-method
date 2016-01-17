@@ -37,6 +37,7 @@ T squared(T const x)
   return x * x;
 }
 
+
 template<typename T> inline constexpr
 T inverseSquared(T const x)
 {
@@ -52,6 +53,25 @@ std::array<T, N> inverseSquared(std::array<T, N> const& a)
   transform(begin(a), end(a), begin(r),
             [](T const x) { return inverseSquared(x); });
   return r;
+}
+
+
+template<typename U, typename V> inline
+void throwIfSizeNotEqual(U const& u, V const& v)
+{
+  if (u.size() != v.size()) {
+    throw std::runtime_error("size mismatch");
+  }
+}
+
+
+template<typename U, typename V, typename W> inline
+void throwIfSizeNotEqual(U const& u, V const& v, W const& w)
+{
+  auto const u_size = u.size();
+  if (u_size != v.size() || u_size != w.size()) {
+    throw std::runtime_error("size mismatch");
+  }
 }
 
 
@@ -121,9 +141,11 @@ struct Neighborhood
 {
   static constexpr std::array<Index<N>, 2 * N> offsets()
   {
-    std::array<Index<N>, 2 * N> n;
-    for (std::size_t i = 0; i < N; ++i) {
-      for (std::size_t j = 0; j < N; ++j) {
+    using namespace std;
+
+    array<Index<N>, 2 * N> n;
+    for (size_t i = 0; i < N; ++i) {
+      for (size_t j = 0; j < N; ++j) {
         if (j == i) {
           n[2 * i + 0][j] = +1;
           n[2 * i + 1][j] = -1;
@@ -616,9 +638,7 @@ void initializeFrozenCells(
 
   assert(grid != nullptr);
 
-  if (frozen_indices.size() != frozen_distances.size()) {
-    throw runtime_error("indices/distances size mismatch");
-  }
+  throwIfSizeNotEqual(frozen_indices, frozen_distances);
 
   for (size_t i = 0; i < frozen_indices.size(); ++i) {
     auto const frozen_index = frozen_indices[i];
@@ -651,8 +671,8 @@ std::unique_ptr<NarrowBandStore<T, N>> initializeNarrowBand(
 
   assert(grid != nullptr);
 
-  if (normals != nullptr && frozen_indices.size() != normals->size()) {
-    throw runtime_error("indices/normals size mismatch");
+  if (normals != nullptr) {
+    throwIfSizeNotEqual(*normals, frozen_indices);
   }
 
   auto narrow_band = make_unique<NarrowBandStore<T, N>>();
