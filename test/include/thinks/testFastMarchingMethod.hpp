@@ -4,6 +4,7 @@
 #include <array>
 #include <bitset>
 #include <cassert>
+#include <functional>
 #include <utility>
 #include <vector>
 
@@ -74,6 +75,17 @@ private:
 
 namespace detail {
 
+//! Returns 2^n as a compile-time constant.
+constexpr std::size_t pow2(std::size_t const n)
+{
+  using namespace std;
+
+  // NOTE: Cannot use loops in constexpr functions in C++11, have to use
+  // recursion here.
+  return n == 0 ? 1 : 2 * pow2(n - 1);
+}
+
+
 //! Returns the product of the elements in array @a a.
 //! Note: Not checking for overflow here!
 template<std::size_t N> inline
@@ -85,9 +97,7 @@ std::size_t linearSize(std::array<std::size_t, N> const& a)
 
 
 template<typename T, typename R, typename U> inline
-std::vector<R> transformedVector(
-  std::vector<T> const& v,
-  U unary_op)
+std::vector<R> transformedVector(std::vector<T> const& v, U const unary_op)
 {
   using namespace std;
 
@@ -113,7 +123,7 @@ std::array<T, N> sub(std::array<T, N> const& u, std::array<T, N> const& v)
 {
   using namespace std;
 
-  auto r = std::array<T, N>{};
+  auto r = array<T, N>{};
   transform(begin(u), end(u), begin(v), begin(r),
             [](auto const ux, auto const vx){ return ux - vx; });
   return r;
@@ -142,6 +152,52 @@ struct Neighborhood
     }
     return n;
   }
+};
+
+
+template<std::size_t N>
+class IndexIterator
+{
+public:
+  explicit IndexIterator(std::array<std::size_t, N> const& size)
+    : size_(size)
+  {
+    using namespace std;
+
+    for (auto const s : size) {
+      if (s < 1) {
+        throw runtime_error("zero size element");
+      }
+    }
+
+    fill(begin(index_), end(index_), 0);
+  }
+
+  std::array<std::int32_t, N> index() const
+  {
+    return index_;
+  }
+
+  bool next()
+  {
+    using namespace std;
+
+    auto i = int32_t{N - 1};
+    while (i >= 0) {
+      if (static_cast<size_t>(index_[i]) < size_[i] - 1) {
+        ++index_[i];
+        return true;
+      }
+      else {
+        index_[i--] = 0;
+      }
+    }
+    return false;
+  }
+
+private:
+  std::array<std::size_t, N> const size_;
+  std::array<std::int32_t, N> index_;
 };
 
 
@@ -327,16 +383,18 @@ std::vector<std::array<T, N>> distance_gradients(
   auto grad_buffer = vector<array<T, N>>(linear_size);
   auto grad_grid = Grid<array<T, N>, N>(grid_size, grad_buffer.front());
 
-  for (int32_t i = 0; static_cast<size_t>(i) < grid_size[0]; ++i) {
-    for (int32_t j = 0; static_cast<size_t>(j) < grid_size[1]; ++j) {
-      auto const index = array<int32_t, N>{{i, j}};
-      grad_grid.cell(index) = gradient(
-        distance_grid,
-        index,
-        voxel_size,
-        Neighborhood<N>::offsets());
-    }
+  auto index_iter = IndexIterator<N>(grid_size);
+  auto valid_index = bool{true};
+  while (valid_index) {
+    auto const index = index_iter.index();
+    grad_grid.cell(index) = gradient(
+      distance_grid,
+      index,
+      voxel_size,
+      Neighborhood<N>::offsets());
+    valid_index = index_iter.next();
   }
+
   return grad_buffer;
 }
 
@@ -353,15 +411,6 @@ std::array<T, N> cellCenter(
     cell_center[i] = (index[i] + T(0.5)) * voxel_size[i];
   }
   return cell_center;
-}
-
-
-constexpr std::size_t pow2(std::size_t const n)
-{
-  using namespace std;
-
-  // NOTE: Cannot use loops in constexpr functions in C++11.
-  return n == 0 ? 1 : 2 * pow2(n - 1);
 }
 
 
@@ -385,58 +434,18 @@ std::array<std::array<T, N>, pow2(N)> cellCorners(
 }
 
 
-template<std::size_t N>
-class IndexIterator
-{
-public:
-  explicit IndexIterator(std::array<std::size_t, N> const& size)
-    : size_(size)
-  {
-    using namespace std;
-
-    fill(begin(index_), end(index_), 0);
-  }
-
-  std::array<std::int32_t, N> index() const
-  {
-    return index_;
-  }
-
-  bool next()
-  {
-    using namespace std;
-
-    auto i = int32_t{N - 1};
-    while (i >= 0) {
-      assert(size_[i] >= 1);
-      if (static_cast<size_t>(index_[i]) < size_[i] - 1) {
-        ++index_[i];
-        return true;
-      }
-      else {
-        index_[i--] = 0;
-      }
-    }
-    return false;
-  }
-
-private:
-  std::array<std::size_t, N> size_;
-  std::array<std::int32_t, N> index_;
-};
-
-
-template<typename T, std::size_t N, typename D> inline
+template<typename T, std::size_t N> inline
 void hyperSphereFrozenCells(
   std::array<T, N> const& center,
   T const radius,
   std::array<std::size_t, N> const& grid_size,
   std::array<T, N> const& voxel_size,
-  D const distance_op,
   std::vector<std::array<std::int32_t, N>>* frozen_indices,
   std::vector<T>* frozen_distances,
-  std::vector<std::array<T, N>>* normals = nullptr,
-  std::vector<T>* distance_ground_truth_buffer = nullptr)
+  std::vector<std::array<T, N>>* normals,
+  std::vector<T>* distance_ground_truth_buffer = nullptr,
+  std::function<T(T)> const ground_truth_distance_op =
+    [](T const d) { return d; })
 {
   using namespace std;
 
@@ -467,21 +476,19 @@ void hyperSphereFrozenCells(
     }
 
     auto const cell_center = cellCenter(index, voxel_size);
-    auto const distance = distance_op(center, radius, cell_center);
+    auto const cell_distance = distance(center, cell_center) - radius;
 
     if (inside_count > 0 && outside_count > 0) {
       // The inferface passes through this cell. Compute and store
       // the unsigned distance from the interface to the cell center.
       frozen_indices->push_back(index);
-      frozen_distances->push_back(distance);
-
-      if (normals != nullptr) {
-        normals->push_back(normalized(sub(cell_center, center)));
-      }
+      frozen_distances->push_back(cell_distance);
+      normals->push_back(normalized(sub(cell_center, center)));
     }
 
     if (distance_ground_truth_buffer != nullptr) {
-      distance_ground_truth_grid->cell(index) = distance;
+      distance_ground_truth_grid->cell(index) =
+        ground_truth_distance_op(cell_distance);
     }
 
     valid_index = index_iter.next();
@@ -522,21 +529,26 @@ GradientMagnitudeStats<T, N> UnsignedGradientMagnitudeStats()
 
   auto frozen_indices = vector<array<int32_t, N>>();
   auto frozen_distances = vector<T>();
+  auto normals = vector<array<T, N>>();
   hyperSphereFrozenCells<T, N>(
     center,
     radius,
     grid_size,
     voxel_size,
-    [](auto const& center, auto const radius, auto const& cell_center) {
-      return fabs(distance(center, cell_center) - radius);
-    },
     &frozen_indices,
-    &frozen_distances);
+    &frozen_distances,
+    &normals);
 
   auto distance_buffer = unsignedDistance<T, N>(
     grid_size,
     voxel_size,
     speed,
+    frozen_indices,
+    frozen_distances,
+    normals);
+
+  auto const input_buffer = inputBuffer(
+    grid_size,
     frozen_indices,
     frozen_distances);
 
@@ -554,9 +566,9 @@ GradientMagnitudeStats<T, N> UnsignedGradientMagnitudeStats()
     stats.avg,
     stats.std_dev,
     grid_size,
-    move(inputBuffer(grid_size, frozen_indices, frozen_distances)),
-    move(distance_buffer),
-    move(grad_buffer)};
+    input_buffer,
+    distance_buffer,
+    grad_buffer};
 }
 
 
@@ -580,9 +592,6 @@ GradientMagnitudeStats<T, N> SignedGradientMagnitudeStats()
     radius,
     grid_size,
     voxel_size,
-    [](auto const& center, auto const radius, auto const& cell_center) {
-      return distance(center, cell_center) - radius;
-    },
     &frozen_indices,
     &frozen_distances,
     &normals);
@@ -594,6 +603,11 @@ GradientMagnitudeStats<T, N> SignedGradientMagnitudeStats()
     frozen_indices,
     frozen_distances,
     normals);
+
+  auto const input_buffer = inputBuffer(
+    grid_size,
+    frozen_indices,
+    frozen_distances);
 
   auto const grad_buffer = distance_gradients(
     distance_buffer,
@@ -609,9 +623,9 @@ GradientMagnitudeStats<T, N> SignedGradientMagnitudeStats()
     stats.avg,
     stats.std_dev,
     grid_size,
-    move(inputBuffer(grid_size, frozen_indices, frozen_distances)),
-    move(distance_buffer),
-    move(grad_buffer)};
+    input_buffer,
+    distance_buffer,
+    grad_buffer};
 }
 
 
@@ -647,29 +661,29 @@ DistanceValueStats<T, N> UnsignedDistanceValueStats()
 
   auto frozen_indices = vector<array<int32_t, N>>();
   auto frozen_distances = vector<T>();
+  auto normals = vector<array<T, N>>();
   auto distance_ground_truth_buffer = vector<T>();
   hyperSphereFrozenCells<T, N>(
     center,
     radius,
     grid_size,
     voxel_size,
-    [](auto const& center, auto const radius, auto const& cell_center) {
-      return fabs(distance(center, cell_center) - radius);
-    },
     &frozen_indices,
     &frozen_distances,
-    nullptr, // normals.
-    &distance_ground_truth_buffer);
-
-  auto const input_buffer = inputBuffer(
-    grid_size,
-    frozen_indices,
-    frozen_distances);
+    &normals,
+    &distance_ground_truth_buffer,
+    [](auto const d) { return fabs(d); });
 
   auto distance_buffer = unsignedDistance<T, N>(
     grid_size,
     voxel_size,
     speed,
+    frozen_indices,
+    frozen_distances,
+    normals);
+
+  auto const input_buffer = inputBuffer(
+    grid_size,
     frozen_indices,
     frozen_distances);
 
@@ -714,9 +728,6 @@ DistanceValueStats<T, N> SignedDistanceValueStats()
     radius,
     grid_size,
     voxel_size,
-    [](auto const& center, auto const radius, auto const& cell_center) {
-      return distance(center, cell_center) - radius;
-    },
     &frozen_indices,
     &frozen_distances,
     &normals,

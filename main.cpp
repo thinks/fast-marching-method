@@ -9,10 +9,21 @@
 
 namespace {
 
-template <typename R, typename T> inline
+template<typename R, typename T> inline
 R clamp(T const min, T const max, T const value)
 {
   return static_cast<R>(std::min<T>(max, std::max<T>(min, value)));
+}
+
+
+template<typename T, typename R, typename U>
+std::vector<R> transformedVector(std::vector<T> const& v, U const unary_op)
+{
+  using namespace std;
+
+  auto r = vector<R>(v.size());
+  transform(begin(v), end(v), begin(r), unary_op);
+  return r;
 }
 
 
@@ -44,13 +55,19 @@ void writePpm(std::string const& filename,
 }
 
 template<typename T, typename C>
-std::vector<Pixel8> pixels(std::vector<T> const& values,
-                                        C const converter)
+std::vector<Pixel8> pixels(std::vector<T> const& values, C const converter)
 {
   using namespace std;
 
+  auto const max_value = *max_element(begin(values), end(values),
+                                      [](T const a, T const b) { return fabs(a) < fabs(b); });
+  auto normalized_values = values;
+  transform(begin(values), end(values), begin(normalized_values),
+            [=](auto const x) { return x / max_value; });
+
   auto pixels = vector<Pixel8>(values.size());
-  transform(begin(values), end(values), begin(pixels), converter);
+  transform(begin(normalized_values), end(normalized_values), begin(pixels),
+            converter);
   return pixels;
 }
 
@@ -62,6 +79,24 @@ void writeGradMagImages(
 {
   using namespace std;
 
+  auto const pixel_from_distance = [](T const d) {
+    return d < T(0) ?
+      Pixel8(
+        Pixel8::ChannelType(0),
+        Pixel8::ChannelType(0),
+        clamp<Pixel8::ChannelType>(
+          T(0),
+          T(numeric_limits<Pixel8::ChannelType>::max()),
+          numeric_limits<Pixel8::ChannelType>::max() * fabs(d))) :
+      Pixel8(
+        clamp<Pixel8::ChannelType>(
+          T(0),
+          T(numeric_limits<Pixel8::ChannelType>::max()),
+          numeric_limits<Pixel8::ChannelType>::max() * d),
+        Pixel8::ChannelType(0),
+        Pixel8::ChannelType(0));
+  };
+
   stringstream ss_input;
   ss_input << prefix << "_input_" << typeid(T).name() << ".ppm";
   writePpm(
@@ -69,7 +104,7 @@ void writeGradMagImages(
     grad_mag_stats.grid_size[0], grad_mag_stats.grid_size[1],
     pixels(
       grad_mag_stats.input_buffer,
-      [](T const d) {
+      [=](T const d) {
         if (isnan(d)) {
           // A pleasant shade of green for background, i.e. non-input pixels.
           return Pixel8(
@@ -77,47 +112,15 @@ void writeGradMagImages(
             Pixel8::ChannelType(200),
             Pixel8::ChannelType(127));
         }
-        return d < T(0) ?
-          Pixel8(
-            Pixel8::ChannelType(0),
-            Pixel8::ChannelType(0),
-            clamp<Pixel8::ChannelType>(
-              T(0),
-              T(numeric_limits<Pixel8::ChannelType>::max()),
-              numeric_limits<Pixel8::ChannelType>::max() * fabs(d))) :
-          Pixel8(
-            clamp<Pixel8::ChannelType>(
-              T(0),
-              T(numeric_limits<Pixel8::ChannelType>::max()),
-              numeric_limits<Pixel8::ChannelType>::max() * d),
-            Pixel8::ChannelType(0),
-            Pixel8::ChannelType(0));
-      }));
+        return pixel_from_distance(d);
+    }));
 
   stringstream ss_distance;
   ss_distance << prefix << "_distance_" << typeid(T).name() << ".ppm";
   writePpm(
     ss_distance.str(),
     grad_mag_stats.grid_size[0], grad_mag_stats.grid_size[1],
-    pixels(
-      grad_mag_stats.distance_buffer,
-      [](T const d) {
-        return d < T(0) ?
-          Pixel8(
-            Pixel8::ChannelType(0),
-            Pixel8::ChannelType(0),
-            clamp<Pixel8::ChannelType>(
-              T(0),
-              T(numeric_limits<Pixel8::ChannelType>::max()),
-              numeric_limits<Pixel8::ChannelType>::max() * fabs(d))) :
-          Pixel8(
-            clamp<Pixel8::ChannelType>(
-              T(0),
-              T(numeric_limits<Pixel8::ChannelType>::max()),
-              numeric_limits<Pixel8::ChannelType>::max() * d),
-            Pixel8::ChannelType(0),
-            Pixel8::ChannelType(0));
-      }));
+    pixels(grad_mag_stats.distance_buffer, pixel_from_distance));
 
   stringstream ss_grad_mag;
   ss_grad_mag << prefix << "_" << typeid(T).name() << ".ppm";
@@ -125,20 +128,15 @@ void writeGradMagImages(
     ss_grad_mag.str(),
     grad_mag_stats.grid_size[0], grad_mag_stats.grid_size[1],
     pixels(
-      grad_mag_stats.grad_buffer,
-      [](array<T, 2> const& v) {
-        if (isnan(v[0]) || isnan(v[1])) {
-          return Pixel8(
-            Pixel8::ChannelType(255),
-            Pixel8::ChannelType(0),
-            Pixel8::ChannelType(0));
-        }
-        auto const mag = sqrt(v[0] * v[0] + v[1] * v[1]);
+      transformedVector<array<T, 2>, T>(
+        grad_mag_stats.grad_buffer,
+          [](auto const v) { return sqrt(v[0] * v[0] + v[1] * v[1]); } ),
+      [](T const& v) {
         return Pixel8(
           clamp<Pixel8::ChannelType>(
             T(0),
             T(numeric_limits<Pixel8::ChannelType>::max()),
-            numeric_limits<Pixel8::ChannelType>::max() * mag));
+            numeric_limits<Pixel8::ChannelType>::max() * v));
       }));
 }
 
@@ -149,6 +147,24 @@ void writeDistStatImages(
 {
   using namespace std;
 
+  auto const pixel_from_distance = [](T const d) {
+    return d < T(0) ?
+      Pixel8(
+        Pixel8::ChannelType(0),
+        Pixel8::ChannelType(0),
+        clamp<Pixel8::ChannelType>(
+          T(0),
+          T(numeric_limits<Pixel8::ChannelType>::max()),
+          numeric_limits<Pixel8::ChannelType>::max() * fabs(d))) :
+      Pixel8(
+        clamp<Pixel8::ChannelType>(
+          T(0),
+          T(numeric_limits<Pixel8::ChannelType>::max()),
+          numeric_limits<Pixel8::ChannelType>::max() * d),
+        Pixel8::ChannelType(0),
+        Pixel8::ChannelType(0));
+  };
+
   stringstream ss_input;
   ss_input << prefix << "_input_" << typeid(T).name() << ".ppm";
   writePpm(
@@ -156,7 +172,7 @@ void writeDistStatImages(
     dist_stats.grid_size[0], dist_stats.grid_size[1],
     pixels(
       dist_stats.input_buffer,
-      [](T const d) {
+      [=](T const d) {
         if (isnan(d)) {
           // A pleasant shade of green for background, i.e. non-input pixels.
           return Pixel8(
@@ -164,21 +180,7 @@ void writeDistStatImages(
             Pixel8::ChannelType(200),
             Pixel8::ChannelType(127));
         }
-        return d < T(0) ?
-          Pixel8(
-            Pixel8::ChannelType(0),
-            Pixel8::ChannelType(0),
-            clamp<Pixel8::ChannelType>(
-              T(0),
-              T(numeric_limits<Pixel8::ChannelType>::max()),
-              numeric_limits<Pixel8::ChannelType>::max() * fabs(d))) :
-          Pixel8(
-            clamp<Pixel8::ChannelType>(
-              T(0),
-              T(numeric_limits<Pixel8::ChannelType>::max()),
-              numeric_limits<Pixel8::ChannelType>::max() * d),
-            Pixel8::ChannelType(0),
-            Pixel8::ChannelType(0));
+        return pixel_from_distance(d);
       }));
 
   stringstream ss_distance;
@@ -186,75 +188,21 @@ void writeDistStatImages(
   writePpm(
     ss_distance.str(),
     dist_stats.grid_size[0], dist_stats.grid_size[1],
-    pixels(
-      dist_stats.distance_buffer,
-      [](T const d) {
-        return d < T(0) ?
-          Pixel8(
-            Pixel8::ChannelType(0),
-            Pixel8::ChannelType(0),
-            clamp<Pixel8::ChannelType>(
-              T(0),
-              T(numeric_limits<Pixel8::ChannelType>::max()),
-              numeric_limits<Pixel8::ChannelType>::max() * fabs(d))) :
-          Pixel8(
-            clamp<Pixel8::ChannelType>(
-              T(0),
-              T(numeric_limits<Pixel8::ChannelType>::max()),
-              numeric_limits<Pixel8::ChannelType>::max() * d),
-            Pixel8::ChannelType(0),
-            Pixel8::ChannelType(0));
-      }));
+    pixels(dist_stats.distance_buffer, pixel_from_distance));
 
   stringstream ss_gt;
   ss_gt << prefix << "_gt_" << typeid(T).name() << ".ppm";
   writePpm(
     ss_gt.str(),
     dist_stats.grid_size[0], dist_stats.grid_size[1],
-    pixels(
-      dist_stats.distance_ground_truth_buffer,
-      [](T const d) {
-        return d < T(0) ?
-          Pixel8(
-            Pixel8::ChannelType(0),
-            Pixel8::ChannelType(0),
-            clamp<Pixel8::ChannelType>(
-              T(0),
-              T(numeric_limits<Pixel8::ChannelType>::max()),
-              numeric_limits<Pixel8::ChannelType>::max() * fabs(d))) :
-          Pixel8(
-            clamp<Pixel8::ChannelType>(
-              T(0),
-              T(numeric_limits<Pixel8::ChannelType>::max()),
-              numeric_limits<Pixel8::ChannelType>::max() * d),
-            Pixel8::ChannelType(0),
-            Pixel8::ChannelType(0));
-      }));
+    pixels(dist_stats.distance_ground_truth_buffer, pixel_from_distance));
 
   stringstream ss_error;
   ss_error << prefix << "_error_" << typeid(T).name() << ".ppm";
   writePpm(
     ss_error.str(),
     dist_stats.grid_size[0], dist_stats.grid_size[1],
-    pixels(
-      dist_stats.error_buffer,
-      [](T const d) {
-        return d < T(0) ?
-          Pixel8(
-            Pixel8::ChannelType(0),
-            Pixel8::ChannelType(0),
-            clamp<Pixel8::ChannelType>(
-              T(0),
-              T(numeric_limits<Pixel8::ChannelType>::max()),
-              numeric_limits<Pixel8::ChannelType>::max() * fabs(d))) :
-          Pixel8(
-            clamp<Pixel8::ChannelType>(
-              T(0),
-              T(numeric_limits<Pixel8::ChannelType>::max()),
-              numeric_limits<Pixel8::ChannelType>::max() * d),
-            Pixel8::ChannelType(0),
-            Pixel8::ChannelType(0));
-      }));
+    pixels(dist_stats.error_buffer, pixel_from_distance));
 }
 
 } // namespace
@@ -298,8 +246,7 @@ int main(int argc, char* argv[])
   using namespace thinks::fmm::test;
 
   try {
-    typedef uint16_t ChannelType;
-
+#if 1
     {
       cout << "Unsigned distance" << endl
            << "-----------------" << endl;
@@ -312,13 +259,19 @@ int main(int argc, char* argv[])
       cout << grad_mag_stats2d << endl;
       writeGradMagImages<double>(grad_mag_stats2d, "unsigned_grad_mag");
 
+#if 0
       auto const grad_mag_stats3f = UnsignedGradientMagnitudeStats<float, 3>();
       cout << grad_mag_stats3f << endl;
       auto const grad_mag_stats3d = UnsignedGradientMagnitudeStats<double, 3>();
       cout << grad_mag_stats3d << endl;
+#endif
 
-      //thinks::fmm::test::testUnsignedGradientMagnitude<float, 4>();
-      //thinks::fmm::test::testUnsignedGradientMagnitude<double, 4>();
+#if 0
+      auto const grad_mag_stats4f = UnsignedGradientMagnitudeStats<float, 4>();
+      cout << grad_mag_stats4f << endl;
+      auto const grad_mag_stats4d = UnsignedGradientMagnitudeStats<double, 4>();
+      cout << grad_mag_stats4d << endl;
+#endif
 
       auto const dist_stats2f = UnsignedDistanceValueStats<float, 2>();
       cout << dist_stats2f << endl;
@@ -328,15 +281,21 @@ int main(int argc, char* argv[])
       cout << dist_stats2d << endl;
       writeDistStatImages<double>(dist_stats2d, "unsigned_dist_stat");
 
+#if 0
       auto const dist_stats3f = UnsignedDistanceValueStats<float, 3>();
       cout << dist_stats3f << endl;
       auto const dist_stats3d = UnsignedDistanceValueStats<double, 3>();
       cout << dist_stats3d << endl;
+#endif
 
-      //thinks::fmm::test::testUnsignedDistanceValues<float, 4>();
-      //thinks::fmm::test::testUnsignedDistanceValues<double, 4>();
+#if 0
+      auto const dist_stats4f = UnsignedDistanceValueStats<float, 4>();
+      cout << dist_stats4f << endl;
+      auto const dist_stats4d = UnsignedDistanceValueStats<double, 4>();
+      cout << dist_stats4d << endl;
+#endif
     }
-
+#endif
     {
       cout << "Signed distance" << endl
            << "-----------------" << endl;
@@ -349,10 +308,12 @@ int main(int argc, char* argv[])
       cout << grad_mag_stats2d << endl;
       writeGradMagImages<double>(grad_mag_stats2d, "signed_grad_mag");
 
+#if 0
       auto const grad_mag_stats3f = SignedGradientMagnitudeStats<float, 3>();
       cout << grad_mag_stats3f << endl;
       auto const grad_mag_stats3d = SignedGradientMagnitudeStats<double, 3>();
       cout << grad_mag_stats3d << endl;
+#endif
       //thinks::fmm::test::testUnsignedGradientMagnitude<float, 4>();
       //thinks::fmm::test::testUnsignedGradientMagnitude<double, 4>();
 
@@ -364,10 +325,13 @@ int main(int argc, char* argv[])
       cout << dist_stats2d << endl;
       writeDistStatImages<double>(dist_stats2d, "signed_dist_stat");
 
+#if 0
       auto const dist_stats3f = SignedDistanceValueStats<float, 3>();
       cout << dist_stats3f << endl;
       auto const dist_stats3d = SignedDistanceValueStats<double, 3>();
       cout << dist_stats3d << endl;
+#endif
+
       //thinks::fmm::test::testUnsignedDistanceValues<float, 4>();
       //thinks::fmm::test::testUnsignedDistanceValues<double, 4>();
     }

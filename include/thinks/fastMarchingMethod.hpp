@@ -56,6 +56,68 @@ std::array<T, N> inverseSquared(std::array<T, N> const& a)
 }
 
 
+template<typename T, std::size_t N> inline
+T squaredMagnitude(std::array<T, N> const& v)
+{
+  auto sm = T(0);
+  for (auto i = size_t{0}; i < N; ++i) {
+    sm += v[i] * v[i];
+  }
+  return sm;
+}
+
+
+template<std::size_t N> inline
+bool inside(
+  std::array<std::int32_t, N> const& index,
+  std::array<std::size_t, N> const& size)
+{
+  using namespace std;
+
+  for (size_t i = 0; i < N; ++i) {
+    // Cast is safe since we check that index[i] is greater than or
+    // equal to zero first.
+    if (!(0 <= index[i] && static_cast<size_t>(index[i]) < size[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
+template<std::size_t N> inline
+void throwIfInvalidSize(std::array<std::size_t, N> const& size)
+{
+  using namespace std;
+
+  if (find_if(begin(size), end(size),
+              [](auto const x) { return x < size_t{1}; }) != end(size)) {
+    throw runtime_error("invalid size");
+  }
+}
+
+
+template<typename T, std::size_t N> inline
+void throwIfInvalidSpacing(std::array<T, N> const& dx)
+{
+  using namespace std;
+
+  if (find_if(begin(dx), end(dx),
+              [](auto const x) { return x <= T(0); }) != end(dx)) {
+    throw runtime_error("invalid spacing");
+  }
+}
+
+
+template<typename T> inline
+void throwIfInvalidSpeed(T const speed)
+{
+  if (speed <= T(0)) {
+    throw std::runtime_error("invalid speed");
+  }
+}
+
+
 template<typename U, typename V> inline
 void throwIfSizeNotEqual(U const& u, V const& v)
 {
@@ -68,200 +130,43 @@ void throwIfSizeNotEqual(U const& u, V const& v)
 template<typename U, typename V, typename W> inline
 void throwIfSizeNotEqual(U const& u, V const& v, W const& w)
 {
-  auto const u_size = u.size();
-  if (u_size != v.size() || u_size != w.size()) {
-    throw std::runtime_error("size mismatch");
-  }
-}
-
-
-template<std::size_t N>
-class Index
-{
-public:
-  typedef std::int32_t value_type;
-
-  static constexpr std::size_t size()
-  {
-    return N;
-  }
-
-  explicit constexpr
-  Index(std::array<value_type, N> const& v)
-    : v_(v)
-  {}
-
-  //! No range checking!
-  value_type& operator[](std::size_t const i)
-  {
-    return v_[i];
-  }
-
-  //! No range checking!
-  value_type const& operator[](std::size_t const i) const
-  {
-    return v_[i];
-  }
-
-  std::array<value_type, N> toArray() const
-  {
-    return v_;
-  }
-
-private:
-  std::array<value_type, N> v_;
-};
-
-
-template<std::size_t N> inline
-Index<N> operator+(Index<N> const& lhs, Index<N> const& rhs)
-{
-  auto r = lhs;
-  for (std::size_t i = 0; i < N; ++i) {
-    r[i] += rhs[i];
-  }
-  return r;
-}
-
-template<> inline
-Index<2> operator+(Index<2> const& lhs, Index<2> const& rhs)
-{
-  return Index<2>{{{lhs[0] + rhs[0], lhs[1] + rhs[1]}}};
-}
-
-template<> inline
-Index<3> operator+(Index<3> const& lhs, Index<3> const& rhs)
-{
-  return Index<3>{{{lhs[0] + rhs[0], lhs[1] + rhs[1], lhs[2] + rhs[2]}}};
-}
-
-
-template<std::size_t N>
-struct Neighborhood
-{
-  static constexpr std::array<Index<N>, 2 * N> offsets()
-  {
-    using namespace std;
-
-    array<Index<N>, 2 * N> n;
-    for (size_t i = 0; i < N; ++i) {
-      for (size_t j = 0; j < N; ++j) {
-        if (j == i) {
-          n[2 * i + 0][j] = +1;
-          n[2 * i + 1][j] = -1;
-        }
-        else {
-          n[2 * i + 0][j] = 0;
-          n[2 * i + 1][j] = 0;
-        }
-      }
-    }
-    return n;
-  }
-};
-
-template<>
-struct Neighborhood<2>
-{
-  static constexpr std::array<Index<2>, 4> offsets()
-  {
-    return {{
-      Index<2>{{{+1,  0}}},
-      Index<2>{{{-1,  0}}},
-      Index<2>{{{ 0, +1}}},
-      Index<2>{{{ 0, -1}}}
-    }};
-  }
-};
-
-template<>
-struct Neighborhood<3>
-{
-  static constexpr std::array<Index<3>, 6> offsets()
-  {
-    return {{
-      Index<3>{{{+1,  0,  0}}},
-      Index<3>{{{-1,  0,  0}}},
-      Index<3>{{{ 0, +1,  0}}},
-      Index<3>{{{ 0, -1,  0}}},
-      Index<3>{{{ 0,  0, +1}}},
-      Index<3>{{{ 0,  0, -1}}}
-    }};
-  }
-};
-
-
-template<typename T, typename H> inline
-void hashCombine(T const& v, H const& hasher, std::size_t& seed)
-{
-  seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
-}
-
-
-//! Polynomial coefficients are equivalent to array index,
-//! i.e. Sum(coefficients[i] * x^i) = 0, for i in [0, 2]
-//!
-//! Returns the real roots of the quadratic if any exist, otherwise NaN.
-//! If there are two roots the larger one is the first of the pair.
-template<typename T> inline
-std::pair<T, T> solveQuadratic(const std::array<T, 3> coefficients)
-{
-  using namespace std;
-
-  static_assert(is_floating_point<T>::value,
-                "quadratic coefficients must be floating point");
-
-  T const eps = T(1e-9);
-
-  T const c = coefficients[0];
-  T const b = coefficients[1];
-  T const a = coefficients[2];
-
-  if (fabs(a) < eps) {
-    if (fabs(b) < eps) {
-      // c = 0, no solutions (or infinite solutions if c happens to be zero).
-      return make_pair(numeric_limits<T>::quiet_NaN(),
-                       numeric_limits<T>::quiet_NaN());
-    }
-    // bx + c = 0, one solution.
-    return make_pair(-c / b, numeric_limits<T>::quiet_NaN());
-  }
-
-  if (fabs(b) < eps) {
-    // ax^2 + c = 0
-    T const r = std::sqrt(-c / a);
-    return make_pair(r, -r);
-  }
-
-  T const discriminant_squared = b * b - 4 * a * c;
-  if (discriminant_squared <= eps) {
-    // Complex solution.
-    return make_pair(numeric_limits<T>::quiet_NaN(),
-                     numeric_limits<T>::quiet_NaN());
-  }
-  T const discriminant = std::sqrt(discriminant_squared);
-
-  T const r0 = (b < T(0)) ?
-    (-b + discriminant) / (2 * a) : // b < 0
-    (-b - discriminant) / (2 * a);  // b > 0
-  T const r1 = c / (a * r0);
-  return make_pair(max(r0, r1), min(r0, r1));
+  throwIfSizeNotEqual<U, V>(u, v);
+  throwIfSizeNotEqual<U, W>(u, w);
 }
 
 
 template<std::size_t N> inline
-bool inside(std::array<std::size_t, N> const& size, Index<N> const& index)
+void throwIfInvalidIndex(
+  std::vector<std::array<std::int32_t, N>> const& indices,
+  std::array<std::size_t, N> const& size)
 {
-  using namespace std;
-
-  for (size_t i = 0; i < N; ++i) {
-    // Cast is safe since we check that index[i] is greater than or
-    // equal to zero first.
-    if (!(0 <= index[i] && static_cast<size_t>(index[i]) < size[i])) {
-      return false;
+  for (auto const& index : indices) {
+    if (!inside(index, size)) {
+      throw std::runtime_error("invalid index");
     }
   }
-  return true;
+}
+
+
+template<typename T, typename U> inline
+void throwIfInvalidDistance(std::vector<T> const& distances, U const unary_pred)
+{
+  for (auto const distance : distances) {
+    if (!unary_pred(distance)) {
+      throw std::runtime_error("invalid distance");
+    }
+  }
+}
+
+
+template<typename T, std::size_t N> inline
+void throwIfInvalidNormal(std::vector<std::array<T, N>> const& normals)
+{
+  for (auto const& normal : normals) {
+    if (squaredMagnitude(normal) < T(0.25)) {
+      throw std::runtime_error("invalid normal");
+    }
+  }
 }
 
 
@@ -277,8 +182,10 @@ public:
     : size_(size)
     , cells_(&cells)
   {
-    std::size_t stride = 1;
-    for (std::size_t i = 1; i < N; ++i) {
+    using namespace std;
+
+    auto stride = size_t{1};
+    for (auto i = size_t{1}; i < N; ++i) {
       stride *= size_[i - 1];
       strides_[i - 1] = stride;
     }
@@ -326,12 +233,37 @@ private:
 };
 
 
+template<std::size_t N>
+struct Neighborhood
+{
+  static std::array<std::array<std::int32_t, N>, 2 * N> offsets()
+  {
+    using namespace std;
+
+    auto n = array<array<int32_t, N>, 2 * N>{};
+    for (auto i = size_t{0}; i < N; ++i) {
+      for (auto j = size_t{0}; j < N; ++j) {
+        if (j == i) {
+          n[2 * i + 0][j] = +1;
+          n[2 * i + 1][j] = -1;
+        }
+        else {
+          n[2 * i + 0][j] = 0;
+          n[2 * i + 1][j] = 0;
+        }
+      }
+    }
+    return n;
+  }
+};
+
+
 template<typename T, std::size_t N>
 class NarrowBandStore
 {
 public:
   typedef T distance_type;
-  typedef Index<N> index_type;
+  typedef std::array<std::int32_t, N> index_type;
   typedef std::pair<distance_type, index_type> value_type;
 
   NarrowBandStore()
@@ -503,24 +435,60 @@ private:
     std::swap(values_[pos0], values_[pos1]);
   }
 
+  template<typename V, typename H> static inline
+  void hashCombine_(V const& v, H const& hasher, std::size_t& seed)
+  {
+    seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+  }
+
+  struct hash_type_
+  {
+    typedef index_type argument_type;
+    typedef size_t result_type;
+
+    result_type operator()(argument_type const& a) const
+    {
+      using namespace std;
+
+      typedef typename argument_type::value_type value_type;
+      hash<value_type> hasher;
+      size_t seed = 0;
+      for (auto i = size_t{0}; i < N; ++i) {
+        hashCombine_(a[i], hasher, seed);
+      }
+      return seed;
+    }
+  };
+
+  struct equal_type_
+  {
+    typedef bool result_type;
+    typedef index_type first_argument_type;
+    typedef index_type second_argument_type;
+
+    result_type operator()(first_argument_type const& lhs,
+                           second_argument_type const& rhs) const
+    {
+      for (auto i = size_t{0}; i < N; ++i) {
+        if (lhs[i] != rhs[i]) {
+          return false;
+        }
+      }
+      return true;
+    }
+  };
+
   std::vector<value_type> values_;
-  std::unordered_map<index_type, size_type_> index_to_pos_;
+  std::unordered_map<index_type, size_type_,
+                     hash_type_, equal_type_> index_to_pos_;
 };
 
 
-enum class State
+enum class CellState
 {
   Far = 0,
   NarrowBand,
   Frozen
-};
-
-
-template<typename T>
-struct Cell
-{
-  T distance;
-  State state;
 };
 
 
@@ -530,31 +498,37 @@ class EikonalSolver
 public:
   EikonalSolver(
     std::array<T, N> const& dx,
-    T const speed,
-    T const multiplier = T(1))
-    : neighbor_offsets_(Neighborhood<N>::offsets())
-    , inv_dx_squared_(inverseSquared(dx))
+    T const speed)
+    : inv_dx_squared_(inverseSquared(dx))
     , inv_speed_squared_(inverseSquared(speed))
-    , multiplier_(multiplier)
   {}
 
-  T solve(Index<N> const& index, Grid<Cell<T>, N> const& grid) const
+  T solve(
+    std::array<std::int32_t, N> const& index,
+    std::array<std::array<std::int32_t, N>, 2* N> const& neighbor_offsets,
+    Grid<T, N> const& distance_grid,
+    Grid<CellState, N> const& state_grid) const
   {
     using namespace std;
 
+    assert(inside(index, distance_grid.size()));
+
     auto q = array<T, 3>{{-inv_speed_squared_, T(0), T(0)}};
 
-    for (size_t i = 0; i < N; ++i) {
+    for (auto i = size_t{0}; i < N; ++i) {
       auto min_frozen_neighbor_distance = numeric_limits<T>::max();
-      for (size_t j = 0; j < 2; ++j) {
-        auto const neighbor_index = index + neighbor_offsets_[2 * i + j];
-        if (inside(grid.size(), neighbor_index)) {
-          auto const neighbor_cell = grid.cell(neighbor_index.toArray());
-          if (neighbor_cell.state == State::Frozen) {
-            assert(fabs(neighbor_cell.distance) <= fabs(grid.cell(index.toArray()).distance));
-            min_frozen_neighbor_distance = min(
-              min_frozen_neighbor_distance, multiplier_ * neighbor_cell.distance);
-          }
+      for (auto j = size_t{0}; j < 2; ++j) {
+        auto neighbor_index = index;
+        for (auto k = size_t{0}; k < N; ++k) {
+          neighbor_index[k] += neighbor_offsets[2 * i + j][k];
+        }
+
+        if (inside(neighbor_index, distance_grid.size()) &&
+            state_grid.cell(neighbor_index) == CellState::Frozen) {
+          //assert(distance_grid.cell(neighbor_index) <= distance_grid.cell(index));
+          min_frozen_neighbor_distance = min(
+            min_frozen_neighbor_distance,
+            distance_grid.cell(neighbor_index));
         }
       }
 
@@ -565,96 +539,160 @@ public:
       }
     }
 
-    auto const r = solveQuadratic(q);
+    auto const r = solveQuadratic_(q);
     assert(!isnan(r.first));
     assert(r.first >= T(0));
     return r.first;
   }
 
 private:
-  std::array<Index<N>, 2 * N> const neighbor_offsets_;
+  //! Polynomial coefficients are equivalent to array index,
+  //! i.e. Sum(coefficients[i] * x^i) = 0, for i in [0, 2]
+  //!
+  //! Returns the real roots of the quadratic if any exist, otherwise NaN.
+  //! If there are two roots the larger one is the first of the pair.
+  template<typename T> static inline
+  std::pair<T, T> solveQuadratic_(std::array<T, 3> const& coefficients)
+  {
+    using namespace std;
+
+    static_assert(is_floating_point<T>::value,
+                  "quadratic coefficients must be floating point");
+
+    T const eps = T(1e-9);
+
+    T const c = coefficients[0];
+    T const b = coefficients[1];
+    T const a = coefficients[2];
+
+    if (fabs(a) < eps) {
+      if (fabs(b) < eps) {
+        // c = 0, no solutions (or infinite solutions if c happens to be zero).
+        return make_pair(numeric_limits<T>::quiet_NaN(),
+                         numeric_limits<T>::quiet_NaN());
+      }
+      // bx + c = 0, one solution.
+      return make_pair(-c / b, numeric_limits<T>::quiet_NaN());
+    }
+
+    if (fabs(b) < eps) {
+      // ax^2 + c = 0
+      T const r = std::sqrt(-c / a);
+      return make_pair(r, -r);
+    }
+
+    T const discriminant_squared = b * b - 4 * a * c;
+    if (discriminant_squared <= eps) {
+      // Complex solution.
+      return make_pair(numeric_limits<T>::quiet_NaN(),
+                       numeric_limits<T>::quiet_NaN());
+    }
+    T const discriminant = std::sqrt(discriminant_squared);
+
+    T const r0 = (b < T(0)) ?
+      (-b + discriminant) / (2 * a) : // b < 0
+      (-b - discriminant) / (2 * a);  // b > 0
+    T const r1 = c / (a * r0);
+    return make_pair(max(r0, r1), min(r0, r1));
+  }
+
   std::array<T, N> const inv_dx_squared_;
   T const inv_speed_squared_;
-  T const multiplier_;
 };
+
+
+//! Set frozen cell state and distance.
+template <typename T, std::size_t N> inline
+void initializeFrozenCells(
+  std::vector<std::array<std::int32_t, N>> const& frozen_indices,
+  std::vector<T> const& frozen_distances,
+  T const multiplier,
+  Grid<T, N>* distance_grid,
+  Grid<CellState, N>* state_grid)
+{
+  using namespace std;
+
+  assert(frozen_indices.size() == frozen_distances.size());
+  assert(distance_grid != nullptr);
+  assert(state_grid != nullptr);
+
+  for (auto i = size_t{0}; i < frozen_indices.size(); ++i) {
+    assert(inside(frozen_indices[i], distance_grid->size()));
+    assert(inside(frozen_indices[i], state_grid->size()));
+
+    distance_grid->cell(frozen_indices[i]) = multiplier * frozen_distances[i];
+    state_grid->cell(frozen_indices[i]) = CellState::Frozen;
+  }
+}
 
 
 template <typename T, typename P, std::size_t N> inline
 void updateNeighbors(
   EikonalSolver<T, N> const& eikonal_solver,
-  Index<N> const& frozen_index,
+  std::array<std::int32_t, N> const& index,
+  std::array<std::array<std::int32_t, N>, 2* N> const& neighbor_offsets,
   std::array<T, N> const& normal,
-  P const pred,
-  Grid<Cell<T>, N>* grid,
+  P const neighbor_pred,
+  Grid<T, N>* distance_grid,
+  Grid<CellState, N>* state_grid,
   NarrowBandStore<T, N>* narrow_band)
-{
-  assert(grid != nullptr);
-  assert(narrow_band != nullptr);
-  assert(grid->cell(frozen_index.toArray()).state == State::Frozen);
-
-  // Update neighbors of frozen cell.
-  for (auto const& neighbor_offset : Neighborhood<N>::offsets()) {
-    auto const neighbor_index = frozen_index + neighbor_offset;
-    if (inside(grid->size(), neighbor_index) && pred(normal, neighbor_offset)) {
-      // Update narrow band.
-      auto& neighbor_cell = grid->cell(neighbor_index.toArray());
-      switch (neighbor_cell.state) {
-      case State::Far:
-        neighbor_cell.distance = eikonal_solver.solve(neighbor_index, *grid);
-        neighbor_cell.state = State::NarrowBand;
-        narrow_band->insert(
-          {
-            fabs(neighbor_cell.distance),
-            neighbor_index
-          });
-        break;
-      case State::NarrowBand:
-        auto const new_distance = eikonal_solver.solve(neighbor_index, *grid);
-        if (fabs(new_distance) < fabs(neighbor_cell.distance)) {
-          narrow_band->decrease_distance(neighbor_index, fabs(new_distance));
-        }
-        else if (fabs(new_distance) > fabs(neighbor_cell.distance)) {
-          // Could happen because of numerical instability.
-          narrow_band->increase_distance(neighbor_index, new_distance);
-        }
-        neighbor_cell.distance = new_distance;
-        break;
-      // If neighbor is frozen do nothing!
-      }
-    }
-  }
-}
-
-
-//! Set frozen cell state and distance.
-template <typename T, typename P, std::size_t N> inline
-void initializeFrozenCells(
-  std::vector<std::array<typename Index<N>::value_type, N>> const& frozen_indices,
-  std::vector<T> const& frozen_distances,
-  P const pred,
-  Grid<Cell<T>, N>* grid)
 {
   using namespace std;
 
-  assert(grid != nullptr);
+  assert(distance_grid != nullptr);
+  assert(state_grid != nullptr);
+  //assert same size!!
+  assert(narrow_band != nullptr);
+  assert(inside(index, distance_grid->size()));
+  assert(inside(index, state_grid->size()));
+  assert(state_grid->cell(index) == CellState::Frozen);
 
-  throwIfSizeNotEqual(frozen_indices, frozen_distances);
+  for (auto const& neighbor_offset : neighbor_offsets) {
+    // Check if the neighbor predicate allows this offset direction.
+    if (neighbor_pred(normal, neighbor_offset)) {
+      auto neighbor_index = index;
+      for (auto i = size_t{0}; i < N; ++i) {
+        neighbor_index[i] += neighbor_offset[i];
+      }
 
-  for (size_t i = 0; i < frozen_indices.size(); ++i) {
-    auto const frozen_index = frozen_indices[i];
-    if (!inside(grid->size(), Index<N>(frozen_index))) {
-      throw runtime_error("frozen cell index outside grid");
+      if (inside(neighbor_index, distance_grid->size())) {
+        // Update the narrow band.
+        auto& neighbor_state = state_grid->cell(neighbor_index);
+        switch (neighbor_state) {
+        case CellState::Far:
+          {
+            auto const distance = eikonal_solver.solve(
+              neighbor_index,
+              neighbor_offsets,
+              *distance_grid,
+              *state_grid);
+            distance_grid->cell(neighbor_index) = distance;
+            neighbor_state = CellState::NarrowBand;
+            narrow_band->insert(
+              {
+                distance,
+                neighbor_index
+              });
+          }
+          break;
+        case CellState::NarrowBand:
+          {
+            auto& neighbor_distance = distance_grid->cell(neighbor_index);
+            auto const new_neighbor_distance = eikonal_solver.solve(
+              neighbor_index,
+              neighbor_offsets,
+              *distance_grid,
+              *state_grid);
+            if (new_neighbor_distance < neighbor_distance) {
+              narrow_band->decrease_distance(neighbor_index, new_neighbor_distance);
+              neighbor_distance = new_neighbor_distance;
+            }
+          }
+          break;
+        // If neighbor state is frozen do nothing!
+        }
+      }
     }
-
-    auto const frozen_distance = frozen_distances[i];
-    if (!pred(frozen_distance)) {
-      throw runtime_error("frozen cell distance predicate failed");
-    }
-
-    auto& cell = grid->cell(frozen_index);
-    assert(cell.state == State::Far);
-    cell.state = State::Frozen;
-    cell.distance = frozen_distance;
   }
 }
 
@@ -662,33 +700,27 @@ void initializeFrozenCells(
 template <typename T, std::size_t N, typename P> inline
 std::unique_ptr<NarrowBandStore<T, N>> initializeNarrowBand(
   EikonalSolver<T, N> const& eikonal_solver,
-  std::vector<std::array<typename Index<N>::value_type, N>> const& frozen_indices,
-  std::vector<std::array<T, N>> const*const normals,
+  std::vector<std::array<std::int32_t, N>> const& frozen_indices,
+  std::array<std::array<std::int32_t, N>, 2* N> const& neighbor_offsets,
+  std::vector<std::array<T, N>> const& normals,
   P const& pred,
-  Grid<Cell<T>, N>* grid)
+  Grid<T, N>* distance_grid,
+  Grid<CellState, N>* state_grid)
 {
   using namespace std;
 
-  assert(grid != nullptr);
-
-  if (normals != nullptr) {
-    throwIfSizeNotEqual(*normals, frozen_indices);
-  }
-
   auto narrow_band = make_unique<NarrowBandStore<T, N>>();
 
-  array<T, N> dummy_normal;
-  fill(begin(dummy_normal), end(dummy_normal), T(0));
-
   // Initialize the narrow band cells.
-  for (size_t i = 0; i < frozen_indices.size(); ++i) {
-    assert(inside(grid->size(), Index<N>(frozen_indices[i])));
+  for (auto i = size_t{0}; i < frozen_indices.size(); ++i) {
     updateNeighbors(
       eikonal_solver,
-      Index<N>(frozen_indices[i]),
-      normals != nullptr ? (*normals)[i] : dummy_normal,
+      frozen_indices[i],
+      neighbor_offsets,
+      normals[i],
       pred,
-      grid,
+      distance_grid,
+      state_grid,
       narrow_band.get());
   }
 
@@ -703,35 +735,41 @@ std::unique_ptr<NarrowBandStore<T, N>> initializeNarrowBand(
 template <typename T, std::size_t N> inline
 void marchNarrowBand(
   EikonalSolver<T, N> const& eikonal_solver,
-  Grid<Cell<T>, N>* grid,
-  NarrowBandStore<T, N>* narrow_band,
-  T const multiplier = T(1))
+  std::array<std::array<std::int32_t, N>, 2* N> const& neighbor_offsets,
+  Grid<T, N>* distance_grid,
+  Grid<CellState, N>* state_grid,
+  NarrowBandStore<T, N>* narrow_band)
 {
   using namespace std;
 
-  assert(grid != nullptr);
+  assert(distance_grid != nullptr);
+  assert(state_grid != nullptr);
   assert(narrow_band != nullptr);
 
   array<T, N> dummy_normal;
-  fill(begin(dummy_normal), end(dummy_normal), T(0));
+  fill(begin(dummy_normal), end(dummy_normal), numeric_limits<T>::quiet_NaN());
 
   while (!narrow_band->empty()) {
     // Take smallest distance from narrow band and freeze it.
     auto const value = narrow_band->pop();
-    auto const frozen_distance = value.first;
-    auto const frozen_index = value.second;
-    auto& cell = grid->cell(frozen_index.toArray());
-    assert(cell.state == State::NarrowBand);
-    cell.distance = multiplier * frozen_distance;
-    cell.state = State::Frozen;
+    auto const distance = value.first;
+    auto const index = value.second;
+
+    assert(state_grid->cell(index) == CellState::NarrowBand);
+
+    distance_grid->cell(index) = distance;
+    state_grid->cell(index) = CellState::Frozen;
+
     updateNeighbors(
       eikonal_solver,
-      frozen_index,
+      index,
+      neighbor_offsets,
       dummy_normal,
       [](auto const&, auto const&) {
         return true; // Always update all non-frozen neighbors while marching.
       },
-      grid,
+      distance_grid,
+      state_grid,
       narrow_band);
   }
 }
@@ -745,40 +783,101 @@ std::vector<T> unsignedDistance(
   std::array<T, N> const& dx,
   T const speed,
   std::vector<std::array<std::int32_t, N>> const& frozen_indices,
-  std::vector<T> const& frozen_distances)
+  std::vector<T> const& frozen_distances,
+  std::vector<std::array<T, N>> const& normals)
 {
   using namespace std;
   using namespace detail;
 
   typedef T DistanceType;
-  typedef Cell<DistanceType> CellType;
-  typedef Grid<CellType, N> GridType;
   typedef EikonalSolver<DistanceType, N> EikonalSolverType;
 
-  auto cell_buffer = vector<CellType>(linearSize(size),
-    CellType{numeric_limits<DistanceType>::max(), State::Far});
-  auto grid = GridType(size, cell_buffer.front());
+  static_assert(is_floating_point<DistanceType>::value,
+                "distance type must be floating point");
+  static_assert(N > 0, "number of dimensions must be > 0");
 
+  throwIfInvalidSize(size);
+  throwIfInvalidSpacing(dx);
+  throwIfInvalidSpeed(speed);
+  throwIfSizeNotEqual(frozen_indices, frozen_distances, normals);
+  throwIfInvalidIndex(frozen_indices, size);
+  throwIfInvalidDistance(
+    frozen_distances,
+    [](auto const d) { return !isnan(d); });
+
+  auto state_buffer = vector<CellState>(linearSize(size), CellState::Far);
+  auto state_grid = Grid<CellState, N>(size, state_buffer.front());
+
+  auto const neighbor_offsets = Neighborhood<N>::offsets();
+
+  auto const eikonal_solver = EikonalSolverType(dx, speed);
+
+  auto distance_buffer = vector<DistanceType>(
+    linearSize(size), numeric_limits<DistanceType>::max());
+  auto distance_grid = Grid<DistanceType, N>(size, distance_buffer.front());
+
+  // Solve inside.
   initializeFrozenCells(
     frozen_indices,
     frozen_distances,
-    [](auto const d) {
-      return d >= DistanceType(0); // Input distances must be positive.
-    },
-    &grid);
+    DistanceType(-1),
+    &distance_grid,
+    &state_grid);
 
-  auto const eikonal_solver = EikonalSolverType(dx, speed);
-  auto narrow_band = initializeNarrowBand<DistanceType, N>(
+  auto inside_narrow_band = initializeNarrowBand<DistanceType, N>(
     eikonal_solver,
     frozen_indices,
-    nullptr, // Normals.
-    [](auto const&, auto const&) { return true; },
-    &grid);
-  marchNarrowBand(eikonal_solver, &grid, narrow_band.get());
+    neighbor_offsets,
+    normals,
+    [](auto const& normal, auto const& neighbor_offset) {
+      auto sum = DistanceType(0);
+      for (auto i = size_t{0}; i < N; ++i) {
+        // Flip normal.
+        sum += (DistanceType(-1) * normal[i]) * neighbor_offset[i];
+      }
+      return sum >= DistanceType(0);
+    },
+    &distance_grid,
+    &state_grid);
+  marchNarrowBand(
+    eikonal_solver,
+    neighbor_offsets,
+    &distance_grid,
+    &state_grid,
+    inside_narrow_band.get());
 
-  auto distance_buffer = vector<DistanceType>(cell_buffer.size());
-  transform(begin(cell_buffer), end(cell_buffer), begin(distance_buffer),
-            [](auto const& cell) { return cell.distance; });
+  // Solve outside.
+  initializeFrozenCells(
+    frozen_indices,
+    frozen_distances,
+    DistanceType(1),
+    &distance_grid,
+    &state_grid);
+  auto outside_narrow_band = initializeNarrowBand<DistanceType, N>(
+    eikonal_solver,
+    frozen_indices,
+    neighbor_offsets,
+    normals,
+    [](auto const& normal, auto const& neighbor_offset) {
+      auto sum = DistanceType(0);
+      for (auto i = size_t{0}; i < N; ++i) {
+        sum += normal[i] * neighbor_offset[i];
+      }
+      return sum >= DistanceType(0);
+    },
+    &distance_grid,
+    &state_grid);
+  marchNarrowBand(
+    eikonal_solver,
+    neighbor_offsets,
+    &distance_grid,
+    &state_grid,
+    outside_narrow_band.get());
+
+  // Set unsigned frozen cell values.
+  for (auto i = size_t{0}; i < frozen_indices.size(); ++i) {
+    distance_grid.cell(frozen_indices[i]) = fabs(frozen_distances[i]);
+  }
 
   return distance_buffer;
 }
@@ -797,169 +896,123 @@ std::vector<T> signedDistance(
   using namespace detail;
 
   typedef T DistanceType;
-  typedef Cell<DistanceType> CellType;
-  typedef Grid<CellType, N> GridType;
   typedef EikonalSolver<DistanceType, N> EikonalSolverType;
 
-  auto cell_buffer = vector<CellType>(linearSize(size),
-    CellType{numeric_limits<DistanceType>::max(), State::Far});
-  auto grid = GridType(size, cell_buffer.front());
+  static_assert(is_floating_point<DistanceType>::value,
+                "distance type must be floating point");
+  static_assert(N > 0, "number of dimensions must be > 0");
+
+  throwIfInvalidSize(size);
+  throwIfInvalidSpacing(dx);
+  throwIfInvalidSpeed(speed);
+  throwIfSizeNotEqual(frozen_indices, frozen_distances, normals);
+  throwIfInvalidIndex(frozen_indices, size);
+  throwIfInvalidDistance(
+    frozen_distances,
+    [](auto const d) { return !isnan(d); });
+  throwIfInvalidNormal(normals);
+
+  auto state_buffer = vector<CellState>(linearSize(size), CellState::Far);
+  auto state_grid = Grid<CellState, N>(size, state_buffer.front());
+
+  auto const neighbor_offsets = Neighborhood<N>::offsets();
+
+  auto eikonal_solver = EikonalSolverType(dx, speed);
+
+  // Solve inside.
+  auto inside_distance_buffer = vector<DistanceType>(
+    linearSize(size), numeric_limits<DistanceType>::max());
+  auto inside_distance_grid = Grid<DistanceType, N>(
+    size, inside_distance_buffer.front());
 
   initializeFrozenCells(
     frozen_indices,
     frozen_distances,
-    [](DistanceType const) { return true; },
-    &grid);
+    DistanceType(-1), // multiplier
+    &inside_distance_grid,
+    &state_grid);
 
-  auto outside_eikonal_solver = EikonalSolverType(dx, speed);
-  auto outside_narrow_band = initializeNarrowBand<DistanceType, N>(
-    outside_eikonal_solver,
-    frozen_indices,
-    &normals,
-    [](auto const& normal, auto const& neighbor_offset) {
-      auto sum = DistanceType(0);
-      for (size_t i = 0; i < N; ++i) {
-        sum += normal[i] * neighbor_offset[i];
-      }
-      return sum >= DistanceType(0);
-    },
-    &grid);
-  marchNarrowBand(outside_eikonal_solver, &grid, outside_narrow_band.get());
-
-  auto inside_eikonal_solver = EikonalSolverType(dx, speed, T(-1));
   auto inside_narrow_band = initializeNarrowBand<DistanceType, N>(
-    inside_eikonal_solver,
+    eikonal_solver,
     frozen_indices,
-    &normals,
+    neighbor_offsets,
+    normals,
     [](auto const& normal, auto const& neighbor_offset) {
       auto sum = DistanceType(0);
-      for (size_t i = 0; i < N; ++i) {
+      for (auto i = size_t{0}; i < N; ++i) {
         // Flip normal.
         sum += (DistanceType(-1) * normal[i]) * neighbor_offset[i];
       }
       return sum >= DistanceType(0);
     },
-    &grid);
-  marchNarrowBand(inside_eikonal_solver, &grid, inside_narrow_band.get(), T(-1));
+    &inside_distance_grid,
+    &state_grid);
+  marchNarrowBand(
+    eikonal_solver,
+    neighbor_offsets,
+    &inside_distance_grid,
+    &state_grid,
+    inside_narrow_band.get());
 
-  auto distance_buffer = vector<DistanceType>(cell_buffer.size());
-  transform(begin(cell_buffer), end(cell_buffer), begin(distance_buffer),
-            [](auto const& cell){ return cell.distance; });
+  // Solve outside.
+  auto outside_distance_buffer = vector<DistanceType>(
+    linearSize(size), numeric_limits<DistanceType>::max());
+  auto outside_distance_grid = Grid<DistanceType, N>(
+    size, outside_distance_buffer.front());
+
+  initializeFrozenCells(
+    frozen_indices,
+    frozen_distances,
+    DistanceType(1), // multiplier
+    &outside_distance_grid,
+    &state_grid);
+
+  auto outside_narrow_band = initializeNarrowBand<DistanceType, N>(
+    eikonal_solver,
+    frozen_indices,
+    neighbor_offsets,
+    normals,
+    [](auto const& normal, auto const& neighbor_offset) {
+      auto sum = DistanceType(0);
+      for (auto i = size_t{0}; i < N; ++i) {
+        sum += normal[i] * neighbor_offset[i];
+      }
+      return sum >= DistanceType(0);
+    },
+    &outside_distance_grid,
+    &state_grid);
+  marchNarrowBand(
+    eikonal_solver,
+    neighbor_offsets,
+    &outside_distance_grid,
+    &state_grid,
+    outside_narrow_band.get());
+
+  auto distance_buffer = vector<DistanceType>(
+    linearSize(size), numeric_limits<DistanceType>::max());
+
+  for (auto i = size_t{0}; i < inside_distance_buffer.size(); ++i) {
+    if (inside_distance_buffer[i] < numeric_limits<DistanceType>::max()) {
+      // Negative inside.
+      distance_buffer[i] = DistanceType(-1) * inside_distance_buffer[i];
+    }
+  }
+  for (auto i = size_t{0}; i < outside_distance_buffer.size(); ++i) {
+    if (outside_distance_buffer[i] < numeric_limits<DistanceType>::max()) {
+      // Positive outside.
+      distance_buffer[i] = outside_distance_buffer[i];
+    }
+  }
+
+  auto distance_grid = Grid<DistanceType, N>(size, distance_buffer.front());
+  for (auto i = size_t{0}; i < frozen_indices.size(); ++i) {
+    distance_grid.cell(frozen_indices[i]) = frozen_distances[i];
+  }
 
   return distance_buffer;
 }
 
 } // namespace fmm
 } // namespace thinks
-
-
-namespace std {
-
-// std::hash specializations for thinks::fmm::detail::Index types.
-
-template<size_t N>
-struct hash<thinks::fmm::detail::Index<N>>
-{
-  typedef thinks::fmm::detail::Index<N> argument_type;
-  typedef size_t result_type;
-
-  result_type operator()(argument_type const& a) const
-  {
-    typedef typename argument_type::value_type value_type;
-    hash<value_type> hasher;
-    size_t seed = 0;
-    for (size_t i = 0; i < N; ++i) {
-      thinks::fmm::detail::hashCombine(a[i], hasher, seed);
-    }
-    return seed;
-  }
-};
-
-template<>
-struct hash<thinks::fmm::detail::Index<2>>
-{
-  typedef thinks::fmm::detail::Index<2> argument_type;
-  typedef size_t result_type;
-
-  result_type operator()(argument_type const& a) const
-  {
-    typedef argument_type::value_type value_type;
-    hash<value_type> hasher;
-    size_t seed = 0;
-    thinks::fmm::detail::hashCombine(a[0], hasher, seed);
-    thinks::fmm::detail::hashCombine(a[1], hasher, seed);
-    return seed;
-  }
-};
-
-template<>
-struct hash<thinks::fmm::detail::Index<3>>
-{
-  typedef thinks::fmm::detail::Index<3> argument_type;
-  typedef size_t result_type;
-
-  result_type operator()(argument_type const& a) const
-  {
-    typedef argument_type::value_type value_type;
-    hash<value_type> hasher;
-    size_t seed = 0;
-    thinks::fmm::detail::hashCombine(a[0], hasher, seed);
-    thinks::fmm::detail::hashCombine(a[1], hasher, seed);
-    thinks::fmm::detail::hashCombine(a[2], hasher, seed);
-    return seed;
-  }
-};
-
-
-// std::equal_to specializations for thinks::detail::Index types.
-
-template<size_t N>
-struct equal_to<thinks::fmm::detail::Index<N>>
-{
-  typedef bool result_type;
-  typedef thinks::fmm::detail::Index<N> first_argument_type;
-  typedef thinks::fmm::detail::Index<N> second_argument_type;
-
-  result_type operator()(first_argument_type const& lhs,
-                         second_argument_type const& rhs) const
-  {
-    for (size_t i = 0; i < N; ++i) {
-      if (lhs[i] != rhs[i]) {
-        return false;
-      }
-    }
-    return true;
-  }
-};
-
-template<>
-struct equal_to<thinks::fmm::detail::Index<2>>
-{
-  typedef bool result_type;
-  typedef thinks::fmm::detail::Index<2> first_argument_type;
-  typedef thinks::fmm::detail::Index<2> second_argument_type;
-
-  result_type operator()(first_argument_type const& lhs,
-                         second_argument_type const& rhs) const
-  {
-    return lhs[0] == rhs[0] && lhs[1] == rhs[1];
-  }
-};
-
-template<>
-struct equal_to<thinks::fmm::detail::Index<3>>
-{
-  typedef bool result_type;
-  typedef thinks::fmm::detail::Index<3> first_argument_type;
-  typedef thinks::fmm::detail::Index<3> second_argument_type;
-
-  result_type operator()(first_argument_type const& lhs,
-                         second_argument_type const& rhs) const
-  {
-    return lhs[0] == rhs[0] && lhs[1] == rhs[1] && lhs[2] == rhs[2];
-  }
-};
-
-} // namespace std
 
 #endif // THINKS_FASTMARCHINGMETHOD_HPP_INCLUDED
