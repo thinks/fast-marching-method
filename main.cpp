@@ -219,7 +219,8 @@ ostream& operator<<(
     << "min: " << grad_mag_stats.min << endl
     << "max: " << grad_mag_stats.max << endl
     << "avg: " << grad_mag_stats.avg << endl
-    << "std_dev: " << grad_mag_stats.std_dev << endl;
+    << "std_dev: " << grad_mag_stats.std_dev << endl
+    << "duration: " << grad_mag_stats.duration_in_s << " [s]" << endl;
   return os;
 }
 
@@ -233,7 +234,8 @@ ostream& operator<<(
     << "min error: " << dist_stats.min_error << endl
     << "max error: " << dist_stats.max_error << endl
     << "avg error: " << dist_stats.avg_error << endl
-    << "std_dev error: " << dist_stats.std_dev_error << endl;
+    << "std_dev error: " << dist_stats.std_dev_error << endl
+    << "duration: " << dist_stats.duration_in_s << " [s]" << endl;
   return os;
 }
 
@@ -259,7 +261,7 @@ int main(int argc, char* argv[])
       cout << grad_mag_stats2d << endl;
       writeGradMagImages<double>(grad_mag_stats2d, "unsigned_grad_mag");
 
-#if 0
+#if 1
       auto const grad_mag_stats3f = UnsignedGradientMagnitudeStats<float, 3>();
       cout << grad_mag_stats3f << endl;
       auto const grad_mag_stats3d = UnsignedGradientMagnitudeStats<double, 3>();
@@ -267,6 +269,14 @@ int main(int argc, char* argv[])
 #endif
 
 #if 0
+      Gradient magnitude stats <double, 3>:
+      min: 0.0204039
+      max: 1.02286
+      avg: 0.9975
+      std_dev: 0.0364526
+      duration: 5.42531 [s]
+
+
       auto const grad_mag_stats4f = UnsignedGradientMagnitudeStats<float, 4>();
       cout << grad_mag_stats4f << endl;
       auto const grad_mag_stats4d = UnsignedGradientMagnitudeStats<double, 4>();

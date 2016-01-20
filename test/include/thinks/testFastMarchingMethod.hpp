@@ -4,6 +4,7 @@
 #include <array>
 #include <bitset>
 #include <cassert>
+#include <chrono>
 #include <functional>
 #include <utility>
 #include <vector>
@@ -230,7 +231,9 @@ std::array<T, N> gradient(
       min_value = grid.cell(pos_index);
     }
     if (0 <= neg_index[i] && static_cast<size_t>(neg_index[i]) < size[i]) {
-      min_value = min(min_value, grid.cell(neg_index));
+      if (fabs(grid.cell(neg_index)) < fabs(min_value)) {
+        min_value = grid.cell(neg_index);
+      }
     }
     grad[i] = (grid.cell(index) - min_value) / dx[i];
   }
@@ -508,6 +511,8 @@ struct GradientMagnitudeStats
   double avg;
   double std_dev;
 
+  double duration_in_s;
+
   std::array<std::size_t, N> grid_size;
   std::vector<T> input_buffer;
   std::vector<T> distance_buffer;
@@ -523,7 +528,7 @@ GradientMagnitudeStats<T, N> UnsignedGradientMagnitudeStats()
 
   auto const center = filledArray<N>(T(0.5));
   auto const radius = T(0.25);
-  auto const grid_size = filledArray<N>(size_t{100});
+  auto const grid_size = filledArray<N>(size_t{128});
   auto const voxel_size = filledArray<N>(T(0.01));
   auto const speed = T(1);
 
@@ -539,6 +544,7 @@ GradientMagnitudeStats<T, N> UnsignedGradientMagnitudeStats()
     &frozen_distances,
     &normals);
 
+  auto const start_time = chrono::system_clock::now();
   auto distance_buffer = unsignedDistance<T, N>(
     grid_size,
     voxel_size,
@@ -546,6 +552,7 @@ GradientMagnitudeStats<T, N> UnsignedGradientMagnitudeStats()
     frozen_indices,
     frozen_distances,
     normals);
+  auto const end_time = chrono::system_clock::now();
 
   auto const input_buffer = inputBuffer(
     grid_size,
@@ -565,6 +572,7 @@ GradientMagnitudeStats<T, N> UnsignedGradientMagnitudeStats()
     stats.max,
     stats.avg,
     stats.std_dev,
+    chrono::duration<double>(end_time - start_time).count(),
     grid_size,
     input_buffer,
     distance_buffer,
@@ -596,6 +604,7 @@ GradientMagnitudeStats<T, N> SignedGradientMagnitudeStats()
     &frozen_distances,
     &normals);
 
+  auto const start_time = chrono::system_clock::now();
   auto distance_buffer = signedDistance<T, N>(
     grid_size,
     voxel_size,
@@ -603,6 +612,7 @@ GradientMagnitudeStats<T, N> SignedGradientMagnitudeStats()
     frozen_indices,
     frozen_distances,
     normals);
+  auto const end_time = chrono::system_clock::now();
 
   auto const input_buffer = inputBuffer(
     grid_size,
@@ -622,6 +632,7 @@ GradientMagnitudeStats<T, N> SignedGradientMagnitudeStats()
     stats.max,
     stats.avg,
     stats.std_dev,
+    chrono::duration<double>(end_time - start_time).count(),
     grid_size,
     input_buffer,
     distance_buffer,
@@ -638,8 +649,9 @@ struct DistanceValueStats
   double avg_error;
   double std_dev_error;
 
-  std::array<std::size_t, N> grid_size;
+  double duration_in_s;
 
+  std::array<std::size_t, N> grid_size;
   std::vector<T> input_buffer;
   std::vector<T> distance_buffer;
   std::vector<T> distance_ground_truth_buffer;
@@ -674,6 +686,7 @@ DistanceValueStats<T, N> UnsignedDistanceValueStats()
     &distance_ground_truth_buffer,
     [](auto const d) { return fabs(d); });
 
+  auto const start_time = chrono::system_clock::now();
   auto distance_buffer = unsignedDistance<T, N>(
     grid_size,
     voxel_size,
@@ -681,6 +694,7 @@ DistanceValueStats<T, N> UnsignedDistanceValueStats()
     frozen_indices,
     frozen_distances,
     normals);
+  auto const end_time = chrono::system_clock::now();
 
   auto const input_buffer = inputBuffer(
     grid_size,
@@ -699,6 +713,7 @@ DistanceValueStats<T, N> UnsignedDistanceValueStats()
     stats.max,
     stats.avg,
     stats.std_dev,
+    chrono::duration<double>(end_time - start_time).count(),
     grid_size,
     input_buffer,
     distance_buffer,
@@ -733,6 +748,7 @@ DistanceValueStats<T, N> SignedDistanceValueStats()
     &normals,
     &distance_ground_truth_buffer);
 
+  auto const start_time = chrono::system_clock::now();
   auto distance_buffer = signedDistance<T, N>(
     grid_size,
     voxel_size,
@@ -740,6 +756,7 @@ DistanceValueStats<T, N> SignedDistanceValueStats()
     frozen_indices,
     frozen_distances,
     normals);
+  auto const end_time = chrono::system_clock::now();
 
   auto const input_buffer = inputBuffer(
     grid_size,
@@ -758,6 +775,7 @@ DistanceValueStats<T, N> SignedDistanceValueStats()
     stats.max,
     stats.avg,
     stats.std_dev,
+    chrono::duration<double>(end_time - start_time).count(),
     grid_size,
     input_buffer,
     distance_buffer,

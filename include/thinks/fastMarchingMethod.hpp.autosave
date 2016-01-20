@@ -928,13 +928,13 @@ std::vector<T> unsignedDistance(
     frozen_distances,
     [](auto const d) { return !isnan(d); });
 
-  auto state_buffer = vector<CellState>(linearSize(size), CellState::Far);
-  auto state_grid = Grid<CellState, N>(size, state_buffer.front());
   auto const neighbor_offsets = Neighborhood<N>::offsets();
   auto const eikonal_solver = EikonalSolverType(dx, speed);
 
+  auto state_buffer = vector<CellState>(linearSize(size), CellState::Far);
   auto distance_buffer = vector<DistanceType>(
     linearSize(size), numeric_limits<DistanceType>::max());
+  auto state_grid = Grid<CellState, N>(size, state_buffer.front());
   auto distance_grid = Grid<DistanceType, N>(size, distance_buffer.front());
 
   // Use the same distance grid for inside and outside since these regions
