@@ -547,6 +547,7 @@ public:
   {
     using namespace std;
 
+    assert(state_grid.cell(index) != CellState::Frozen);
     assert(inside(index, distance_grid.size()));
 
     auto q = array<T, 3>{{-inv_speed_squared_, T(0), T(0)}};
@@ -561,7 +562,14 @@ public:
 
         if (inside(neighbor_index, distance_grid.size()) &&
             state_grid.cell(neighbor_index) == CellState::Frozen) {
-          //assert(distance_grid.cell(neighbor_index) <= distance_grid.cell(index));
+#if 0
+          if (!(fabs(distance_grid.cell(neighbor_index)) <= fabs(distance_grid.cell(index)))) {
+            cerr << distance_grid.cell(neighbor_index) << " <= " << fabs(distance_grid.cell(index)) << endl;
+
+          }
+          assert(fabs(distance_grid.cell(neighbor_index)) <= fabs(distance_grid.cell(index)));
+#endif
+
           min_frozen_neighbor_distance = min(
             min_frozen_neighbor_distance,
             distance_grid.cell(neighbor_index));
@@ -725,7 +733,7 @@ void updateNeighbors(
             }
           }
           break;
-        // If neighbor state is frozen do nothing!
+        // If neighbor cell is frozen do nothing to it!
         }
       }
     }
@@ -928,13 +936,13 @@ std::vector<T> unsignedDistance(
     frozen_distances,
     [](auto const d) { return !isnan(d); });
 
-  auto state_buffer = vector<CellState>(linearSize(size), CellState::Far);
-  auto state_grid = Grid<CellState, N>(size, state_buffer.front());
   auto const neighbor_offsets = Neighborhood<N>::offsets();
   auto const eikonal_solver = EikonalSolverType(dx, speed);
 
+  auto state_buffer = vector<CellState>(linearSize(size), CellState::Far);
   auto distance_buffer = vector<DistanceType>(
     linearSize(size), numeric_limits<DistanceType>::max());
+  auto state_grid = Grid<CellState, N>(size, state_buffer.front());
   auto distance_grid = Grid<DistanceType, N>(size, distance_buffer.front());
 
   // Use the same distance grid for inside and outside since these regions
@@ -994,13 +1002,13 @@ std::vector<T> signedDistance(
     [](auto const d) { return !isnan(d); });
   throwIfInvalidNormal(normals);
 
-  auto state_buffer = vector<CellState>(linearSize(size), CellState::Far);
-  auto state_grid = Grid<CellState, N>(size, state_buffer.front());
   auto const neighbor_offsets = Neighborhood<N>::offsets();
   auto const eikonal_solver = EikonalSolverType(dx, speed);
+  auto state_buffer = vector<CellState>(linearSize(size), CellState::Far);
+  auto state_grid = Grid<CellState, N>(size, state_buffer.front());
 
   // We need two separate distance buffers for inside and outside since
-  // we later need to negative the inside values.
+  // we later need to negate the inside values.
   auto inside_distance_buffer = vector<DistanceType>(
     linearSize(size), numeric_limits<DistanceType>::max());
   auto inside_distance_grid = Grid<DistanceType, N>(
