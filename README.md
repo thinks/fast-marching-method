@@ -1,8 +1,12 @@
-# fast-marching-method
+# The Fast Marching Method
 
-![hello world](https://github.com/thinks/fast-marching-method/blob/master/test/img/unsigned_grad_mag_float.png "grad mag")
 
-[[https://github.com/thinks/fast-marching-method/blob/master/test/img/unsigned_grad_mag_float.png]]
+## Design
+![hello world](https://github.com/thinks/fast-marching-method/blob/master/test/img/unsigned_grad_mag_float.png?raw=true "grad mag")
+
+
+## Testing and Verification
+
 
 ## Future Work
 * Higher order spatial gradients.
