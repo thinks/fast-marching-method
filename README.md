@@ -2,7 +2,7 @@
 
 !(hello world)[fast-marching-method/test/img/unsigned_grad_mag_float.png]
 
-[[fast-marching-method/test/img/unsigned_grad_mag_float.png]]
+[[https://github.com/thinks/fast-marching-method/blob/master/test/img/unsigned_grad_mag_float.png]]
 
 ## Future Work
 * Higher order spatial gradients.
