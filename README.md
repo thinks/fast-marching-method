@@ -1,6 +1,6 @@
 # fast-marching-method
 
-![hello world](https://github.com/thinks/fast-marching-method/blob/master/test/img/unsigned_grad_mag_float.png)
+![hello world](/fast-marching-method/test/img/unsigned_grad_mag_float.png "grad mag")
 
 [[https://github.com/thinks/fast-marching-method/blob/master/test/img/unsigned_grad_mag_float.png]]
 
