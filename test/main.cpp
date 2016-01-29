@@ -59,11 +59,33 @@ std::vector<Pixel8> pixels(std::vector<T> const& values, C const converter)
 {
   using namespace std;
 
-  auto const max_value = *max_element(begin(values), end(values),
-                                      [](T const a, T const b) { return fabs(a) < fabs(b); });
+  if (values.empty()) {
+    throw runtime_error("empty values vector");
+  }
+
+  auto max_value = numeric_limits<T>::lowest();
+  auto min_value = numeric_limits<T>::max();
+  for (auto iter = begin(values); iter != end(values); ++iter) {
+    if (*iter != numeric_limits<T>::max()) {
+      max_value = max(max_value, *iter);
+      min_value = min(min_value, *iter);
+    }
+  }
+
   auto normalized_values = values;
   transform(begin(values), end(values), begin(normalized_values),
-            [=](auto const x) { return x / max_value; });
+    [=](auto const x) {
+      if (x == numeric_limits<T>::max()) {
+        return x;
+      }
+      if (x > T(0) && max_value > T(0)) {
+        return x / max_value;
+      }
+      if (x < T(0) && min_value < T(0)) {
+        return -(x / min_value);
+      }
+      return T(0);
+    });
 
   auto pixels = vector<Pixel8>(values.size());
   transform(begin(normalized_values), end(normalized_values), begin(pixels),
@@ -79,20 +101,21 @@ void writeGradMagImages(
 {
   using namespace std;
 
-  auto const pixel_from_distance = [](T const d) {
-    return d < T(0) ?
+  // Negative values in shades of blue, positive values in shades of red.
+  auto const pixel_from_value = [](T const x) {
+    return x < T(0) ?
       Pixel8(
         Pixel8::ChannelType(0),
         Pixel8::ChannelType(0),
         clamp<Pixel8::ChannelType>(
           T(0),
           T(numeric_limits<Pixel8::ChannelType>::max()),
-          numeric_limits<Pixel8::ChannelType>::max() * fabs(d))) :
+          numeric_limits<Pixel8::ChannelType>::max() * fabs(x))) :
       Pixel8(
         clamp<Pixel8::ChannelType>(
           T(0),
           T(numeric_limits<Pixel8::ChannelType>::max()),
-          numeric_limits<Pixel8::ChannelType>::max() * d),
+          numeric_limits<Pixel8::ChannelType>::max() * x),
         Pixel8::ChannelType(0),
         Pixel8::ChannelType(0));
   };
@@ -105,14 +128,13 @@ void writeGradMagImages(
     pixels(
       grad_mag_stats.input_buffer,
       [=](T const d) {
-        if (isnan(d)) {
-          // A pleasant shade of green for background, i.e. non-input pixels.
+        if (d == numeric_limits<T>::max()) {
           return Pixel8(
-            Pixel8::ChannelType(127),
-            Pixel8::ChannelType(200),
-            Pixel8::ChannelType(127));
+            Pixel8::ChannelType(128),
+            Pixel8::ChannelType(128),
+            Pixel8::ChannelType(128));
         }
-        return pixel_from_distance(d);
+        return pixel_from_value(d);
     }));
 
   stringstream ss_distance;
@@ -120,7 +142,7 @@ void writeGradMagImages(
   writePpm(
     ss_distance.str(),
     grad_mag_stats.grid_size[0], grad_mag_stats.grid_size[1],
-    pixels(grad_mag_stats.distance_buffer, pixel_from_distance));
+    pixels(grad_mag_stats.distance_buffer, pixel_from_value));
 
   stringstream ss_grad_mag;
   ss_grad_mag << prefix << "_" << typeid(T).name() << ".ppm";
@@ -138,6 +160,13 @@ void writeGradMagImages(
             T(numeric_limits<Pixel8::ChannelType>::max()),
             numeric_limits<Pixel8::ChannelType>::max() * v));
       }));
+
+  stringstream ss_error;
+  ss_error << prefix << "_error_" << typeid(T).name() << ".ppm";
+  writePpm(
+    ss_error.str(),
+    grad_mag_stats.grid_size[0], grad_mag_stats.grid_size[1],
+    pixels(grad_mag_stats.error_buffer, pixel_from_value));
 }
 
 template<typename T>
@@ -173,12 +202,11 @@ void writeDistStatImages(
     pixels(
       dist_stats.input_buffer,
       [=](T const d) {
-        if (isnan(d)) {
-          // A pleasant shade of green for background, i.e. non-input pixels.
+        if (d == numeric_limits<T>::max()) {
           return Pixel8(
-            Pixel8::ChannelType(127),
-            Pixel8::ChannelType(200),
-            Pixel8::ChannelType(127));
+            Pixel8::ChannelType(128),
+            Pixel8::ChannelType(128),
+            Pixel8::ChannelType(128));
         }
         return pixel_from_distance(d);
       }));
@@ -216,10 +244,10 @@ ostream& operator<<(
   thinks::fmm::test::GradientMagnitudeStats<T, N> const& grad_mag_stats)
 {
   os << "Gradient magnitude stats <" << typeid(T).name() << ", " << N << ">:" << endl
-    << "min: " << grad_mag_stats.min << endl
-    << "max: " << grad_mag_stats.max << endl
-    << "avg: " << grad_mag_stats.avg << endl
-    << "std_dev: " << grad_mag_stats.std_dev << endl
+    << "min abs error: " << grad_mag_stats.min_abs_error << endl
+    << "max abs error: " << grad_mag_stats.max_abs_error << endl
+    << "avg abs error: " << grad_mag_stats.avg_abs_error << endl
+    << "std_dev abs error: " << grad_mag_stats.std_dev_abs_error << endl
     << "duration: " << grad_mag_stats.duration_in_s << " [s]" << endl;
   return os;
 }
@@ -231,10 +259,10 @@ ostream& operator<<(
   thinks::fmm::test::DistanceValueStats<T, N> const& dist_stats)
 {
   os << "Distance value stats <" << typeid(T).name() << ", " << N << ">:" << endl
-    << "min error: " << dist_stats.min_error << endl
-    << "max error: " << dist_stats.max_error << endl
-    << "avg error: " << dist_stats.avg_error << endl
-    << "std_dev error: " << dist_stats.std_dev_error << endl
+    << "min abs error: " << dist_stats.min_abs_error << endl
+    << "max abs error: " << dist_stats.max_abs_error << endl
+    << "avg abs error: " << dist_stats.avg_abs_error << endl
+    << "std_dev abs error: " << dist_stats.std_dev_abs_error << endl
     << "duration: " << dist_stats.duration_in_s << " [s]" << endl;
   return os;
 }
@@ -261,7 +289,7 @@ int main(int argc, char* argv[])
       cout << grad_mag_stats2d << endl;
       writeGradMagImages<double>(grad_mag_stats2d, "unsigned_grad_mag");
 
-#if 1
+#if 0
       auto const grad_mag_stats3f = UnsignedGradientMagnitudeStats<float, 3>();
       cout << grad_mag_stats3f << endl;
       auto const grad_mag_stats3d = UnsignedGradientMagnitudeStats<double, 3>();

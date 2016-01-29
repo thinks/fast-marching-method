@@ -40,6 +40,7 @@ void conditionalCopyModified(
   }
 }
 
+
 template<typename InputIt, typename OutputIt, typename UnaryPredicate> inline
 void conditionalCopy(
   InputIt src_first,
@@ -63,7 +64,8 @@ template<std::size_t N> inline
 std::size_t linearSize(std::array<std::size_t, N> const& a)
 {
   using namespace std;
-  return accumulate(begin(a), end(a), 1, multiplies<size_t>());
+
+  return accumulate(begin(a), end(a), size_t{1}, multiplies<size_t>());
 }
 
 
@@ -78,6 +80,7 @@ template<typename T> inline constexpr
 T inverseSquared(T const x)
 {
   static_assert(std::is_floating_point<T>::value, "value must be floating point");
+
   return T(1) / squared(x);
 }
 
@@ -85,6 +88,7 @@ template<typename T, std::size_t N> inline
 std::array<T, N> inverseSquared(std::array<T, N> const& a)
 {
   using namespace std;
+
   array<T, N> r;
   transform(begin(a), end(a), begin(r),
             [](T const x) { return inverseSquared(x); });
@@ -95,6 +99,8 @@ std::array<T, N> inverseSquared(std::array<T, N> const& a)
 template<typename T, std::size_t N> inline
 T squaredMagnitude(std::array<T, N> const& v)
 {
+  using namespace std;
+
   auto sm = T(0);
   for (auto i = size_t{0}; i < N; ++i) {
     sm += v[i] * v[i];
@@ -255,8 +261,8 @@ private:
     // Cast is safe since we check that index[i] is greater than or
     // equal to zero first.
     assert(0 <= index[0] && static_cast<size_t>(index[0]) < size_[0]);
-    size_t k = index[0];
-    for (size_t i = 1; i < N; ++i) {
+    auto k = static_cast<size_t>(index[0]);
+    for (auto i = size_t{1}; i < N; ++i) {
       assert(0 <= index[i] && static_cast<size_t>(index[i]) < size_[i]);
       k += index[i] * strides_[i - 1];
     }
@@ -551,9 +557,11 @@ public:
     assert(inside(index, distance_grid.size()));
 
     auto q = array<T, 3>{{-inv_speed_squared_, T(0), T(0)}};
+    auto n = array<T, N>{};
+    fill(begin(n), end(n), numeric_limits<T>::max());
 
+    // Find the smallest frozen neighbor in each dimension.
     for (auto i = size_t{0}; i < N; ++i) {
-      auto min_frozen_neighbor_distance = numeric_limits<T>::max();
       for (auto j = size_t{0}; j < 2; ++j) {
         auto neighbor_index = index;
         for (auto k = size_t{0}; k < N; ++k) {
@@ -562,52 +570,52 @@ public:
 
         if (inside(neighbor_index, distance_grid.size()) &&
             state_grid.cell(neighbor_index) == CellState::Frozen) {
-#if 0
-          if (!(fabs(distance_grid.cell(neighbor_index)) <= fabs(distance_grid.cell(index)))) {
-            cerr << distance_grid.cell(neighbor_index) << " <= " << fabs(distance_grid.cell(index)) << endl;
-
-          }
-          assert(fabs(distance_grid.cell(neighbor_index)) <= fabs(distance_grid.cell(index)));
-#endif
-
-          min_frozen_neighbor_distance = min(
-            min_frozen_neighbor_distance,
-            distance_grid.cell(neighbor_index));
+          n[i] = min(n[i], distance_grid.cell(neighbor_index));
         }
       }
+    }
+    assert(*min_element(begin(n), end(n)) < numeric_limits<T>::max());
 
-      if (min_frozen_neighbor_distance < numeric_limits<T>::max()) {
-        q[0] += squared(min_frozen_neighbor_distance) * inv_dx_squared_[i];
-        q[1] += T(-2) * min_frozen_neighbor_distance * inv_dx_squared_[i];
+    for (auto i = size_t{0}; i < N; ++i) {
+      if (n[i] < numeric_limits<T>::max()) {
+        q[0] += squared(n[i]) * inv_dx_squared_[i];
+        q[1] -= T(2) * n[i] * inv_dx_squared_[i];
         q[2] += inv_dx_squared_[i];
       }
     }
 
     auto const r = solveQuadratic_(q);
-    assert(!isnan(r.first));
-    assert(r.first >= T(0));
-    return r.first;
+    assert(!isnan(r));
+    assert(r >= T(0));
+    assert(r >= *min_element(begin(n), end(n)));
+    return r;
   }
 
 private:
   //! Polynomial coefficients are equivalent to array index,
   //! i.e. Sum(coefficients[i] * x^i) = 0, for i in [0, 2]
   //!
-  //! Returns the real roots of the quadratic if any exist, otherwise NaN.
-  //! If there are two roots the larger one is the first of the pair.
+  //! Returns the largest real root of the quadratic.
   template<typename T> static inline
-  std::pair<T, T> solveQuadratic_(std::array<T, 3> const& coefficients)
+  T solveQuadratic_(std::array<T, 3> const& coefficients)
   {
     using namespace std;
 
     static_assert(is_floating_point<T>::value,
                   "quadratic coefficients must be floating point");
 
-    T const eps = T(1e-9);
+    assert(coefficients[2] > T(0));
+    //assert(coefficients[1] < T(0));
+    //assert(coefficients[0] > T(0));
 
     T const c = coefficients[0];
     T const b = coefficients[1];
     T const a = coefficients[2];
+
+    return (-b + std::sqrt((b * b - T(4) * a * c))) / (T(2) * a);
+
+#if 0
+    T const eps = T(1e-9);
 
     if (fabs(a) < eps) {
       if (fabs(b) < eps) {
@@ -638,6 +646,7 @@ private:
       (-b - discriminant) / (2 * a);  // b > 0
     T const r1 = c / (a * r0);
     return make_pair(max(r0, r1), min(r0, r1));
+#endif
   }
 
   std::array<T, N> const inv_dx_squared_;
@@ -908,6 +917,7 @@ void marchOutside(
 } // namespace detail
 
 
+//!
 template<typename T, std::size_t N> inline
 std::vector<T> unsignedDistance(
   std::array<std::size_t, N> const& size,
@@ -945,7 +955,7 @@ std::vector<T> unsignedDistance(
   auto state_grid = Grid<CellState, N>(size, state_buffer.front());
   auto distance_grid = Grid<DistanceType, N>(size, distance_buffer.front());
 
-  // Use the same distance grid for inside and outside since these regions
+  // Use the same distance grid for inside and outside since those regions
   // do not overlap.
   marchInside(
     eikonal_solver,
@@ -973,6 +983,24 @@ std::vector<T> unsignedDistance(
 }
 
 
+//! Compute the signed distance on a grid.
+//!
+//! Input:
+//!   size  - Number of grid cells in each dimension.
+//!   dx    - Grid cell physical size in each dimension.
+//!   speed - Interface speed, when set to one gives Euclidean distance.
+//!   frozen_indices   - Integer coordinates of cells with given distances.
+//!   frozen_distances - Signed distances assigned to frozen cells.
+//!   normals - Normals of frozen cells.
+//!
+//! Preconditions:
+//!   - size may not have a zero element.
+//!   - dx must have all positive elements.
+//!   - speed?
+//!   - frozen_indices, frozen_distances and normals must have the same size.
+//!   - frozen_indices must all be within size.
+//!   - normals must be non-zero vectors.
+//!
 template<typename T, std::size_t N>
 std::vector<T> signedDistance(
   std::array<std::size_t, N> const& size,
