@@ -7,11 +7,9 @@ why is it useful?
 references for further reading
 
 ## Design
+The entire code base in this repository resides within a single header file (exluding test code). This makes it very easy to add as a dependency in existing projects. Further, the code has no external dependencies other than the standard C++ libraries. This means that all interfaces use standard types, such as `std::array` and `std::vector`. As mentioned earlier robustness and correctness have been prioritized over speed. A set of test functionality is provided in this repository, but is of course not needed to run the FMM code. Testing and verification of correctness are discussed in more detail below.
 
-
-single header file
-prefer robustness and correctness over speed.
-numerical and visual testing
+## Usage
 
 ## Testing and Verification
 ![hello world](https://github.com/thinks/fast-marching-method/blob/master/test/img/unsigned_grad_mag_float.png?raw=true "grad mag")
