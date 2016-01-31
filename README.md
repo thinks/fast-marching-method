@@ -7,7 +7,7 @@ why is it useful?
 references for further reading
 
 ## Design
-The entire code base in this repository resides within a single header file (exluding test code). This makes it very easy to add as a dependency in existing projects. Further, the code has no external dependencies other than the standard C++ libraries. This means that all interfaces use standard types, such as `std::array` and `std::vector`. As mentioned earlier robustness and correctness have been prioritized over speed. A set of test functionality is provided in this repository, but is of course not needed to run the FMM code. Testing and verification of correctness are discussed in more detail below.
+The FMM implementation in this repository is in a [single header file](https://github.com/thinks/fast-marching-method/blob/master/include/thinks/fastMarchingMethod.hpp). This makes it very easy to add as a dependency to existing projects. Further, the code has no external dependencies other than the standard C++ libraries. All interfaces use standard types, such as `std::array` and `std::vector`. As mentioned earlier robustness and correctness have been prioritized over speed. Besides the FMM implmentation, a some tests are provided in this repository in the [test folder](https://github.com/thinks/fast-marching-method/tree/master/test). The test code is of course not required to use the implementation, but demonstrates the correctness of the implementation. Also, if changes are made in a cloned repository extending the tests to cover new features or bug fixes becomes possible. Feel free to make a pull request with any type of improvements! Testing and verification of correctness are discussed in more detail below.
 
 ## Usage
 
