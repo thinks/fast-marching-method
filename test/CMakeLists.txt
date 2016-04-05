@@ -8,19 +8,12 @@ ENDIF()
 MESSAGE(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 # Project Compiler Flags
-#ADD_DEFINITIONS(-Wall -Wextra)
-
-SET(fmm_HEADERS
-)
-
-SET(fmm_SOURCES
-  main.cpp
-)
+# ADD_DEFINITIONS(-Wall)
 
 INCLUDE_DIRECTORIES(
+  ../../ppm-io/include
   ../include
   include)
 
 ADD_EXECUTABLE(fmm
-  ${fmm_SOURCES}
-  ${fmm_HEADERS})
+  main.cpp)

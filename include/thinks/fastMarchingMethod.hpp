@@ -59,7 +59,7 @@ void conditionalCopy(
 
 
 //! Returns the product of the elements in array @a a.
-//! Note: Not checking for overflow here!
+//! Note: Not checking for integer overflow here!
 template<std::size_t N> inline
 std::size_t linearSize(std::array<std::size_t, N> const& a)
 {

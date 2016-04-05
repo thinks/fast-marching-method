@@ -76,6 +76,14 @@ private:
 
 namespace detail {
 
+
+template<typename T> inline
+std::vector<std::array<T, 2>> marchingSquares()
+{
+
+}
+
+
 //! Returns 2^n as a compile-time constant.
 constexpr std::size_t pow2(std::size_t const n)
 {
@@ -202,6 +210,8 @@ std::array<T, N> rayHyperSphereIntersection(
   std::array<T, N> const& center,
   T const radius)
 {
+  using namespace std;
+
   auto const p = sub(rayOrigin, center);
   auto const a = dot(rayDirection, rayDirection);
   auto const b = T(2) * dot(rayDirection, p);
@@ -209,17 +219,21 @@ std::array<T, N> rayHyperSphereIntersection(
 
   auto const q = solveQuadratic(a, b, c);
 
-  if (q[0] < T(0)) {
-    // Ray origin inside hypersphere.
-
-
+  if (any_of(begin(q), end(q), [](auto const x) { return isnan(x); })) {
+    // No intersection.
+    return filledArray<T, N>(numeric_limits<T>::quiet_NaN());
   }
 
-  Vec3f L = orig - center;
-          float a = dir.dotProduct(dir);
-          float b = 2 * dir.dotProduct(L);
-          float c = L.dotProduct(L) - radius2;
-          if (!solveQuadratic(a, b, c, t0, t1)) return false;
+  if (q[0] < T(0)) {
+    if (q[1] < T(0)) {
+      // Both intersections behind ray origin.
+      return filledArray<T, N>(numeric_limits<T>::quiet_NaN());
+    }
+
+    return add(rayOrigin, mult(q[1], rayDirection));
+  }
+
+  return add(rayOrigin, mult(q[0], rayDirection));
 }
 
 
@@ -617,7 +631,7 @@ struct GradientMagnitudeStats
 
 
 template<typename T, std::size_t N> inline
-GradientMagnitudeStats<T, N> UnsignedGradientMagnitudeStats()
+GradientMagnitudeStats<T, N> unsignedGradientMagnitudeStats()
 {
   using namespace std;
   using namespace detail;
@@ -686,7 +700,7 @@ GradientMagnitudeStats<T, N> UnsignedGradientMagnitudeStats()
 
 
 template<typename T, std::size_t N> inline
-GradientMagnitudeStats<T, N> SignedGradientMagnitudeStats()
+GradientMagnitudeStats<T, N> signedGradientMagnitudeStats()
 {
   using namespace std;
   using namespace detail;
@@ -773,7 +787,7 @@ struct DistanceValueStats
 
 
 template<typename T, std::size_t N> inline
-DistanceValueStats<T, N> UnsignedDistanceValueStats()
+DistanceValueStats<T, N> unsignedDistanceValueStats()
 {
   using namespace std;
   using namespace detail;
@@ -835,7 +849,7 @@ DistanceValueStats<T, N> UnsignedDistanceValueStats()
 
 
 template<typename T, std::size_t N> inline
-DistanceValueStats<T, N> SignedDistanceValueStats()
+DistanceValueStats<T, N> signedDistanceValueStats()
 {
   using namespace std;
   using namespace detail;
