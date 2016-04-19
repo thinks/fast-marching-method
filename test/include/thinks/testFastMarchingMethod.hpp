@@ -76,14 +76,6 @@ private:
 
 namespace detail {
 
-
-template<typename T> inline
-std::vector<std::array<T, 2>> marchingSquares()
-{
-
-}
-
-
 //! Returns 2^n as a compile-time constant.
 constexpr std::size_t pow2(std::size_t const n)
 {
@@ -654,14 +646,18 @@ GradientMagnitudeStats<T, N> unsignedGradientMagnitudeStats()
     &frozen_distances,
     &normals);
 
+  // TMP!!
+  for (auto iter = begin(frozen_distances); iter != end(frozen_distances); ++iter) {
+    *iter = fabs(*iter);
+  }
+
   auto const start_time = chrono::system_clock::now();
   auto distance_buffer = unsignedDistance<T, N>(
     grid_size,
     voxel_size,
     speed,
     frozen_indices,
-    frozen_distances,
-    normals);
+    frozen_distances);
   auto const end_time = chrono::system_clock::now();
 
   auto const input_buffer = inputBuffer(
@@ -682,8 +678,6 @@ GradientMagnitudeStats<T, N> unsignedGradientMagnitudeStats()
       [](array<T, N> const& g) { return magnitude(g); }),
     ground_truth_buffer);
   auto stats = errorStats(error_buffer);
-  cerr << "min error: " << *min_element(begin(error_buffer), end(error_buffer)) << endl;
-  cerr << "max error: " << *max_element(begin(error_buffer), end(error_buffer)) << endl;
 
   return GradientMagnitudeStats<T, N>{
     stats.min_abs_error,
@@ -729,8 +723,7 @@ GradientMagnitudeStats<T, N> signedGradientMagnitudeStats()
     voxel_size,
     speed,
     frozen_indices,
-    frozen_distances,
-    normals);
+    frozen_distances);
   auto const end_time = chrono::system_clock::now();
 
   auto const input_buffer = inputBuffer(
@@ -813,14 +806,18 @@ DistanceValueStats<T, N> unsignedDistanceValueStats()
     &distance_ground_truth_buffer,
     [](auto const d) { return fabs(d); });
 
+  // TMP!!
+  for (auto iter = begin(frozen_distances); iter != end(frozen_distances); ++iter) {
+    *iter = fabs(*iter);
+  }
+
   auto const start_time = chrono::system_clock::now();
   auto distance_buffer = unsignedDistance<T, N>(
     grid_size,
     voxel_size,
     speed,
     frozen_indices,
-    frozen_distances,
-    normals);
+    frozen_distances);
   auto const end_time = chrono::system_clock::now();
 
   auto const input_buffer = inputBuffer(
@@ -880,8 +877,7 @@ DistanceValueStats<T, N> signedDistanceValueStats()
     voxel_size,
     speed,
     frozen_indices,
-    frozen_distances,
-    normals);
+    frozen_distances);
   auto const end_time = chrono::system_clock::now();
 
   auto const input_buffer = inputBuffer(
@@ -907,6 +903,49 @@ DistanceValueStats<T, N> signedDistanceValueStats()
     distance_ground_truth_buffer,
     error_buffer};
 }
+
+
+#if 1
+template<typename T, std::size_t N> inline
+DistanceValueStats<T, N> unsignedNegativeCenter()
+{
+  using namespace std;
+  using namespace detail;
+
+  auto const grid_size = filledArray<N>(size_t{100});
+  auto const voxel_size = filledArray<N>(T(0.01));
+  auto const speed = T(1);
+
+  auto frozen_indices = vector<array<int32_t, N>>();
+  frozen_indices.push_back({{0, 1}});
+  frozen_indices.push_back({{2, 1}});
+  frozen_indices.push_back({{1, 0}});
+  frozen_indices.push_back({{1, 2}});
+  auto frozen_distances = vector<T>();
+  frozen_distances.push_back(T(0));
+  frozen_distances.push_back(T(100));
+  frozen_distances.push_back(T(0));
+  frozen_distances.push_back(T(100));
+  auto distance_buffer = unsignedDistance<T, N>(
+    grid_size,
+    voxel_size,
+    speed,
+    frozen_indices,
+    frozen_distances);
+
+  return DistanceValueStats<T, N>{
+    numeric_limits<double>::quiet_NaN(),
+    numeric_limits<double>::quiet_NaN(),
+    numeric_limits<double>::quiet_NaN(),
+    numeric_limits<double>::quiet_NaN(),
+    numeric_limits<double>::quiet_NaN(),
+    grid_size,
+    distance_buffer, // HACK
+    distance_buffer,
+    distance_buffer, // HACK
+    distance_buffer};// HACK
+}
+#endif
 
 } // namespace test
 } // namespace fmm

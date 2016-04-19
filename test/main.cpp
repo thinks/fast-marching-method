@@ -84,7 +84,8 @@ std::vector<std::uint8_t> pixelsFromValues(
 
   auto pixels = vector<uint8_t>();
   for (auto iter = in_begin; iter != in_end; ++iter) {
-    auto const pixel = pixel_from_value(*iter);
+    auto const value = *iter;
+    auto const pixel = pixel_from_value(value);
     pixels.insert(end(pixels), begin(pixel), end(pixel));
   }
   return pixels;
@@ -324,6 +325,7 @@ int main(int argc, char* argv[])
   using namespace std;
   using namespace thinks::fmm;
 
+  auto success = true;
   try {
     {
       cout << "Unsigned distance" << endl
@@ -345,6 +347,11 @@ int main(int argc, char* argv[])
       auto const dist_stats2d = test::unsignedDistanceValueStats<double, 2>();
       cout << dist_stats2d << endl;
       writeDistStatImages<double>(dist_stats2d, "unsigned_dist_stat");
+
+
+      //auto const negative_center2f = test::unsignedNegativeCenter<float, 2>();
+      //cout << negative_center2f << endl;
+      //writeDistStatImages<float>(negative_center2f, "negative_center");
 #endif
 
 #if 0
@@ -420,9 +427,9 @@ int main(int argc, char* argv[])
     }
   }
   catch (exception& ex) {
-    cerr << "Exception: " << ex.what() << endl;
-    return EXIT_FAILURE;
+    cerr << "Unhandled exception: " << ex.what() << endl;
+    success = false;
   }
 
-  return EXIT_SUCCESS;
+  return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
