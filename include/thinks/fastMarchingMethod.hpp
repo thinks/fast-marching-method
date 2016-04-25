@@ -24,42 +24,6 @@ namespace thinks {
 namespace fmm {
 namespace detail {
 
-template<typename InputIt, typename OutputIt,
-         typename UnaryPredicate, typename Modifier> inline
-void conditionalCopyModified(
-  InputIt src_first,
-  InputIt src_last,
-  OutputIt dst_first,
-  UnaryPredicate pred,
-  Modifier mod)
-{
-  while (src_first != src_last) {
-    if (pred(*src_first)) {
-      *dst_first = mod(*src_first);
-    }
-    ++dst_first;
-    ++src_first;
-  }
-}
-
-
-template<typename InputIt, typename OutputIt, typename UnaryPredicate> inline
-void conditionalCopy(
-  InputIt src_first,
-  InputIt src_last,
-  OutputIt dst_first,
-  UnaryPredicate pred)
-{
-  while (src_first != src_last) {
-    if (pred(*src_first)) {
-      *dst_first = *src_first;
-    }
-    ++dst_first;
-    ++src_first;
-  }
-}
-
-
 //! Returns the product of the elements in array @a a.
 //! Note: Not checking for integer overflow here!
 template<std::size_t N> inline
@@ -81,7 +45,9 @@ T Squared(T const x)
 template<typename T> inline constexpr
 T InverseSquared(T const x)
 {
-  static_assert(std::is_floating_point<T>::value, "value must be floating point");
+  using namespace std;
+
+  static_assert(is_floating_point<T>::value, "value must be floating point");
 
   return T(1) / Squared(x);
 }
@@ -91,7 +57,7 @@ std::array<T, N> InverseSquared(std::array<T, N> const& a)
 {
   using namespace std;
 
-  array<T, N> r;
+  auto r = array<T, N>();
   transform(begin(a), end(a), begin(r),
             [](T const x) { return InverseSquared(x); });
   return r;
@@ -103,7 +69,7 @@ T SquaredMagnitude(std::array<T, N> const& v)
 {
   using namespace std;
 
-  auto sm = T(0);
+  auto sm = T{0};
   for (auto i = size_t{0}; i < N; ++i) {
     sm += v[i] * v[i];
   }
@@ -118,7 +84,7 @@ bool Inside(
 {
   using namespace std;
 
-  for (size_t i = 0; i < N; ++i) {
+  for (auto i = size_t{0}; i < N; ++i) {
     // Cast is safe since we check that index[i] is greater than or
     // equal to zero first.
     if (!(0 <= index[i] && static_cast<size_t>(index[i]) < size[i])) {
@@ -158,7 +124,7 @@ void ThrowIfInvalidSpeed(T const speed)
 {
   using namespace std;
 
-  if (speed <= T(0)) {
+  if (isnan(speed) || speed <= T(0)) {
     auto ss = stringstream();
     ss << "invalid speed: " << speed;
     throw runtime_error(ss.str());
@@ -216,12 +182,19 @@ void ThrowIfDuplicateIndices(
 {
   using namespace std;
 
-  auto index_buffer = vector<uint8_t>(LinearSize(grid_size), 0);
-  auto index_grid = Grid<uint8_t, N>(grid_size, index_buffer.front());
+  enum class IndexCell : uint8_t {
+    kBackground = uint8_t{0},
+    kForeground
+  };
+
+  auto index_buffer =
+    vector<IndexCell>(LinearSize(grid_size), IndexCell::kBackground);
+  auto index_grid =
+    Grid<IndexCell, N>(grid_size, index_buffer.front());
 
   for (auto const& index : indices) {
-    auto& cell = index_grid.cell(index);
-    if (cell == 1) {
+    auto& cell = index_grid.Cell(index);
+    if (cell == IndexCell::kForeground) {
       auto ss = stringstream();
       ss << "duplicate index: [";
       for (auto i = size_t{0}; i < N; ++i) {
@@ -233,7 +206,7 @@ void ThrowIfDuplicateIndices(
       ss << "]";
       throw runtime_error(ss.str());
     }
-    cell = 1;
+    cell = IndexCell::kForeground;
   }
 }
 
@@ -248,6 +221,7 @@ void ThrowIfWholeGridFrozen(
     throw std::runtime_error("whole grid frozen");
   }
 }
+
 
 template<typename T, typename U> inline
 void ThrowIfInvalidDistance(std::vector<T> const& distances, U const unary_pred)
@@ -264,19 +238,23 @@ void ThrowIfInvalidDistance(std::vector<T> const& distances, U const unary_pred)
 }
 
 
+//! A grid allows accessing a linear array as if it where a higher dimensional
+//! object.
 template<typename T, std::size_t N>
 class Grid
 {
 public:
-  typedef T cell_type;
-  typedef std::array<std::size_t, N> size_type;
-  typedef std::array<std::int32_t, N> index_type;
+  typedef T CellType;
+  typedef std::array<std::size_t, N> SizeType;
+  typedef std::array<std::int32_t, N> IndexType;
 
-  Grid(size_type const& size, T& cells)
+  Grid(SizeType const& size, T& cells)
     : size_(size)
     , cells_(&cells)
   {
     using namespace std;
+
+    assert(LinearSize(size) > size_t{0});
 
     auto stride = size_t{1};
     for (auto i = size_t{1}; i < N; ++i) {
@@ -285,28 +263,28 @@ public:
     }
   }
 
-  size_type size() const
+  SizeType size() const
   {
     return size_;
   }
 
   //! Returns a reference to the cell at @a index. No range checking!
-  cell_type& cell(index_type const& index)
+  CellType& Cell(IndexType const& index)
   {
-    return cells_[linearIndex_(index)];
+    return cells_[LinearIndex_(index)];
   }
 
   //! Returns a const reference to the cell at @a index. No range checking!
-  cell_type const& cell(index_type const& index) const
+  CellType const& Cell(IndexType const& index) const
   {
-    return cells_[linearIndex_(index)];
+    return cells_[LinearIndex_(index)];
   }
 
 private:
   //! Returns a linear (scalar) index into an array representing an
   //! N-dimensional grid for integer coordinate @a index.
   //! Note that this function does not check for integer overflow!
-  std::size_t linearIndex_(index_type const& index) const
+  std::size_t LinearIndex_(IndexType const& index) const
   {
     using namespace std;
 
@@ -323,7 +301,7 @@ private:
 
   std::array<std::size_t, N> const size_;
   std::array<std::size_t, N - 1> strides_;
-  cell_type* const cells_;
+  CellType* const cells_;
 };
 
 
@@ -331,9 +309,9 @@ template<typename T, std::size_t N>
 class NarrowBandStore
 {
 public:
-  typedef T distance_type;
-  typedef std::array<std::int32_t, N> index_type;
-  typedef std::pair<distance_type, index_type> value_type;
+  typedef T DistanceType;
+  typedef std::array<std::int32_t, N> IndexType;
+  typedef std::pair<DistanceType, IndexType> ValueType;
 
   NarrowBandStore()
   {}
@@ -345,7 +323,7 @@ public:
   }
 
   // O(log N)
-  value_type pop()
+  ValueType Pop()
   {
     if (empty()) {
       throw std::runtime_error("cannot pop empty narrow band store");
@@ -355,70 +333,78 @@ public:
     auto const value = *values_.begin();
 
     // Place value from leaf level on top.
-    swap_(0, values_.size() - 1);
+    Swap_(0, values_.size() - 1);
     index_to_pos_.erase(value.second); // ~O(1), depends on hashing.
     values_.pop_back(); // O(1)
     assert(values_.size() == index_to_pos_.size());
 
     // Sift the new top value downwards to restore heap constraints.
     if (!empty()) {
-      sift_down_(0);
+      SiftDown_(0);
     }
 
     return value;
   }
 
-  void insert(value_type const& value)
+  void Insert(ValueType const& value)
   {
+    using namespace std;
+
     if (index_to_pos_.find(value.second) != index_to_pos_.end()) {
-      throw std::runtime_error("index must be unique");
+      throw runtime_error("cannot insert existing index in narrow band store");
     }
 
     // Insert value at leaf level and sift it upwards.
     auto const pos = values_.size();
     values_.push_back(value);
     index_to_pos_.insert({value.second, pos});
-    sift_up_(pos);
+    SiftUp_(pos);
   }
 
-  void increase_distance(index_type const& index,
-                         distance_type const new_distance)
+  void IncreaseDistance(
+    IndexType const& index,
+    DistanceType const new_distance)
   {
+    using namespace std;
+
     auto const pos_iter = index_to_pos_.find(index);
     if (pos_iter == index_to_pos_.end()) {
-      throw std::runtime_error("index not found");
+      throw runtime_error("index not found");
     }
 
     auto& value = values_[pos_iter->second];
     if (new_distance <= value.first) {
-      throw std::runtime_error("new distance must be greater than existing distance");
+      throw runtime_error("new distance must be greater than existing distance");
     }
 
     value.first = new_distance;
-    sift_down_(pos_iter->second);
+    SiftDown_(pos_iter->second);
   }
 
-  void decrease_distance(index_type const& index,
-                         distance_type const new_distance)
+  void DecreaseDistance(
+    IndexType const& index,
+    DistanceType const new_distance)
   {
+    using namespace std;
+
     auto const pos_iter = index_to_pos_.find(index);
     if (pos_iter == index_to_pos_.end()) {
-      throw std::runtime_error("index not found");
+      throw runtime_error("index not found");
     }
 
     auto& value = values_[pos_iter->second];
     if (new_distance >= value.first) {
-      throw std::runtime_error("new distance must be less than existing distance");
+      throw runtime_error("new distance must be less than existing distance");
     }
 
     value.first = new_distance;
-    sift_up_(pos_iter->second);
+    SiftUp_(pos_iter->second);
   }
 
 private:
-  typedef typename std::vector<value_type>::size_type size_type_;
+  typedef typename std::vector<ValueType>::size_type SizeType_;
 
-  void sift_up_(size_type_ const pos)
+  void SiftUp_(SizeType_ const pos)
   {
     assert(pos < values_.size());
     if (pos == 0) {
@@ -431,12 +417,12 @@ private:
     auto& pos_value = values_[pos].first;
     auto& parent_value = values_[parent_pos].first;
     if (pos_value < parent_value) {
-      swap_(pos, parent_pos);
-      sift_up_(parent_pos); // Recursive!
+      Swap_(pos, parent_pos);
+      SiftUp_(parent_pos); // Recursive!
     }
   }
 
-  void sift_down_(size_type_ const pos)
+  void SiftDown_(SizeType_ const pos)
   {
     assert(pos < values_.size());
     auto const left_pos = left_child_pos_(pos);
@@ -470,28 +456,28 @@ private:
     // Swap with the child that has the smaller distance value,
     // if any of the child distance values is smaller than the current distance.
     if (min_pos != pos) {
-      swap_(min_pos, pos);
-      sift_down_(min_pos); // Recursive!
+      Swap_(min_pos, pos);
+      SiftDown_(min_pos); // Recursive!
     }
   }
 
-  static size_type_ parent_pos_(size_type_ const child_pos)
+  static SizeType_ parent_pos_(SizeType_ const child_pos)
   {
     assert(child_pos > 0);
     return (child_pos - 1) / 2;
   }
 
-  static size_type_ left_child_pos_(size_type_ const parent_pos)
+  static SizeType_ left_child_pos_(SizeType_ const parent_pos)
   {
     return 2 * parent_pos + 1;
   }
 
-  static size_type_ right_child_pos_(size_type_ const parent_pos)
+  static SizeType_ right_child_pos_(SizeType_ const parent_pos)
   {
     return 2 * parent_pos + 2;
   }
 
-  void swap_(size_type_ const pos0, size_type_ const pos1)
+  void Swap_(SizeType_ const pos0, SizeType_ const pos1)
   {
     assert(pos0 < values_.size());
     assert(pos1 < values_.size());
@@ -505,38 +491,39 @@ private:
   }
 
   template<typename V, typename H> static inline
-  void hashCombine_(V const& v, H const& hasher, std::size_t& seed)
+  void hash_combine_(V const& v, H const& hasher, std::size_t& seed)
   {
     seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
   }
 
-  struct hash_type_
+  struct HashType_
   {
-    typedef index_type argument_type;
-    typedef size_t result_type;
+    typedef IndexType ArgumentType;
+    typedef size_t ResultType;
 
-    result_type operator()(argument_type const& a) const
+    ResultType operator()(ArgumentType const& a) const
     {
       using namespace std;
 
-      typedef typename argument_type::value_type value_type;
-      hash<value_type> hasher;
-      size_t seed = 0;
+      typedef typename ArgumentType::value_type ValueType;
+
+      hash<ValueType> hasher;
+      auto seed = size_t{0};
       for (auto i = size_t{0}; i < N; ++i) {
-        hashCombine_(a[i], hasher, seed);
+        hash_combine_(a[i], hasher, seed);
       }
       return seed;
     }
   };
 
-  struct equal_type_
+  struct EqualType_
   {
-    typedef bool result_type;
-    typedef index_type first_argument_type;
-    typedef index_type second_argument_type;
+    typedef bool ResultType;
+    typedef IndexType FirstArgumentType;
+    typedef IndexType SecondArgumentType;
 
-    result_type operator()(first_argument_type const& lhs,
-                           second_argument_type const& rhs) const
+    ResultType operator()(FirstArgumentType const& lhs,
+                          SecondArgumentType const& rhs) const
     {
       for (auto i = size_t{0}; i < N; ++i) {
         if (lhs[i] != rhs[i]) {
@@ -547,17 +534,16 @@ private:
     }
   };
 
-  std::vector<value_type> values_;
-  std::unordered_map<index_type, size_type_,
-                     hash_type_, equal_type_> index_to_pos_;
+  std::vector<ValueType> values_;
+  std::unordered_map<IndexType, SizeType_, HashType_, EqualType_> index_to_pos_;
 };
 
 
-enum class CellState
+enum class MarchingCellState
 {
-  Far = 0,
-  NarrowBand,
-  Frozen
+  kFar = 0,
+  kNarrowBand,
+  kFrozen
 };
 
 
@@ -575,13 +561,13 @@ public:
   T solve(
     std::array<std::int32_t, N> const& index,
     Grid<T, N> const& distance_grid,
-    Grid<CellState, N> const& state_grid) const
+    Grid<MarchingCellState, N> const& state_grid) const
   {
     using namespace std;
 
     static const auto neighbor_offsets = array<int32_t, 2>{{-1, 1}};
 
-    assert(state_grid.cell(index) != CellState::Frozen);
+    assert(state_grid.Cell(index) != MarchingCellState::kFrozen);
     assert(Inside(index, distance_grid.size()));
 
     auto q = array<T, 3>{{-inv_speed_squared_, T(0), T(0)}};
@@ -595,8 +581,8 @@ public:
         neighbor_index[i] += neighbor_offset;
 
         if (Inside(neighbor_index, distance_grid.size()) &&
-            state_grid.cell(neighbor_index) == CellState::Frozen) {
-          n[i] = min(n[i], distance_grid.cell(neighbor_index));
+            state_grid.Cell(neighbor_index) == MarchingCellState::kFrozen) {
+          n[i] = min(n[i], distance_grid.Cell(neighbor_index));
         }
       }
     }
@@ -743,17 +729,17 @@ void ConnectedComponents(
 
   for (auto const& index : indices) {
     assert(Inside(index, label_grid.size()));
-    label_grid.cell(index) = LabelCell::kForeground;
+    label_grid.Cell(index) = LabelCell::kForeground;
   }
 
   for (auto const& index : indices) {
     assert(Inside(index, label_grid.size()));
-    assert(label_grid.cell(index) == LabelCell::kForeground ||
-           label_grid.cell(index) == LabelCell::kLabelled);
+    assert(label_grid.Cell(index) == LabelCell::kForeground ||
+           label_grid.Cell(index) == LabelCell::kLabelled);
     // Check if this index has been labelled already.
-    if (label_grid.cell(index) == LabelCell::kForeground) {
+    if (label_grid.Cell(index) == LabelCell::kForeground) {
       // Start a new component.
-      label_grid.cell(index) = LabelCell::kLabelled;
+      label_grid.Cell(index) = LabelCell::kLabelled;
       auto component = vector<array<int32_t, N>>();
       component.push_back(index);
       auto lifo = stack<array<int32_t, N>>();
@@ -771,8 +757,8 @@ void ConnectedComponents(
           }
 
           if (Inside(neighbor_index, label_grid.size()) &&
-              label_grid.cell(neighbor_index) == LabelCell::kForeground) {
-            label_grid.cell(neighbor_index) = LabelCell::kLabelled;
+              label_grid.Cell(neighbor_index) == LabelCell::kForeground) {
+            label_grid.Cell(neighbor_index) = LabelCell::kLabelled;
             component.push_back(neighbor_index);
             lifo.push(neighbor_index);
           }
@@ -822,7 +808,7 @@ void DilationBands(
     auto dilation_index = index;
     for_each(begin(dilation_index), end(dilation_index),
              [](auto& d) { d += int32_t{1}; });
-    dilation_grid.cell(dilation_index) = DilationCell::kForeground;
+    dilation_grid.Cell(dilation_index) = DilationCell::kForeground;
   }
 
   // Add dilated cell indices.
@@ -833,7 +819,7 @@ void DilationBands(
     auto dilation_index = grid_index;
     for_each(begin(dilation_index), end(dilation_index),
              [](auto& d) { d += int32_t{1}; });
-    assert(dilation_grid.cell(dilation_index) == DilationCell::kForeground);
+    assert(dilation_grid.Cell(dilation_index) == DilationCell::kForeground);
 
     for (auto const dilation_neighbor_offset : dilation_neighbor_offsets) {
       auto neighbor_index = dilation_index;
@@ -841,8 +827,8 @@ void DilationBands(
         neighbor_index[i] += dilation_neighbor_offset[i];
       }
 
-      if (dilation_grid.cell(neighbor_index) == DilationCell::kBackground) {
-        dilation_grid.cell(neighbor_index) = DilationCell::kDilated;
+      if (dilation_grid.Cell(neighbor_index) == DilationCell::kBackground) {
+        dilation_grid.Cell(neighbor_index) = DilationCell::kDilated;
         dilation_indices.push_back(neighbor_index);
       }
     }
@@ -958,11 +944,12 @@ void InitialUnsignedNarrowBand(
   // Set frozen cells.
   for (auto const& frozen_index : frozen_indices) {
     assert(Inside(frozen_index, narrow_band_grid.size()));
-    narrow_band_grid.cell(frozen_index) = NarrowBandCell::kFrozen;
+    narrow_band_grid.Cell(frozen_index) = NarrowBandCell::kFrozen;
   }
 
-  // Find face neighbors of frozen cells.
-  const auto kNeighborOffsets = array<int32_t, 2>{{-1, 1}};
+  // Find face neighbors of frozen cells, which then become
+  // the initial narrow band.
+  auto const kNeighborOffsets = array<int32_t, 2>{{-1, 1}};
   for (auto const& frozen_index : frozen_indices) {
     for (auto i = size_t{0}; i < N; ++i) {
       for (auto const neighbor_offset : kNeighborOffsets) {
@@ -970,9 +957,9 @@ void InitialUnsignedNarrowBand(
         neighbor_index[i] += neighbor_offset;
 
         if (Inside(neighbor_index, narrow_band_grid.size())) {
-          auto& narrow_band_cell = narrow_band_grid.cell(neighbor_index);
-          if (narrow_band_cell == NarrowBandCell::kBackground) {
-            narrow_band_cell = NarrowBandCell::kNarrowBand;
+          auto& neighbor_cell = narrow_band_grid.Cell(neighbor_index);
+          if (neighbor_cell == NarrowBandCell::kBackground) {
+            neighbor_cell = NarrowBandCell::kNarrowBand;
             narrow_band_indices->push_back(neighbor_index);
           }
         }
@@ -1039,7 +1026,7 @@ void InitialSignedNarrowBands(
   // Set frozen cells.
   for (auto const& frozen_index : frozen_indices) {
     assert(Inside(frozen_index, narrow_band_grid.size()));
-    narrow_band_grid.cell(frozen_index) = NarrowBandCell::kFrozen;
+    narrow_band_grid.Cell(frozen_index) = NarrowBandCell::kFrozen;
   }
 
   for (auto const& connected_component : connected_components) {
@@ -1076,8 +1063,8 @@ void InitialSignedNarrowBands(
         dilation_bands[dilation_band_areas[0].first];
       for (auto const& dilation_index : outer_dilation_band) {
         assert(Inside(dilation_index, narrow_band_grid.size()));
-        assert(narrow_band_grid.cell(dilation_index) != NarrowBandCell::kFrozen);
-        if (narrow_band_grid.cell(dilation_index) == NarrowBandCell::kBackground) {
+        assert(narrow_band_grid.Cell(dilation_index) != NarrowBandCell::kFrozen);
+        if (narrow_band_grid.Cell(dilation_index) == NarrowBandCell::kBackground) {
           auto i = size_t{0};
           auto frozen_neighbor_found = false;
           while (i < N && !frozen_neighbor_found) {
@@ -1085,9 +1072,9 @@ void InitialSignedNarrowBands(
             while (j < kNeighborOffsets.size() && !frozen_neighbor_found) {
               auto neighbor_index = dilation_index;
               neighbor_index[i] += kNeighborOffsets[j];
-              if (narrow_band_grid.cell(neighbor_index) == NarrowBandCell::kFrozen) {
+              if (narrow_band_grid.Cell(neighbor_index) == NarrowBandCell::kFrozen) {
                 frozen_neighbor_found = true;
-                narrow_band_grid.cell(dilation_index) = NarrowBandCell::kNarrowBand;
+                narrow_band_grid.Cell(dilation_index) = NarrowBandCell::kNarrowBand;
                 outside_narrow_band_indices->push_back(dilation_index);
               }
               ++j;
@@ -1103,7 +1090,7 @@ void InitialSignedNarrowBands(
           dilation_bands[dilation_band_areas[k].first];
         for (auto const& dilation_index : inner_dilation_band) {
           assert(Inside(dilation_index, narrow_band_grid.size()));
-          assert(narrow_band_grid.cell(dilation_index) == NarrowBandCell::kBackground);
+          assert(narrow_band_grid.Cell(dilation_index) == NarrowBandCell::kBackground);
           auto i = size_t{0};
           auto frozen_neighbor_found = false;
           while (i < N && !frozen_neighbor_found) {
@@ -1111,9 +1098,9 @@ void InitialSignedNarrowBands(
             while (j < kNeighborOffsets.size() && !frozen_neighbor_found) {
               auto neighbor_index = dilation_index;
               neighbor_index[i] += kNeighborOffsets[j];
-              if (narrow_band_grid.cell(neighbor_index) == NarrowBandCell::kFrozen) {
+              if (narrow_band_grid.Cell(neighbor_index) == NarrowBandCell::kFrozen) {
                 frozen_neighbor_found = true;
-                narrow_band_grid.cell(dilation_index) = NarrowBandCell::kNarrowBand;
+                narrow_band_grid.Cell(dilation_index) = NarrowBandCell::kNarrowBand;
                 inside_narrow_band_indices->push_back(dilation_index);
               }
               ++j;
@@ -1134,7 +1121,7 @@ void InitializeFrozenCells(
   std::vector<T> const& frozen_distances,
   T const multiplier,
   Grid<T, N>* const distance_grid,
-  Grid<CellState, N>* const state_grid)
+  Grid<MarchingCellState, N>* const state_grid)
 {
   using namespace std;
 
@@ -1145,39 +1132,45 @@ void InitializeFrozenCells(
   for (auto i = size_t{0}; i < frozen_indices.size(); ++i) {
     assert(Inside(frozen_indices[i], distance_grid->size()));
     assert(Inside(frozen_indices[i], state_grid->size()));
-    assert(state_grid->cell(frozen_indices[i]) == CellState::Far);
+    assert(distance_grid->Cell(frozen_indices[i]) == numeric_limits<T>::max());
+    assert(state_grid->Cell(frozen_indices[i]) == MarchingCellState::kFar);
 
-    distance_grid->cell(frozen_indices[i]) = multiplier * frozen_distances[i];
-    state_grid->cell(frozen_indices[i]) = CellState::Frozen;
+    distance_grid->Cell(frozen_indices[i]) = multiplier * frozen_distances[i];
+    state_grid->Cell(frozen_indices[i]) = MarchingCellState::kFrozen;
   }
 }
 
 
+//! Estimate distances for the initial narrow band and insert
+//! indices into narrow band data structure.
 template <typename T, std::size_t N> inline
 void InitializeNarrowBand(
   std::vector<std::array<std::int32_t, N>> const& narrow_band_indices,
   EikonalSolver<T, N> const& eikonal_solver,
   Grid<T, N>* const distance_grid,
-  Grid<CellState, N>* const state_grid,
+  Grid<MarchingCellState, N>* const state_grid,
   NarrowBandStore<T, N>* const narrow_band)
 {
   using namespace std;
 
+  assert(distance_grid != nullptr);
+  assert(state_grid != nullptr);
   assert(narrow_band != nullptr);
   assert(narrow_band->empty());
 
   for (auto const& narrow_band_index : narrow_band_indices) {
     assert(Inside(narrow_band_index, distance_grid->size()));
     assert(Inside(narrow_band_index, state_grid->size()));
-    assert(state_grid->cell(narrow_band_index) == CellState::Far);
+    assert(distance_grid->Cell(narrow_band_index) == numeric_limits<T>::max());
+    assert(state_grid->Cell(narrow_band_index) == MarchingCellState::kFar);
 
     auto const distance = eikonal_solver.solve(
       narrow_band_index,
       *distance_grid,
       *state_grid);
-    distance_grid->cell(narrow_band_index) = distance;
-    state_grid->cell(narrow_band_index) = CellState::NarrowBand;
-    narrow_band->insert({distance, narrow_band_index});
+    distance_grid->Cell(narrow_band_index) = distance;
+    state_grid->Cell(narrow_band_index) = MarchingCellState::kNarrowBand;
+    narrow_band->Insert({distance, narrow_band_index});
   }
 }
 
@@ -1187,54 +1180,49 @@ void UpdateNeighbors(
   std::array<std::int32_t, N> const& index,
   EikonalSolver<T, N> const& eikonal_solver,
   Grid<T, N>* const distance_grid,
-  Grid<CellState, N>* const state_grid,
+  Grid<MarchingCellState, N>* const state_grid,
   NarrowBandStore<T, N>* const narrow_band)
 {
   using namespace std;
 
-  static const auto neighbor_offsets = array<int32_t, 2>{{-1, 1}};
-
   assert(distance_grid != nullptr);
   assert(state_grid != nullptr);
-  //assert same size!!
   assert(narrow_band != nullptr);
+  assert(distance_grid->size() == state_grid->size());
   assert(Inside(index, distance_grid->size()));
   assert(Inside(index, state_grid->size()));
-  assert(state_grid->cell(index) == CellState::Frozen);
+  assert(state_grid->Cell(index) == MarchingCellState::kFrozen);
 
+  const auto kNeighborOffsets = array<int32_t, 2>{{-1, 1}};
   for (auto i = size_t{0}; i < N; ++i) {
-    for (auto const neighbor_offset : neighbor_offsets) {
+    for (auto const neighbor_offset : kNeighborOffsets) {
       auto neighbor_index = index;
       neighbor_index[i] += neighbor_offset;
 
       if (Inside(neighbor_index, distance_grid->size())) {
         // Update the narrow band.
-        auto& neighbor_state = state_grid->cell(neighbor_index);
+        auto& neighbor_state = state_grid->Cell(neighbor_index);
         switch (neighbor_state) {
-        case CellState::Far:
+        case MarchingCellState::kFar:
           {
             auto const distance = eikonal_solver.solve(
               neighbor_index,
               *distance_grid,
               *state_grid);
-            distance_grid->cell(neighbor_index) = distance;
-            neighbor_state = CellState::NarrowBand;
-            narrow_band->insert(
-              {
-                distance,
-                neighbor_index
-              });
+            distance_grid->Cell(neighbor_index) = distance;
+            neighbor_state = MarchingCellState::kNarrowBand;
+            narrow_band->Insert({distance, neighbor_index});
           }
           break;
-        case CellState::NarrowBand:
+        case MarchingCellState::kNarrowBand:
           {
-            auto& neighbor_distance = distance_grid->cell(neighbor_index);
+            auto& neighbor_distance = distance_grid->Cell(neighbor_index);
             auto const new_neighbor_distance = eikonal_solver.solve(
               neighbor_index,
               *distance_grid,
               *state_grid);
             if (new_neighbor_distance < neighbor_distance) {
-              narrow_band->decrease_distance(neighbor_index, new_neighbor_distance);
+              narrow_band->DecreaseDistance(neighbor_index, new_neighbor_distance);
               neighbor_distance = new_neighbor_distance;
             }
           }
@@ -1252,7 +1240,7 @@ void MarchNarrowBand(
   EikonalSolver<T, N> const& eikonal_solver,
   NarrowBandStore<T, N>* const narrow_band,
   Grid<T, N>* const distance_grid,
-  Grid<CellState, N>* const state_grid)
+  Grid<MarchingCellState, N>* const state_grid)
 {
   using namespace std;
 
@@ -1262,14 +1250,14 @@ void MarchNarrowBand(
 
   while (!narrow_band->empty()) {
     // Take smallest distance from narrow band and freeze it.
-    auto const narrow_band_cell = narrow_band->pop();
+    auto const narrow_band_cell = narrow_band->Pop();
     auto const distance = narrow_band_cell.first;
     auto const index = narrow_band_cell.second;
 
-    assert(state_grid->cell(index) == CellState::NarrowBand);
+    assert(state_grid->Cell(index) == MarchingCellState::kNarrowBand);
 
-    distance_grid->cell(index) = distance;
-    state_grid->cell(index) = CellState::Frozen;
+    distance_grid->Cell(index) = distance;
+    state_grid->Cell(index) = MarchingCellState::kFrozen;
 
     UpdateNeighbors(
       index,
@@ -1285,7 +1273,7 @@ void MarchNarrowBand(
 
 //!
 template<typename T, std::size_t N> inline
-std::vector<T> unsignedDistance(
+std::vector<T> UnsignedDistance(
   std::array<std::size_t, N> const& grid_size,
   std::array<T, N> const& dx,
   T const speed,
@@ -1314,10 +1302,11 @@ std::vector<T> unsignedDistance(
     frozen_distances,
     [](auto const d) { return !isnan(d) && d >= T(0); });
 
-  auto state_buffer = vector<CellState>(LinearSize(grid_size), CellState::Far);
+  auto state_buffer =
+    vector<MarchingCellState>(LinearSize(grid_size), MarchingCellState::kFar);
   auto distance_buffer = vector<DistanceType>(
     LinearSize(grid_size), numeric_limits<DistanceType>::max());
-  auto state_grid = Grid<CellState, N>(grid_size, state_buffer.front());
+  auto state_grid = Grid<MarchingCellState, N>(grid_size, state_buffer.front());
   auto distance_grid = Grid<DistanceType, N>(grid_size, distance_buffer.front());
   InitializeFrozenCells(
     frozen_indices,
@@ -1357,7 +1346,7 @@ std::vector<T> unsignedDistance(
 //!   grid_size        - Number of grid cells in each dimension.
 //!   dx               - Grid cell physical size in each dimension.
 //!   speed            - Interface speed, when set to one gives
-//!                      Euclidean distance.
+//!                      Euclidean distance. Must be positive.
 //!   frozen_indices   - Integer coordinates of cells with given distances.
 //!   frozen_distances - Signed distances assigned to frozen cells.
 //!
@@ -1369,7 +1358,7 @@ std::vector<T> unsignedDistance(
 //!   - frozen_indices must all be within size.
 //!
 template<typename T, std::size_t N>
-std::vector<T> signedDistance(
+std::vector<T> SignedDistance(
   std::array<std::size_t, N> const& grid_size,
   std::array<T, N> const& dx,
   T const speed,
@@ -1398,10 +1387,11 @@ std::vector<T> signedDistance(
     frozen_distances,
     [](auto const d) { return !isnan(d); });
 
-  auto state_buffer = vector<CellState>(LinearSize(grid_size), CellState::Far);
+  auto state_buffer =
+    vector<MarchingCellState>(LinearSize(grid_size), MarchingCellState::kFar);
   auto distance_buffer = vector<DistanceType>(
     LinearSize(grid_size), numeric_limits<DistanceType>::max());
-  auto state_grid = Grid<CellState, N>(grid_size, state_buffer.front());
+  auto state_grid = Grid<MarchingCellState, N>(grid_size, state_buffer.front());
   auto distance_grid = Grid<DistanceType, N>(grid_size, distance_buffer.front());
   InitializeFrozenCells(
     frozen_indices,

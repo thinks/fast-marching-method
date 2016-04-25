@@ -652,7 +652,7 @@ GradientMagnitudeStats<T, N> unsignedGradientMagnitudeStats()
   }
 
   auto const start_time = chrono::system_clock::now();
-  auto distance_buffer = unsignedDistance<T, N>(
+  auto distance_buffer = UnsignedDistance<T, N>(
     grid_size,
     voxel_size,
     speed,
@@ -718,7 +718,7 @@ GradientMagnitudeStats<T, N> signedGradientMagnitudeStats()
     &normals);
 
   auto const start_time = chrono::system_clock::now();
-  auto distance_buffer = signedDistance<T, N>(
+  auto distance_buffer = SignedDistance<T, N>(
     grid_size,
     voxel_size,
     speed,
@@ -812,7 +812,7 @@ DistanceValueStats<T, N> unsignedDistanceValueStats()
   }
 
   auto const start_time = chrono::system_clock::now();
-  auto distance_buffer = unsignedDistance<T, N>(
+  auto distance_buffer = UnsignedDistance<T, N>(
     grid_size,
     voxel_size,
     speed,
@@ -872,7 +872,7 @@ DistanceValueStats<T, N> signedDistanceValueStats()
     &distance_ground_truth_buffer);
 
   auto const start_time = chrono::system_clock::now();
-  auto distance_buffer = signedDistance<T, N>(
+  auto distance_buffer = SignedDistance<T, N>(
     grid_size,
     voxel_size,
     speed,
@@ -926,7 +926,7 @@ DistanceValueStats<T, N> unsignedNegativeCenter()
   frozen_distances.push_back(T(100));
   frozen_distances.push_back(T(0));
   frozen_distances.push_back(T(100));
-  auto distance_buffer = unsignedDistance<T, N>(
+  auto distance_buffer = UnsignedDistance<T, N>(
     grid_size,
     voxel_size,
     speed,
