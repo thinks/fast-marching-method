@@ -547,18 +547,21 @@ enum class MarchingCellState
 };
 
 
+//! Holds parameters related to the grid and provides methods for solving
+//! the eikonal equation for a single grid cell at a time, using information
+//! about both distance and state of neighboring grid cells.
 template <typename T, std::size_t N>
 class EikonalSolver
 {
 public:
-  EikonalSolver(
-    std::array<T, N> const& dx,
-    T const speed)
+  EikonalSolver(std::array<T, N> const& dx, T const speed)
     : inv_dx_squared_(InverseSquared(dx))
     , inv_speed_squared_(InverseSquared(speed))
   {}
 
-  T solve(
+  //! Returns the distance for grid cell at @a index given the current
+  //! distances (@a distance_grid) and states (@a state_grid) of other cells.
+  T Solve(
     std::array<std::int32_t, N> const& index,
     Grid<T, N> const& distance_grid,
     Grid<MarchingCellState, N> const& state_grid) const
@@ -596,10 +599,14 @@ public:
       }
     }
 
-    auto const r = solveQuadratic_(q);
+    auto const r = SolveQuadratic_(q);
     assert(!isnan(r));
-    assert(r >= T(0));
     assert(r >= *min_element(begin(n), end(n)));
+
+    if (r < T{0}) {
+      throw runtime_error("negative distance");
+    }
+
     return r;
   }
 
@@ -607,10 +614,10 @@ private:
   //! Polynomial coefficients are equivalent to array index,
   //! i.e. Sum(q[i] * x^i) = 0, for i in [0, 2]
   //!
-  //! Returns the largest real root of the quadratic. Assumes that
-  //! real roots exist.
-  template<typename T> static inline
-  T solveQuadratic_(std::array<T, 3> const& q)
+  //! Returns the largest real root.
+  //!
+  //! Throws a runtime_error if no real roots exist.
+  static T SolveQuadratic_(std::array<T, 3> const& q)
   {
     using namespace std;
 
@@ -620,7 +627,7 @@ private:
     assert(fabs(q[2]) > T(1e-9));
 
     auto const discriminant = q[1] * q[1] - T(4) * q[2] * q[0];
-    if (discriminant < T(0)) {
+    if (discriminant < T{0}) {
       throw runtime_error("negative discriminant");
     }
 
@@ -633,45 +640,81 @@ private:
 
 
 //! Returns base^exponent as a compile-time constant.
-constexpr std::size_t pow(std::size_t const base, std::size_t const exponent)
+constexpr std::size_t static_pow(std::size_t const base, std::size_t const exponent)
 {
   using namespace std;
 
   // NOTE: Cannot use loops in constexpr functions in C++11, have to use
   // recursion here.
-  return exponent == 0 ? 1 : base * pow(base, exponent - 1);
+  return exponent == size_t{0} ? size_t{1} : base * static_pow(base, exponent - 1);
 }
 
 
+template<std::size_t N>
+class IndexIterator
+{
+public:
+  explicit IndexIterator(std::array<std::size_t, N> const& size)
+    : size_(size)
+  {
+    using namespace std;
+
+    if (LinearSize(size) == size_t{0}) {
+      throw runtime_error("zero size element");
+    }
+
+    fill(begin(index_), end(index_), int32_t{0});
+  }
+
+  std::array<std::int32_t, N> index() const
+  {
+    return index_;
+  }
+
+  bool Next()
+  {
+    using namespace std;
+
+    auto i = int32_t{N - 1};
+    while (i >= 0) {
+      assert(size_[i] > size_t{0});
+      if (static_cast<size_t>(index_[i]) < size_[i] - 1) {
+        ++index_[i];
+        return true;
+      }
+      else {
+        index_[i--] = 0;
+      }
+    }
+    return false;
+  }
+
+private:
+  std::array<std::size_t, N> const size_;
+  std::array<std::int32_t, N> index_;
+};
+
+
 template<std::size_t N> inline
-std::array<std::array<std::int32_t, N>, pow(3, N) - 1> VertexNeighborOffsets()
+std::array<std::array<std::int32_t, N>, static_pow(3, N) - 1> VertexNeighborOffsets()
 {
   using namespace std;
 
-  auto neighbor_offsets = array<array<int32_t, N>, pow(3, N) - 1>();
-  auto offset = array<int32_t, N>();
-  fill(begin(offset), end(offset), int32_t{-1});
-  neighbor_offsets[0] = offset;
-  auto offset_index = size_t{1};
-  while (offset_index < neighbor_offsets.size()) {
-    if (offset[N - 1] < 1) {
-      ++offset[N - 1];
-    }
-    else {
-      auto k = int32_t{N - 1};
-      offset[k] = -1;
-      --k;
-      while (k >= 0 && offset[k] == 1) {
-        offset[k] = -1;
-        --k;
-      }
-      ++offset[k];
-    }
-
+  auto neighbor_offsets = array<array<int32_t, N>, static_pow(3, N) - 1>();
+  auto offset_index = size_t{0};
+  auto index_size = array<size_t, N>{};
+  fill(begin(index_size), end(index_size), size_t{3});
+  auto index_iter = IndexIterator<N>(index_size);
+  auto valid_index = true;
+  while (valid_index) {
+    auto offset = index_iter.index();
+    for_each(begin(offset), end(offset), [](auto& d) { d -= int32_t{1}; });
     if (!all_of(begin(offset), end(offset), [](auto const i){ return i == 0; })) {
       neighbor_offsets[offset_index++] = offset;
     }
+    valid_index = index_iter.Next();
   }
+  assert(offset_index == static_pow(3, N) - 1);
 
   return neighbor_offsets;
 }
@@ -682,16 +725,16 @@ std::array<std::array<std::int32_t, N>, 2 * N> FaceNeighborOffsets()
 {
   using namespace std;
 
-  array<array<int32_t, N>, 2 * N> neighbor_offsets;
+  auto neighbor_offsets = array<array<int32_t, N>, size_t{2} * N>{};
   for (auto i = size_t{0}; i < N; ++i) {
     for (auto j = size_t{0}; j < N; ++j) {
       if (j == i) {
-        neighbor_offsets[2 * i + 0][j] = +1;
-        neighbor_offsets[2 * i + 1][j] = -1;
+        neighbor_offsets[2 * i + 0][j] = int32_t{+1};
+        neighbor_offsets[2 * i + 1][j] = int32_t{-1};
       }
       else {
-        neighbor_offsets[2 * i + 0][j] = 0;
-        neighbor_offsets[2 * i + 1][j] = 0;
+        neighbor_offsets[2 * i + 0][j] = int32_t{0};
+        neighbor_offsets[2 * i + 1][j] = int32_t{0};
       }
     }
   }
@@ -699,12 +742,12 @@ std::array<std::array<std::int32_t, N>, 2 * N> FaceNeighborOffsets()
 }
 
 
-template<std::size_t N, typename NeighborIt> inline
+template<std::size_t N, typename NeighborOffsetIt> inline
 void ConnectedComponents(
   std::vector<std::array<std::int32_t, N>> const& indices,
   std::array<std::size_t, N> const& grid_size,
-  NeighborIt const neighbor_begin,
-  NeighborIt const neighbor_end,
+  NeighborOffsetIt const neighbor_offset_begin,
+  NeighborOffsetIt const neighbor_offset_end,
   std::vector<std::vector<std::array<std::int32_t, N>>>* connected_components)
 {
   using namespace std;
@@ -742,25 +785,28 @@ void ConnectedComponents(
       label_grid.Cell(index) = LabelCell::kLabelled;
       auto component = vector<array<int32_t, N>>();
       component.push_back(index);
-      auto lifo = stack<array<int32_t, N>>();
-      lifo.push(index);
+      auto neighbor_indices = stack<array<int32_t, N>>();
+      neighbor_indices.push(index);
 
       // Flood-fill current label.
-      while (!lifo.empty()) {
-        auto const top_index = lifo.top();
-        lifo.pop();
-        for (auto neighbor_iter = neighbor_begin;
-             neighbor_iter != neighbor_end; ++neighbor_iter) {
-          auto neighbor_index = top_index;
+      while (!neighbor_indices.empty()) {
+        auto const top_neighbor_index = neighbor_indices.top();
+        neighbor_indices.pop();
+        for (auto neighbor_offset_iter = neighbor_offset_begin;
+             neighbor_offset_iter != neighbor_offset_end; ++neighbor_offset_iter) {
+          // Offset neighbor index.
+          auto neighbor_index = top_neighbor_index;
           for (auto i = size_t{0}; i < N; ++i) {
-            neighbor_index[i] += (*neighbor_iter)[i];
+            neighbor_index[i] += (*neighbor_offset_iter)[i];
           }
 
           if (Inside(neighbor_index, label_grid.size()) &&
               label_grid.Cell(neighbor_index) == LabelCell::kForeground) {
+            // Mark neighbor as labelled, store in component and add
+            // to list of indices whose neighbors we should check.
             label_grid.Cell(neighbor_index) = LabelCell::kLabelled;
             component.push_back(neighbor_index);
-            lifo.push(neighbor_index);
+            neighbor_indices.push(neighbor_index);
           }
         }
       }
@@ -1164,7 +1210,7 @@ void InitializeNarrowBand(
     assert(distance_grid->Cell(narrow_band_index) == numeric_limits<T>::max());
     assert(state_grid->Cell(narrow_band_index) == MarchingCellState::kFar);
 
-    auto const distance = eikonal_solver.solve(
+    auto const distance = eikonal_solver.Solve(
       narrow_band_index,
       *distance_grid,
       *state_grid);
@@ -1205,7 +1251,7 @@ void UpdateNeighbors(
         switch (neighbor_state) {
         case MarchingCellState::kFar:
           {
-            auto const distance = eikonal_solver.solve(
+            auto const distance = eikonal_solver.Solve(
               neighbor_index,
               *distance_grid,
               *state_grid);
@@ -1217,7 +1263,7 @@ void UpdateNeighbors(
         case MarchingCellState::kNarrowBand:
           {
             auto& neighbor_distance = distance_grid->Cell(neighbor_index);
-            auto const new_neighbor_distance = eikonal_solver.solve(
+            auto const new_neighbor_distance = eikonal_solver.Solve(
               neighbor_index,
               *distance_grid,
               *state_grid);
@@ -1227,7 +1273,9 @@ void UpdateNeighbors(
             }
           }
           break;
-        // If neighbor cell is frozen do nothing to it!
+        case MarchingCellState::kFrozen:
+          // If neighbor cell is frozen do nothing to it!
+          break;
         }
       }
     }
@@ -1399,7 +1447,6 @@ std::vector<T> SignedDistance(
     DistanceType{-1}, // Multiplier
     &distance_grid,
     &state_grid);
-
 
   auto inside_narrow_band_indices = vector<array<int32_t, N>>();
   auto outside_narrow_band_indices = vector<array<int32_t, N>>();

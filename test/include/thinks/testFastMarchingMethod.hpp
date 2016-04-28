@@ -76,21 +76,21 @@ private:
 
 namespace detail {
 
-//! Returns 2^n as a compile-time constant.
-constexpr std::size_t pow2(std::size_t const n)
+//! Returns base^exponent as a compile-time constant.
+constexpr std::size_t static_pow(std::size_t base, std::size_t const exponent)
 {
   using namespace std;
 
   // NOTE: Cannot use loops in constexpr functions in C++11, have to use
   // recursion here.
-  return n == 0 ? 1 : 2 * pow2(n - 1);
+  return exponent == size_t{0} ? size_t{1} : base * static_pow(base, exponent - 1);
 }
 
 
 //! Returns the product of the elements in array @a a.
 //! Note: Not checking for overflow here!
 template<std::size_t N> inline
-std::size_t linearSize(std::array<std::size_t, N> const& a)
+std::size_t LinearSize(std::array<std::size_t, N> const& a)
 {
   using namespace std;
   return accumulate(begin(a), end(a), size_t{1}, multiplies<size_t>());
@@ -98,7 +98,7 @@ std::size_t linearSize(std::array<std::size_t, N> const& a)
 
 
 template<typename T, typename R, typename U> inline
-std::vector<R> transformedVector(std::vector<T> const& v, U const unary_op)
+std::vector<R> TransformedVector(std::vector<T> const& v, U const unary_op)
 {
   using namespace std;
 
@@ -109,7 +109,7 @@ std::vector<R> transformedVector(std::vector<T> const& v, U const unary_op)
 
 
 template<std::size_t N, typename T> inline
-std::array<T, N> filledArray(T const v)
+std::array<T, N> FilledArray(T const v)
 {
   using namespace std;
 
@@ -213,13 +213,13 @@ std::array<T, N> rayHyperSphereIntersection(
 
   if (any_of(begin(q), end(q), [](auto const x) { return isnan(x); })) {
     // No intersection.
-    return filledArray<T, N>(numeric_limits<T>::quiet_NaN());
+    return FilledArray<T, N>(numeric_limits<T>::quiet_NaN());
   }
 
   if (q[0] < T(0)) {
     if (q[1] < T(0)) {
       // Both intersections behind ray origin.
-      return filledArray<T, N>(numeric_limits<T>::quiet_NaN());
+      return FilledArray<T, N>(numeric_limits<T>::quiet_NaN());
     }
 
     return add(rayOrigin, mult(q[1], rayDirection));
@@ -269,7 +269,7 @@ public:
       }
     }
 
-    fill(begin(index_), end(index_), 0);
+    fill(begin(index_), end(index_), int32_t{0});
   }
 
   std::array<std::int32_t, N> index() const
@@ -277,7 +277,7 @@ public:
     return index_;
   }
 
-  bool next()
+  bool Next()
   {
     using namespace std;
 
@@ -347,35 +347,41 @@ std::array<T, N> gradient(
 
 
 template<typename T, std::size_t N> inline
-T magnitude(std::array<T, N> const& v)
+T Magnitude(std::array<T, N> const& v)
 {
+  using namespace std;
+
   auto mag_squared = T{0};
-  for (std::size_t i = 0; i < N; ++i) {
+  for (auto i = size_t{0}; i < N; ++i) {
     mag_squared += v[i] * v[i];
   }
-  return std::sqrt(mag_squared);
+  return sqrt(mag_squared);
 }
 
 
 template<typename T, std::size_t N> inline
-T distance(std::array<T, N> const& u, std::array<T, N> const& v)
+T Distance(std::array<T, N> const& u, std::array<T, N> const& v)
 {
+  using namespace std;
+
   auto distance_squared = T{0};
-  for (std::size_t i = 0; i < N; ++i) {
+  for (auto i = size_t{0}; i < N; ++i) {
     auto const delta = u[i] - v[i];
     distance_squared += delta * delta;
   }
-  return std::sqrt(distance_squared);
+  return sqrt(distance_squared);
 }
 
 
 template<typename T, std::size_t N> inline
-std::array<T, N> normalized(std::array<T, N> const& v)
+std::array<T, N> Normalized(std::array<T, N> const& v)
 {
+  using namespace std;
+
   auto n = v;
-  auto const mag = magnitude(v);
-  for (std::size_t i = 0; i < N; ++i) {
-    n[i] /= mag;
+  auto const mag_factor = T{1} / Magnitude(v);
+  for (auto i = size_t{0}; i < N; ++i) {
+    n[i] *= mag_factor;
   }
   return n;
 }
@@ -391,7 +397,7 @@ struct ErrorStats
 
 
 template<typename T> inline
-ErrorStats errorStats(std::vector<T> const& errors)
+ErrorStats ErrorStatistics(std::vector<T> const& errors)
 {
   using namespace std;
 
@@ -429,7 +435,7 @@ ErrorStats errorStats(std::vector<T> const& errors)
 
 
 template<typename T, std::size_t N> inline
-std::vector<T> inputBuffer(
+std::vector<T> InputBuffer(
   std::array<std::size_t, N> const& grid_size,
   std::vector<std::array<std::int32_t, N>> const& frozen_indices,
   std::vector<T> const& frozen_distances)
@@ -440,7 +446,7 @@ std::vector<T> inputBuffer(
     throw runtime_error("indices/distances size mismatch");
   }
 
-  auto input_buffer = vector<T>(linearSize(grid_size), numeric_limits<T>::max());
+  auto input_buffer = vector<T>(LinearSize(grid_size), numeric_limits<T>::max());
   auto input_grid = Grid<T, N>(grid_size, input_buffer.front());
   for (auto i = size_t{0}; i < frozen_indices.size(); ++i) {
     input_grid.cell(frozen_indices[i]) = frozen_distances[i];
@@ -450,7 +456,7 @@ std::vector<T> inputBuffer(
 
 
 template<typename T> inline
-std::vector<T> errorBuffer(
+std::vector<T> ErrorBuffer(
   std::vector<T> const& ground_truth_buffer,
   std::vector<T> const& values_buffer)
 {
@@ -471,14 +477,14 @@ std::vector<T> errorBuffer(
 
 
 template<typename T, std::size_t N> inline
-std::vector<std::array<T, N>> distance_gradients(
+std::vector<std::array<T, N>> DistanceGradients(
   std::vector<T>& distance_buffer,
   std::array<std::size_t, N> const& grid_size,
   std::array<T, N> const& voxel_size)
 {
   using namespace std;
 
-  auto const linear_size = linearSize(grid_size);
+  auto const linear_size = LinearSize(grid_size);
   if (linear_size != distance_buffer.size()) {
     throw runtime_error("grid/buffer size mismatch");
   }
@@ -497,7 +503,7 @@ std::vector<std::array<T, N>> distance_gradients(
       index,
       voxel_size,
       Neighborhood<N>::offsets());
-    valid_index = index_iter.next();
+    valid_index = index_iter.Next();
   }
 
   return grad_buffer;
@@ -505,14 +511,14 @@ std::vector<std::array<T, N>> distance_gradients(
 
 
 template<typename T, std::size_t N> inline
-std::array<T, N> cellCenter(
+std::array<T, N> CellCenter(
   std::array<std::int32_t, N> const& index,
   std::array<T, N> const& voxel_size)
 {
   using namespace std;
 
-  array<T, N> cell_center;
-  for (size_t i = 0; i < N; ++i) {
+  auto cell_center = array<T, N>{};
+  for (auto i = size_t{0}; i < N; ++i) {
     cell_center[i] = (index[i] + T(0.5)) * voxel_size[i];
   }
   return cell_center;
@@ -520,17 +526,17 @@ std::array<T, N> cellCenter(
 
 
 template<typename T, std::size_t N> inline
-std::array<std::array<T, N>, pow2(N)> cellCorners(
+std::array<std::array<T, N>, static_pow(2, N)> CellCorners(
   std::array<std::int32_t, N> const& index,
   std::array<T, N> const& voxel_size)
 {
   using namespace std;
 
-  array<array<T, N>, pow2(N)> cell_corners;
+  auto cell_corners = array<array<T, N>, static_pow(2, N)>{};
 
-  for (size_t i = 0; i < pow2(N); ++i) {
+  for (auto i = size_t{0}; i < static_pow(2, N); ++i) {
     auto const bits = bitset<N>(i);
-    for (size_t k = 0; k < N; ++k) {
+    for (auto k = size_t{0}; k < N; ++k) {
       cell_corners[i][k] =
         (index[k] + static_cast<int32_t>(bits[k])) * voxel_size[k];
     }
@@ -540,7 +546,7 @@ std::array<std::array<T, N>, pow2(N)> cellCorners(
 
 
 template<typename T, std::size_t N> inline
-void hyperSphereFrozenCells(
+void HyperSphereFrozenCells(
   std::array<T, N> const& center,
   T const radius,
   std::array<std::size_t, N> const& grid_size,
@@ -556,7 +562,7 @@ void hyperSphereFrozenCells(
 
   auto distance_ground_truth_grid = unique_ptr<Grid<T, N>>();
   if (distance_ground_truth_buffer != nullptr) {
-    distance_ground_truth_buffer->resize(linearSize(grid_size));
+    distance_ground_truth_buffer->resize(LinearSize(grid_size));
     distance_ground_truth_grid.reset(
       new Grid<T, N>(grid_size, distance_ground_truth_buffer->front()));
   }
@@ -565,13 +571,13 @@ void hyperSphereFrozenCells(
   auto valid_index = bool{true};
   while (valid_index) {
     auto const index = index_iter.index();
-    auto const cell_corners = cellCorners(index, voxel_size);
+    auto const cell_corners = CellCorners(index, voxel_size);
 
     auto inside_count = size_t{0};
     auto outside_count = size_t{0};
 
     for (auto const& cell_corner : cell_corners) {
-      auto const d = distance(center, cell_corner);
+      auto const d = Distance(center, cell_corner);
       if (d < radius) {
         ++inside_count;
       }
@@ -580,14 +586,14 @@ void hyperSphereFrozenCells(
       }
     }
 
-    auto const cell_center = cellCenter(index, voxel_size);
-    auto const cell_distance = distance(center, cell_center) - radius;
+    auto const cell_center = CellCenter(index, voxel_size);
+    auto const cell_distance = Distance(center, cell_center) - radius;
 
     if (inside_count > 0 && outside_count > 0) {
       // The inferface passes through this cell.
       frozen_indices->push_back(index);
       frozen_distances->push_back(cell_distance);
-      normals->push_back(normalized(sub(cell_center, center)));
+      normals->push_back(Normalized(sub(cell_center, center)));
     }
 
     if (distance_ground_truth_buffer != nullptr) {
@@ -595,7 +601,7 @@ void hyperSphereFrozenCells(
         ground_truth_distance_op(cell_distance);
     }
 
-    valid_index = index_iter.next();
+    valid_index = index_iter.Next();
   }
 }
 
@@ -605,7 +611,7 @@ void hyperSphereFrozenCells(
 template<typename T, std::size_t N>
 struct GradientMagnitudeStats
 {
-  static const std::size_t Size = N;
+  static const std::size_t kSize = N;
 
   double min_abs_error;
   double max_abs_error;
@@ -623,21 +629,21 @@ struct GradientMagnitudeStats
 
 
 template<typename T, std::size_t N> inline
-GradientMagnitudeStats<T, N> unsignedGradientMagnitudeStats()
+GradientMagnitudeStats<T, N> UnsignedGradientMagnitudeStats()
 {
   using namespace std;
   using namespace detail;
 
-  auto const center = filledArray<N>(T(0.5));
+  auto const center = FilledArray<N>(T(0.5));
   auto const radius = T(0.25);
-  auto const grid_size = filledArray<N>(size_t{100});
-  auto const voxel_size = filledArray<N>(T(0.01));
+  auto const grid_size = FilledArray<N>(size_t{100});
+  auto const voxel_size = FilledArray<N>(T(0.01));
   auto const speed = T(1);
 
   auto frozen_indices = vector<array<int32_t, N>>();
   auto frozen_distances = vector<T>();
   auto normals = vector<array<T, N>>();
-  hyperSphereFrozenCells<T, N>(
+  HyperSphereFrozenCells<T, N>(
     center,
     radius,
     grid_size,
@@ -660,24 +666,24 @@ GradientMagnitudeStats<T, N> unsignedGradientMagnitudeStats()
     frozen_distances);
   auto const end_time = chrono::system_clock::now();
 
-  auto const input_buffer = inputBuffer(
+  auto const input_buffer = InputBuffer(
     grid_size,
     frozen_indices,
     frozen_distances);
 
-  auto const grad_buffer = distance_gradients(
+  auto const grad_buffer = DistanceGradients(
     distance_buffer,
     grid_size,
     voxel_size);
 
   auto ground_truth_buffer = vector<T>(grad_buffer.size());
   fill(begin(ground_truth_buffer), end(ground_truth_buffer), T(1));
-  auto const error_buffer = errorBuffer(
-    transformedVector<array<T, N>, T>(
+  auto const error_buffer = ErrorBuffer(
+    TransformedVector<array<T, N>, T>(
       grad_buffer,
-      [](array<T, N> const& g) { return magnitude(g); }),
+      [](array<T, N> const& g) { return Magnitude(g); }),
     ground_truth_buffer);
-  auto stats = errorStats(error_buffer);
+  auto stats = ErrorStatistics(error_buffer);
 
   return GradientMagnitudeStats<T, N>{
     stats.min_abs_error,
@@ -694,21 +700,21 @@ GradientMagnitudeStats<T, N> unsignedGradientMagnitudeStats()
 
 
 template<typename T, std::size_t N> inline
-GradientMagnitudeStats<T, N> signedGradientMagnitudeStats()
+GradientMagnitudeStats<T, N> SignedGradientMagnitudeStats()
 {
   using namespace std;
   using namespace detail;
 
-  auto const center = filledArray<N>(T(0.5));
+  auto const center = FilledArray<N>(T(0.5));
   auto const radius = T(0.25);
-  auto const grid_size = filledArray<N>(size_t{100});
-  auto const voxel_size = filledArray<N>(T(0.01));
+  auto const grid_size = FilledArray<N>(size_t{100});
+  auto const voxel_size = FilledArray<N>(T(0.01));
   auto const speed = T(1);
 
   auto frozen_indices = vector<array<int32_t, N>>();
   auto frozen_distances = vector<T>();
   auto normals = vector<array<T, N>>();
-  hyperSphereFrozenCells<T, N>(
+  HyperSphereFrozenCells<T, N>(
     center,
     radius,
     grid_size,
@@ -726,24 +732,24 @@ GradientMagnitudeStats<T, N> signedGradientMagnitudeStats()
     frozen_distances);
   auto const end_time = chrono::system_clock::now();
 
-  auto const input_buffer = inputBuffer(
+  auto const input_buffer = InputBuffer(
     grid_size,
     frozen_indices,
     frozen_distances);
 
-  auto const grad_buffer = distance_gradients(
+  auto const grad_buffer = DistanceGradients(
     distance_buffer,
     grid_size,
     voxel_size);
 
   auto ground_truth_buffer = vector<T>(grad_buffer.size());
   fill(begin(ground_truth_buffer), end(ground_truth_buffer), T(1));
-  auto const error_buffer = errorBuffer(
-    transformedVector<array<T, N>, T>(
+  auto const error_buffer = ErrorBuffer(
+    TransformedVector<array<T, N>, T>(
       grad_buffer,
-      [](array<T, N> const& g) { return magnitude(g); }),
+      [](array<T, N> const& g) { return Magnitude(g); }),
     ground_truth_buffer);
-  auto stats = errorStats(error_buffer);
+  auto stats = ErrorStatistics(error_buffer);
 
   return GradientMagnitudeStats<T, N>{
     stats.min_abs_error,
@@ -762,7 +768,7 @@ GradientMagnitudeStats<T, N> signedGradientMagnitudeStats()
 template<typename T, std::size_t N>
 struct DistanceValueStats
 {
-  static const std::size_t Size = N;
+  static const std::size_t kSize = N;
 
   double min_abs_error;
   double max_abs_error;
@@ -780,22 +786,22 @@ struct DistanceValueStats
 
 
 template<typename T, std::size_t N> inline
-DistanceValueStats<T, N> unsignedDistanceValueStats()
+DistanceValueStats<T, N> UnsignedDistanceValueStats()
 {
   using namespace std;
   using namespace detail;
 
-  auto const center = filledArray<N>(T(0.5));
+  auto const center = FilledArray<N>(T(0.5));
   auto const radius = T(0.25);
-  auto const grid_size = filledArray<N>(size_t{100});
-  auto const voxel_size = filledArray<N>(T(0.01));
+  auto const grid_size = FilledArray<N>(size_t{100});
+  auto const voxel_size = FilledArray<N>(T(0.01));
   auto const speed = T(1);
 
   auto frozen_indices = vector<array<int32_t, N>>();
   auto frozen_distances = vector<T>();
   auto normals = vector<array<T, N>>();
   auto distance_ground_truth_buffer = vector<T>();
-  hyperSphereFrozenCells<T, N>(
+  HyperSphereFrozenCells<T, N>(
     center,
     radius,
     grid_size,
@@ -820,16 +826,16 @@ DistanceValueStats<T, N> unsignedDistanceValueStats()
     frozen_distances);
   auto const end_time = chrono::system_clock::now();
 
-  auto const input_buffer = inputBuffer(
+  auto const input_buffer = InputBuffer(
     grid_size,
     frozen_indices,
     frozen_distances);
 
-  auto const error_buffer = errorBuffer(
+  auto const error_buffer = ErrorBuffer(
     distance_buffer,
     distance_ground_truth_buffer);
 
-  auto const stats = errorStats(error_buffer);
+  auto const stats = ErrorStatistics(error_buffer);
 
   return DistanceValueStats<T, N>{
     stats.min_abs_error,
@@ -846,22 +852,22 @@ DistanceValueStats<T, N> unsignedDistanceValueStats()
 
 
 template<typename T, std::size_t N> inline
-DistanceValueStats<T, N> signedDistanceValueStats()
+DistanceValueStats<T, N> SignedDistanceValueStats()
 {
   using namespace std;
   using namespace detail;
 
-  auto const center = filledArray<N>(T(0.5));
+  auto const center = FilledArray<N>(T(0.5));
   auto const radius = T(0.25);
-  auto const grid_size = filledArray<N>(size_t{100});
-  auto const voxel_size = filledArray<N>(T(0.01));
+  auto const grid_size = FilledArray<N>(size_t{100});
+  auto const voxel_size = FilledArray<N>(T(0.01));
   auto const speed = T(1);
 
   auto frozen_indices = vector<array<int32_t, N>>();
   auto frozen_distances = vector<T>();
   auto normals = vector<array<T, N>>();
   auto distance_ground_truth_buffer = vector<T>();
-  hyperSphereFrozenCells<T, N>(
+  HyperSphereFrozenCells<T, N>(
     center,
     radius,
     grid_size,
@@ -880,16 +886,16 @@ DistanceValueStats<T, N> signedDistanceValueStats()
     frozen_distances);
   auto const end_time = chrono::system_clock::now();
 
-  auto const input_buffer = inputBuffer(
+  auto const input_buffer = InputBuffer(
     grid_size,
     frozen_indices,
     frozen_distances);
 
-  auto const error_buffer = errorBuffer(
+  auto const error_buffer = ErrorBuffer(
     distance_buffer,
     distance_ground_truth_buffer);
 
-  auto const stats = errorStats(error_buffer);
+  auto const stats = ErrorStatistics(error_buffer);
 
   return DistanceValueStats<T, N>{
     stats.min_abs_error,
@@ -905,15 +911,15 @@ DistanceValueStats<T, N> signedDistanceValueStats()
 }
 
 
-#if 1
+#if 0
 template<typename T, std::size_t N> inline
 DistanceValueStats<T, N> unsignedNegativeCenter()
 {
   using namespace std;
   using namespace detail;
 
-  auto const grid_size = filledArray<N>(size_t{100});
-  auto const voxel_size = filledArray<N>(T(0.01));
+  auto const grid_size = FilledArray<N>(size_t{100});
+  auto const voxel_size = FilledArray<N>(T(0.01));
   auto const speed = T(1);
 
   auto frozen_indices = vector<array<int32_t, N>>();

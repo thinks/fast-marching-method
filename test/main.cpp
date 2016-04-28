@@ -332,19 +332,19 @@ int main(int argc, char* argv[])
            << "-----------------" << endl;
 
 #if 1
-      auto const grad_mag_stats2f = test::unsignedGradientMagnitudeStats<float, 2>();
+      auto const grad_mag_stats2f = test::UnsignedGradientMagnitudeStats<float, 2>();
       cout << grad_mag_stats2f << endl;
       writeGradMagImages<float>(grad_mag_stats2f, "unsigned_grad_mag");
 
-      auto const grad_mag_stats2d = test::unsignedGradientMagnitudeStats<double, 2>();
+      auto const grad_mag_stats2d = test::UnsignedGradientMagnitudeStats<double, 2>();
       cout << grad_mag_stats2d << endl;
       writeGradMagImages<double>(grad_mag_stats2d, "unsigned_grad_mag");
 
-      auto const dist_stats2f = test::unsignedDistanceValueStats<float, 2>();
+      auto const dist_stats2f = test::UnsignedDistanceValueStats<float, 2>();
       cout << dist_stats2f << endl;
       writeDistStatImages<float>(dist_stats2f, "unsigned_dist_stat");
 
-      auto const dist_stats2d = test::unsignedDistanceValueStats<double, 2>();
+      auto const dist_stats2d = test::UnsignedDistanceValueStats<double, 2>();
       cout << dist_stats2d << endl;
       writeDistStatImages<double>(dist_stats2d, "unsigned_dist_stat");
 
@@ -384,19 +384,19 @@ int main(int argc, char* argv[])
            << "-----------------" << endl;
 
 #if 1
-      auto const grad_mag_stats2f = test::signedGradientMagnitudeStats<float, 2>();
+      auto const grad_mag_stats2f = test::SignedGradientMagnitudeStats<float, 2>();
       cout << grad_mag_stats2f << endl;
       writeGradMagImages<float>(grad_mag_stats2f, "signed_grad_mag");
 
-      auto const grad_mag_stats2d = test::signedGradientMagnitudeStats<double, 2>();
+      auto const grad_mag_stats2d = test::SignedGradientMagnitudeStats<double, 2>();
       cout << grad_mag_stats2d << endl;
       writeGradMagImages<double>(grad_mag_stats2d, "signed_grad_mag");
 
-      auto const dist_stats2f = test::signedDistanceValueStats<float, 2>();
+      auto const dist_stats2f = test::SignedDistanceValueStats<float, 2>();
       cout << dist_stats2f << endl;
       writeDistStatImages<float>(dist_stats2f, "signed_dist_stat");
 
-      auto const dist_stats2d = test::signedDistanceValueStats<double, 2>();
+      auto const dist_stats2d = test::SignedDistanceValueStats<double, 2>();
       cout << dist_stats2d << endl;
       writeDistStatImages<double>(dist_stats2d, "signed_dist_stat");
 #endif
