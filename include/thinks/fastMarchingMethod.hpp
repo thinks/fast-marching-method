@@ -35,6 +35,7 @@ std::size_t LinearSize(std::array<std::size_t, N> const& a)
 }
 
 
+//! Returns x * x.
 template<typename T> inline constexpr
 T Squared(T const x)
 {
@@ -42,20 +43,24 @@ T Squared(T const x)
 }
 
 
+//! Returns 1 / (x * x).
 template<typename T> inline constexpr
 T InverseSquared(T const x)
 {
   using namespace std;
 
-  static_assert(is_floating_point<T>::value, "value must be floating point");
+  static_assert(is_floating_point<T>::value, "scalar type must be floating point");
 
   return T{1} / Squared(x);
 }
 
+//! Returns element-wise 1 / (a * a).
 template<typename T, std::size_t N> inline
 std::array<T, N> InverseSquared(std::array<T, N> const& a)
 {
   using namespace std;
+
+  static_assert(is_floating_point<T>::value, "scalar type must be floating point");
 
   auto r = array<T, N>();
   transform(begin(a), end(a), begin(r),
@@ -64,21 +69,7 @@ std::array<T, N> InverseSquared(std::array<T, N> const& a)
 }
 
 
-#if 0
-template<typename T, std::size_t N> inline
-T SquaredMagnitude(std::array<T, N> const& v)
-{
-  using namespace std;
-
-  auto sm = T{0};
-  for (auto i = size_t{0}; i < N; ++i) {
-    sm += v[i] * v[i];
-  }
-  return sm;
-}
-#endif
-
-
+//! Returns true if @a index is inside @a size, otherwise false.
 template<std::size_t N> inline
 bool Inside(
   std::array<std::int32_t, N> const& index,
@@ -93,10 +84,12 @@ bool Inside(
       return false;
     }
   }
+
   return true;
 }
 
 
+//! Returns a string representation of the array @a a.
 template<typename T, std::size_t N>
 std::string ToString(std::array<T, N> const& a)
 {
@@ -111,12 +104,15 @@ std::string ToString(std::array<T, N> const& a)
     }
   }
   ss << "]";
+
   return ss.str();
 }
 
 
+//! Throws a std::runtime_error if one or more of the elements in
+//! @a grid_size is zero.
 template<std::size_t N> inline
-void ThrowIfInvalidGridSize(std::array<std::size_t, N> const& grid_size)
+void ThrowIfZeroElementInGridSize(std::array<std::size_t, N> const& grid_size)
 {
   using namespace std;
 
@@ -160,7 +156,7 @@ void ThrowIfInvalidGridSpacing(std::array<T, N> const& grid_spacing)
 
 
 template<typename T> inline
-void ThrowIfInvalidSpeed(T const speed)
+void ThrowIfZeroOrNegativeOrNanSpeed(T const speed)
 {
   using namespace std;
 
@@ -168,15 +164,6 @@ void ThrowIfInvalidSpeed(T const speed)
     auto ss = stringstream();
     ss << "invalid speed: " << speed;
     throw runtime_error(ss.str());
-  }
-}
-
-
-template<typename T> inline
-void ThrowIfInvalidSpeedBuffer(std::vector<T> const& speed_buffer)
-{
-  for (auto const speed : speed_buffer) {
-    ThrowIfInvalidSpeed(speed);
   }
 }
 
@@ -225,7 +212,9 @@ public:
   typedef std::array<std::size_t, N> SizeType;
   typedef std::array<std::int32_t, N> IndexType;
 
-  //! Construct a grid from a given @a size and @a cell_buffer.
+  //! Construct a grid from a given @a size and @a cell_buffer. Does not
+  //! take ownership of the cell buffer, it is assumed that this buffer exists
+  //! during the life-time of the grid object.
   //!
   //! Throws a std::runtime_error if:
   //! - size evaluates to a zero linear size, i.e. if any of the elements are zero.
@@ -235,7 +224,7 @@ public:
     , strides_(GridStrides(size))
     , cells_(&cell_buffer.front())
   {
-    ThrowIfInvalidGridSize(size);
+    ThrowIfZeroElementInGridSize(size);
     ThrowIfInvalidCellBufferSize(size, cell_buffer.size());
   }
 
@@ -275,7 +264,9 @@ public:
   typedef std::array<std::size_t, N> SizeType;
   typedef std::array<std::int32_t, N> IndexType;
 
-  //! Construct a grid from a given @a size and @a cell_buffer.
+  //! Construct a grid from a given @a size and @a cell_buffer. Does not
+  //! take ownership of the cell buffer, it is assumed that this buffer exists
+  //! during the life-time of the grid object.
   //!
   //! Throws a std::runtime_error if:
   //! - size evaluates to a zero linear size, i.e. if any of the elements are zero.
@@ -285,7 +276,7 @@ public:
     , strides_(GridStrides(size))
     , cells_(&cell_buffer.front())
   {
-    ThrowIfInvalidGridSize(size);
+    ThrowIfZeroElementInGridSize(size);
     ThrowIfInvalidCellBufferSize(size, cell_buffer.size());
   }
 
@@ -1409,6 +1400,7 @@ T HighAccuracySolveEikonal(
 }
 
 
+//! Base class for Eikonal solvers.
 template <typename T, std::size_t N>
 class EikonalSolverBase
 {
@@ -1432,6 +1424,7 @@ private:
 };
 
 
+//! Base class for Eikonal solvers with uniform speed.
 template <typename T, std::size_t N>
 class UniformSpeedEikonalSolverBase : public EikonalSolverBase<T, N>
 {
@@ -1442,9 +1435,13 @@ public:
     : EikonalSolverBase<T, N>(grid_spacing)
     , speed_(speed)
   {
-    ThrowIfInvalidSpeed(speed_);
+    ThrowIfZeroOrNegativeOrNanSpeed(speed_);
   }
 
+  //! Returns the uniform speed, guaranteed to be:
+  //! - Non-zero
+  //! - Non-negative
+  //! - Non-NaN
   T speed() const
   {
     return speed_;
@@ -1455,6 +1452,7 @@ private:
 };
 
 
+//! Base class for Eikonal solvers with varying speed.
 template <typename T, std::size_t N>
 class VaryingSpeedEikonalSolverBase : public EikonalSolverBase<T, N>
 {
@@ -1466,10 +1464,18 @@ public:
     : EikonalSolverBase(grid_spacing)
     , speed_grid_(speed_grid_size, speed_buffer)
   {
-    ThrowIfInvalidSpeedBuffer(speed_buffer);
+    for (auto const speed : speed_buffer) {
+      ThrowIfZeroOrNegativeOrNanSpeed(speed);
+    }
   }
 
-  T speed(std::array<std::int32_t, N> const& index) const
+  //! Returns the speed at @a index, guaranteed to be:
+  //! - Non-zero
+  //! - Non-negative
+  //! - Non-NaN
+  //!
+  //! Throws a std::runtime_error if @a index is outside the underlying grid.
+  T Speed(std::array<std::int32_t, N> const& index) const
   {
     using namespace std;
 
@@ -1488,7 +1494,7 @@ private:
 
 
 //! Holds parameters related to the grid and provides methods for solving
-//! the eikonal equation for a single grid cell at a time, using information
+//! the eikonal equation for a single grid cell at a time using information
 //! about both distance and state of neighboring grid cells.
 template<typename T, std::size_t N>
 class UniformSpeedEikonalSolver : public detail::UniformSpeedEikonalSolverBase<T, N>
@@ -1566,7 +1572,7 @@ public:
       index,
       distance_grid,
       state_grid,
-      speed(index),
+      Speed(index),
       grid_spacing());
   }
 };
@@ -1579,7 +1585,7 @@ public:
   HighAccuracyVaryingSpeedEikonalSolver(
     std::array<T, N> const& grid_spacing,
     std::array<std::size_t, N> const& speed_grid_size,
-    std::vector<T>& speed_buffer)
+    std::vector<T> const& speed_buffer)
     : detail::VaryingSpeedEikonalSolverBase<T, N>(grid_spacing, speed_grid_size, speed_buffer)
   {}
 
@@ -1594,7 +1600,7 @@ public:
       index,
       distance_grid,
       state_grid,
-      speed(index),
+      Speed(index),
       grid_spacing());
   }
 };
@@ -1692,9 +1698,9 @@ std::vector<T> SignedDistance(
                 "distance type must be floating point");
   static_assert(N > 1, "number of dimensions must be > 1");
 
-  ThrowIfInvalidGridSize(grid_size);
+  ThrowIfZeroElementInGridSize(grid_size);
   ThrowIfInvalidGridSpacing(dx);
-  ThrowIfInvalidSpeed(speed);
+  ThrowIfZeroOrNegativeOrNanSpeed(speed);
   ThrowIfSizeNotEqual(frozen_indices, frozen_distances);
   ThrowIfEmptyIndices(frozen_indices);
   ThrowIfIndexOutsideGrid(frozen_indices, grid_size);

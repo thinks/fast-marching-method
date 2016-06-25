@@ -766,263 +766,317 @@ protected:
 };
 
 
+// Associate types with fixtures.
+
 TYPED_TEST_CASE(UniformSpeedEikonalSolverTest, EikonalSolverTypes);
 TYPED_TEST_CASE(HighAccuracyUniformSpeedEikonalSolverTest, EikonalSolverTypes);
 TYPED_TEST_CASE(VaryingSpeedEikonalSolverTest, EikonalSolverTypes);
 TYPED_TEST_CASE(HighAccuracyVaryingSpeedEikonalSolverTest, EikonalSolverTypes);
 TYPED_TEST_CASE(UnsignedDistanceTest, UnsignedDistanceTypes);
-TYPED_TEST_CASE(UnsignedDistanceAccuracyTest, AccuracyTypes);
 TYPED_TEST_CASE(SignedDistanceTest, SignedDistanceTypes);
+TYPED_TEST_CASE(UnsignedDistanceAccuracyTest, AccuracyTypes);
 TYPED_TEST_CASE(SignedDistanceAccuracyTest, AccuracyTypes);
-
-
 
 
 // UniformSpeedEikonalSolverTest fixture.
 
-TYPED_TEST(UniformSpeedEikonalSolverTest, NegativeGridSpacingElementThrows)
+TYPED_TEST(UniformSpeedEikonalSolverTest, InvalidGridSpacingThrows)
 {
   using namespace std;
 
   typedef TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
-  typedef thinks::fmm::UniformSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
+  typedef thinks::fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
 
-  auto grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
-  grid_spacing[0] = ScalarType{-1}; // Negative element!
-  auto const speed = ScalarType{1};
+  auto const invalid_grid_spacing_elements = array<ScalarType, 3>{{
+    ScalarType{0},
+    ScalarType{-1},
+    numeric_limits<ScalarType>::quiet_NaN()
+  }};
 
-  auto const ft = util::FunctionThrows<runtime_error>(
-    [=]() {
-      auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
-    });
+  for (auto const invalid_grid_spacing_element : invalid_grid_spacing_elements) {
+    auto grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+    grid_spacing[0] = invalid_grid_spacing_element; // Invalid element!
+    auto const speed = ScalarType{1};
 
-  auto expected_reason = stringstream();
-  expected_reason << "invalid grid spacing: " << util::ToString(grid_spacing);
+    auto const ft = util::FunctionThrows<runtime_error>(
+      [=]() {
+        auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
+      });
 
-  ASSERT_TRUE(ft.first);
-  ASSERT_EQ(expected_reason.str(), ft.second);
+    auto expected_reason = stringstream();
+    expected_reason << "invalid grid spacing: " << util::ToString(grid_spacing);
+
+    ASSERT_TRUE(ft.first);
+    ASSERT_EQ(expected_reason.str(), ft.second);
+  }
 }
 
-TYPED_TEST(UniformSpeedEikonalSolverTest, NanGridSpacingElementThrows)
+TYPED_TEST(UniformSpeedEikonalSolverTest, InvalidSpeedThrows)
 {
   using namespace std;
 
   typedef TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
-  typedef thinks::fmm::UniformSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
+  typedef thinks::fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
 
-  auto grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
-  grid_spacing[0] = numeric_limits<ScalarType>::quiet_NaN(); // NaN element!
-  auto const speed = ScalarType{1};
+  auto const invalid_speeds = array<ScalarType, 3>{{
+    ScalarType{0},
+    ScalarType{-1},
+    numeric_limits<ScalarType>::quiet_NaN()
+  }};
 
-  auto const ft = util::FunctionThrows<runtime_error>(
-    [=]() {
-      auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
-    });
+  for (auto const invalid_speed : invalid_speeds) {
+    auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+    auto const speed = invalid_speed; // Invalid speed!
 
-  auto expected_reason = stringstream();
-  expected_reason << "invalid grid spacing: " << util::ToString(grid_spacing);
+    auto const ft = util::FunctionThrows<runtime_error>(
+      [=]() {
+        auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
+      });
 
-  ASSERT_TRUE(ft.first);
-  ASSERT_EQ(expected_reason.str(), ft.second);
-}
+    auto expected_reason = stringstream();
+    expected_reason << "invalid speed: " << speed;
 
-TYPED_TEST(UniformSpeedEikonalSolverTest, NegativeSpeedThrows)
-{
-  using namespace std;
-
-  typedef TypeParam::ScalarType ScalarType;
-  static constexpr size_t kDimension = TypeParam::kDimension;
-  typedef thinks::fmm::UniformSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
-
-  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
-  auto const speed = ScalarType{-1}; // Negative!
-
-  auto const ft = util::FunctionThrows<runtime_error>(
-    [=]() {
-      auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
-    });
-
-  auto expected_reason = stringstream();
-  expected_reason << "invalid speed: " << speed;
-
-  ASSERT_TRUE(ft.first);
-  ASSERT_EQ(expected_reason.str(), ft.second);
-}
-
-TYPED_TEST(UniformSpeedEikonalSolverTest, NanSpeedThrows)
-{
-  using namespace std;
-
-  typedef TypeParam::ScalarType ScalarType;
-  static constexpr size_t kDimension = TypeParam::kDimension;
-  typedef thinks::fmm::UniformSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
-
-  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
-  auto const speed = numeric_limits<ScalarType>::quiet_NaN(); // NaN!
-
-  auto const ft = util::FunctionThrows<runtime_error>(
-    [=]() {
-      auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
-    });
-
-  auto expected_reason = stringstream();
-  expected_reason << "invalid speed: " << speed;
-
-  ASSERT_TRUE(ft.first);
-  ASSERT_EQ(expected_reason.str(), ft.second);
+    ASSERT_TRUE(ft.first);
+    ASSERT_EQ(expected_reason.str(), ft.second);
+  }
 }
 
 
 // HighAccuracyUniformSpeedEikonalSolverTest fixture.
 
-TYPED_TEST(HighAccuracyUniformSpeedEikonalSolverTest, NegativeGridSpacingElementThrows)
+TYPED_TEST(HighAccuracyUniformSpeedEikonalSolverTest, InvalidGridSpacingThrows)
 {
   using namespace std;
 
   typedef TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
-  typedef thinks::fmm::HighAccuracyUniformSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
+  typedef thinks::fmm::HighAccuracyUniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
 
-  auto grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
-  grid_spacing[0] = ScalarType{-1}; // Negative element!
-  auto const speed = ScalarType{1};
+  auto const invalid_grid_spacing_elements = array<ScalarType, 3>{{
+    ScalarType{0},
+    ScalarType{-1},
+    numeric_limits<ScalarType>::quiet_NaN()
+  }};
 
-  auto const ft = util::FunctionThrows<runtime_error>(
-    [=]() {
-      auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
-    });
+  for (auto const invalid_grid_spacing_element : invalid_grid_spacing_elements) {
+    auto grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+    grid_spacing[0] = invalid_grid_spacing_element; // Invalid element!
+    auto const speed = ScalarType{1};
 
-  auto expected_reason = stringstream();
-  expected_reason << "invalid grid spacing: " << util::ToString(grid_spacing);
+    auto const ft = util::FunctionThrows<runtime_error>(
+      [=]() {
+        auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
+      });
 
-  ASSERT_TRUE(ft.first);
-  ASSERT_EQ(expected_reason.str(), ft.second);
+    auto expected_reason = stringstream();
+    expected_reason << "invalid grid spacing: " << util::ToString(grid_spacing);
+
+    ASSERT_TRUE(ft.first);
+    ASSERT_EQ(expected_reason.str(), ft.second);
+  }
 }
 
-TYPED_TEST(HighAccuracyUniformSpeedEikonalSolverTest, NanGridSpacingElementThrows)
+TYPED_TEST(HighAccuracyUniformSpeedEikonalSolverTest, InvalidSpeedThrows)
 {
   using namespace std;
 
   typedef TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
-  typedef thinks::fmm::HighAccuracyUniformSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
+  typedef thinks::fmm::HighAccuracyUniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
 
-  auto grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
-  grid_spacing[0] = numeric_limits<ScalarType>::quiet_NaN(); // NaN element!
-  auto const speed = ScalarType{1};
+  auto const invalid_speeds = array<ScalarType, 3>{{
+    ScalarType{0},
+    ScalarType{-1},
+    numeric_limits<ScalarType>::quiet_NaN()
+  }};
 
-  auto const ft = util::FunctionThrows<runtime_error>(
-    [=]() {
-      auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
-    });
+  for (auto const invalid_speed : invalid_speeds) {
+    auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+    auto const speed = invalid_speed; // Invalid speed!
 
-  auto expected_reason = stringstream();
-  expected_reason << "invalid grid spacing: " << util::ToString(grid_spacing);
+    auto const ft = util::FunctionThrows<runtime_error>(
+      [=]() {
+        auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
+      });
 
-  ASSERT_TRUE(ft.first);
-  ASSERT_EQ(expected_reason.str(), ft.second);
-}
+    auto expected_reason = stringstream();
+    expected_reason << "invalid speed: " << speed;
 
-TYPED_TEST(HighAccuracyUniformSpeedEikonalSolverTest, NegativeSpeedThrows)
-{
-  using namespace std;
-
-  typedef TypeParam::ScalarType ScalarType;
-  static constexpr size_t kDimension = TypeParam::kDimension;
-  typedef thinks::fmm::HighAccuracyUniformSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
-
-  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
-  auto const speed = ScalarType{-1}; // Negative!
-
-  auto const ft = util::FunctionThrows<runtime_error>(
-    [=]() {
-      auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
-    });
-
-  auto expected_reason = stringstream();
-  expected_reason << "invalid speed: " << speed;
-
-  ASSERT_TRUE(ft.first);
-  ASSERT_EQ(expected_reason.str(), ft.second);
-}
-
-TYPED_TEST(HighAccuracyUniformSpeedEikonalSolverTest, NanSpeedThrows)
-{
-  using namespace std;
-
-  typedef TypeParam::ScalarType ScalarType;
-  static constexpr size_t kDimension = TypeParam::kDimension;
-  typedef thinks::fmm::HighAccuracyUniformSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
-
-  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
-  auto const speed = numeric_limits<ScalarType>::quiet_NaN(); // NaN!
-
-  auto const ft = util::FunctionThrows<runtime_error>(
-    [=]() {
-      auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
-    });
-
-  auto expected_reason = stringstream();
-  expected_reason << "invalid speed: " << speed;
-
-  ASSERT_TRUE(ft.first);
-  ASSERT_EQ(expected_reason.str(), ft.second);
+    ASSERT_TRUE(ft.first);
+    ASSERT_EQ(expected_reason.str(), ft.second);
+  }
 }
 
 
 // VaryingSpeedEikonalSolverTest fixture.
 
-TYPED_TEST(VaryingSpeedEikonalSolverTest, NegativeGridSpacingElementThrows)
+TYPED_TEST(VaryingSpeedEikonalSolverTest, InvalidGridSpacingThrows)
 {
   using namespace std;
 
   typedef TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
-  typedef thinks::fmm::VaryingSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
+  typedef thinks::fmm::VaryingSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
 
-  auto grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
-  grid_spacing[0] = ScalarType{-1}; // Negative element!
+  auto const invalid_grid_spacing_elements = array<ScalarType, 3>{{
+    ScalarType{0},
+    ScalarType{-1},
+    numeric_limits<ScalarType>::quiet_NaN()
+  }};
+
+  for (auto const invalid_grid_spacing_element : invalid_grid_spacing_elements) {
+    auto grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+    grid_spacing[0] = invalid_grid_spacing_element; // Invalid element!
+    auto const speed_grid_size = util::FilledArray<kDimension>(size_t{10});
+    auto const speed_buffer =
+      vector<ScalarType>(util::LinearSize(speed_grid_size), ScalarType{1});
+
+    auto const ft = util::FunctionThrows<runtime_error>(
+      [&]() {
+        auto const eikonal_solver =
+          EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
+      });
+
+    auto expected_reason = stringstream();
+    expected_reason << "invalid grid spacing: " << util::ToString(grid_spacing);
+
+    ASSERT_TRUE(ft.first);
+    ASSERT_EQ(expected_reason.str(), ft.second);
+  }
+}
+
+TYPED_TEST(VaryingSpeedEikonalSolverTest, InvalidSpeedThrows)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  typedef thinks::fmm::VaryingSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  auto const invalid_speeds = array<ScalarType, 3>{{
+    ScalarType{0},
+    ScalarType{-1},
+    numeric_limits<ScalarType>::quiet_NaN()
+  }};
+
+  for (auto const invalid_speed : invalid_speeds) {
+    auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+    auto const speed_grid_size = util::FilledArray<kDimension>(size_t{10});
+    auto speed_buffer =
+      vector<ScalarType>(util::LinearSize(speed_grid_size), ScalarType{1});
+    speed_buffer[0] = invalid_speed; // Invalid speed!
+
+    auto const ft = util::FunctionThrows<runtime_error>(
+      [=]() {
+        auto const eikonal_solver =
+          EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
+      });
+
+    auto expected_reason = stringstream();
+    expected_reason << "invalid speed: " << invalid_speed;
+
+    ASSERT_TRUE(ft.first);
+    ASSERT_EQ(expected_reason.str(), ft.second);
+  }
+}
+
+TYPED_TEST(VaryingSpeedEikonalSolverTest, InvalidSpeedBufferThrows)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  typedef thinks::fmm::VaryingSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
   auto const speed_grid_size = util::FilledArray<kDimension>(size_t{10});
-  auto speed_buffer =
-    vector<ScalarType>(util::LinearSize(speed_grid_size), ScalarType{1});
+  // Buffer size is not linear grid size!
+  auto const speed_buffer =
+    vector<ScalarType>(util::LinearSize(speed_grid_size) - 1, ScalarType{1});
 
   auto const ft = util::FunctionThrows<runtime_error>(
-    [&]() {
+    [=]() {
       auto const eikonal_solver =
         EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
     });
 
   auto expected_reason = stringstream();
-  expected_reason << "invalid grid spacing: " << util::ToString(grid_spacing);
+  expected_reason << "grid size " << util::ToString(speed_grid_size)
+     << " does not match cell buffer size " << speed_buffer.size();
 
   ASSERT_TRUE(ft.first);
   ASSERT_EQ(expected_reason.str(), ft.second);
 }
 
-TYPED_TEST(VaryingSpeedEikonalSolverTest, NanGridSpacingElementThrows)
+TYPED_TEST(VaryingSpeedEikonalSolverTest, InvalidSpeedGridSizeThrows)
 {
   using namespace std;
 
   typedef TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
-  typedef thinks::fmm::VaryingSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
+  typedef thinks::fmm::VaryingSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
 
-  auto grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
-  grid_spacing[0] = numeric_limits<ScalarType>::quiet_NaN(); // NaN element!
-  auto const speed_grid_size = util::FilledArray<kDimension>(size_t{10});
-  auto speed_buffer =
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+  auto speed_grid_size = util::FilledArray<kDimension>(size_t{10});
+  speed_grid_size[0] = 0; // Invalid grid size!
+  auto const speed_buffer =
     vector<ScalarType>(util::LinearSize(speed_grid_size), ScalarType{1});
 
   auto const ft = util::FunctionThrows<runtime_error>(
-    [&]() {
+    [=]() {
       auto const eikonal_solver =
         EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
     });
 
   auto expected_reason = stringstream();
-  expected_reason << "invalid grid spacing: " << util::ToString(grid_spacing);
+  expected_reason << "invalid grid size: " << util::ToString(speed_grid_size);
+
+  ASSERT_TRUE(ft.first);
+  ASSERT_EQ(expected_reason.str(), ft.second);
+}
+
+TYPED_TEST(VaryingSpeedEikonalSolverTest, IndexOutsideSpeedGridThrows)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  typedef thinks::fmm::VaryingSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  auto const grid_size = util::FilledArray<kDimension>(size_t{10});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+  // Speed grid smaller than distance grid!
+  auto const speed_grid_size = util::FilledArray<kDimension>(size_t{9});
+  auto const speed_buffer =
+    vector<ScalarType>(util::LinearSize(speed_grid_size), ScalarType{1});
+
+  auto frozen_indices = vector<array<int32_t, kDimension>>();
+  auto index_iter = util::IndexIterator<kDimension>(grid_size);
+  frozen_indices.push_back(index_iter.index());
+  auto const frozen_distances = vector<ScalarType>(1, ScalarType{1});
+
+  auto const ft = util::FunctionThrows<runtime_error>(
+    [=]() {
+      auto const unsigned_distance = thinks::fmm::UnsignedDistance(
+        grid_size,
+        frozen_indices,
+        frozen_distances,
+        EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer));
+    });
+
+  auto expected_reason = stringstream();
+  expected_reason << "index outside speed grid";
 
   ASSERT_TRUE(ft.first);
   ASSERT_EQ(expected_reason.str(), ft.second);
@@ -1031,65 +1085,175 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, NanGridSpacingElementThrows)
 
 // HighAccuracyVaryingSpeedEikonalSolverTest fixture.
 
-TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, NegativeGridSpacingElementThrows)
+TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidGridSpacingThrows)
 {
   using namespace std;
 
   typedef TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
-  typedef thinks::fmm::HighAccuracyVaryingSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
+  typedef thinks::fmm::HighAccuracyVaryingSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
 
-  auto grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
-  grid_spacing[0] = ScalarType{-1}; // Negative element!
-  auto const speed_grid_size = util::FilledArray<kDimension>(size_t{10});
-  auto speed_buffer =
-    vector<ScalarType>(util::LinearSize(speed_grid_size), ScalarType{1});
+  auto const invalid_grid_spacing_elements = array<ScalarType, 3>{{
+    ScalarType{0},
+    ScalarType{-1},
+    numeric_limits<ScalarType>::quiet_NaN()
+  }};
 
-  auto const ft = util::FunctionThrows<runtime_error>(
-    [&]() {
-      auto const eikonal_solver =
-        EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
-    });
+  for (auto const invalid_grid_spacing_element : invalid_grid_spacing_elements) {
+    auto grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+    grid_spacing[0] = invalid_grid_spacing_element; // Invalid element!
+    auto const speed_grid_size = util::FilledArray<kDimension>(size_t{10});
+    auto const speed_buffer =
+      vector<ScalarType>(util::LinearSize(speed_grid_size), ScalarType{1});
 
-  auto expected_reason = stringstream();
-  expected_reason << "invalid grid spacing: " << util::ToString(grid_spacing);
+    auto const ft = util::FunctionThrows<runtime_error>(
+      [&]() {
+        auto const eikonal_solver =
+          EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
+      });
 
-  ASSERT_TRUE(ft.first);
-  ASSERT_EQ(expected_reason.str(), ft.second);
+    auto expected_reason = stringstream();
+    expected_reason << "invalid grid spacing: " << util::ToString(grid_spacing);
+
+    ASSERT_TRUE(ft.first);
+    ASSERT_EQ(expected_reason.str(), ft.second);
+  }
 }
 
-TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, NanGridSpacingElementThrows)
+TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidSpeedThrows)
 {
   using namespace std;
 
   typedef TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
-  typedef thinks::fmm::HighAccuracyVaryingSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
+  typedef thinks::fmm::HighAccuracyVaryingSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
 
-  auto grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
-  grid_spacing[0] = numeric_limits<ScalarType>::quiet_NaN(); // NaN element!
+  auto const invalid_speeds = array<ScalarType, 3>{{
+    ScalarType{0},
+    ScalarType{-1},
+    numeric_limits<ScalarType>::quiet_NaN()
+  }};
+
+  for (auto const invalid_speed : invalid_speeds) {
+    auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+    auto const speed_grid_size = util::FilledArray<kDimension>(size_t{10});
+    auto speed_buffer =
+      vector<ScalarType>(util::LinearSize(speed_grid_size), ScalarType{1});
+    speed_buffer[0] = invalid_speed; // Invalid speed!
+
+    auto const ft = util::FunctionThrows<runtime_error>(
+      [=]() {
+        auto const eikonal_solver =
+          EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
+      });
+
+    auto expected_reason = stringstream();
+    expected_reason << "invalid speed: " << invalid_speed;
+
+    ASSERT_TRUE(ft.first);
+    ASSERT_EQ(expected_reason.str(), ft.second);
+  }
+}
+
+TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidSpeedBufferThrows)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  typedef thinks::fmm::HighAccuracyVaryingSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
   auto const speed_grid_size = util::FilledArray<kDimension>(size_t{10});
-  auto speed_buffer =
-    vector<ScalarType>(util::LinearSize(speed_grid_size), ScalarType{1});
+  // Buffer size is not linear grid size!
+  auto const speed_buffer =
+    vector<ScalarType>(util::LinearSize(speed_grid_size) - 1, ScalarType{1});
 
   auto const ft = util::FunctionThrows<runtime_error>(
-    [&]() {
+    [=]() {
       auto const eikonal_solver =
         EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
     });
 
   auto expected_reason = stringstream();
-  expected_reason << "invalid grid spacing: " << util::ToString(grid_spacing);
+  expected_reason << "grid size " << util::ToString(speed_grid_size)
+     << " does not match cell buffer size " << speed_buffer.size();
+
+  ASSERT_TRUE(ft.first);
+  ASSERT_EQ(expected_reason.str(), ft.second);
+}
+
+TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidSpeedGridSizeThrows)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  typedef thinks::fmm::HighAccuracyVaryingSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+  auto speed_grid_size = util::FilledArray<kDimension>(size_t{10});
+  speed_grid_size[0] = 0; // Invalid grid size!
+  auto const speed_buffer =
+    vector<ScalarType>(util::LinearSize(speed_grid_size), ScalarType{1});
+
+  auto const ft = util::FunctionThrows<runtime_error>(
+    [=]() {
+      auto const eikonal_solver =
+        EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
+    });
+
+  auto expected_reason = stringstream();
+  expected_reason << "invalid grid size: " << util::ToString(speed_grid_size);
+
+  ASSERT_TRUE(ft.first);
+  ASSERT_EQ(expected_reason.str(), ft.second);
+}
+
+TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidSpeedGridThrows)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  typedef thinks::fmm::HighAccuracyVaryingSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  auto const grid_size = util::FilledArray<kDimension>(size_t{10});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+  // Speed grid smaller than distance grid!
+  auto const speed_grid_size = util::FilledArray<kDimension>(size_t{9});
+  auto const speed_buffer =
+    vector<ScalarType>(util::LinearSize(speed_grid_size), ScalarType{1});
+
+  auto frozen_indices = vector<array<int32_t, kDimension>>();
+  auto index_iter = util::IndexIterator<kDimension>(grid_size);
+  frozen_indices.push_back(index_iter.index());
+  auto const frozen_distances = vector<ScalarType>(1, ScalarType{1});
+
+  auto const ft = util::FunctionThrows<runtime_error>(
+    [=]() {
+      auto const unsigned_distance = thinks::fmm::UnsignedDistance(
+        grid_size,
+        frozen_indices,
+        frozen_distances,
+        EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer));
+    });
+
+  auto expected_reason = stringstream();
+  expected_reason << "index outside speed grid";
 
   ASSERT_TRUE(ft.first);
   ASSERT_EQ(expected_reason.str(), ft.second);
 }
 
 
-
-
-// UnsignedDistance
-
+// UnsignedDistance fixture.
+// TODO - different dx.
 TYPED_TEST(UnsignedDistanceTest, ZeroElementInGridSizeThrows)
 {
   using namespace std;
@@ -1123,7 +1287,6 @@ TYPED_TEST(UnsignedDistanceTest, ZeroElementInGridSizeThrows)
   ASSERT_EQ(expected_reason.str(), ft.second);
 }
 
-
 TYPED_TEST(UnsignedDistanceTest, EmptyFrozenIndicesThrows)
 {
   using namespace std;
@@ -1149,7 +1312,6 @@ TYPED_TEST(UnsignedDistanceTest, EmptyFrozenIndicesThrows)
   ASSERT_TRUE(ft.first);
   ASSERT_EQ("empty frozen indices", ft.second);
 }
-
 
 TYPED_TEST(UnsignedDistanceTest, FullGridFrozenIndicesThrows)
 {
@@ -1185,7 +1347,6 @@ TYPED_TEST(UnsignedDistanceTest, FullGridFrozenIndicesThrows)
   ASSERT_TRUE(ft.first);
   ASSERT_EQ("whole grid frozen", ft.second);
 }
-
 
 TYPED_TEST(UnsignedDistanceTest, DuplicateFrozenIndicesThrows)
 {
@@ -1224,7 +1385,6 @@ TYPED_TEST(UnsignedDistanceTest, DuplicateFrozenIndicesThrows)
   ASSERT_EQ(expected_reason.str(), ft.second);
 }
 
-
 TYPED_TEST(UnsignedDistanceTest, FrozenIndexOutsideGridThrows)
 {
   using namespace std;
@@ -1260,7 +1420,6 @@ TYPED_TEST(UnsignedDistanceTest, FrozenIndexOutsideGridThrows)
   ASSERT_EQ(expected_reason.str(), ft.second);
 }
 
-
 TYPED_TEST(UnsignedDistanceTest, FrozenIndicesAndDistancesSizeMismatchThrows)
 {
   using namespace std;
@@ -1295,79 +1454,48 @@ TYPED_TEST(UnsignedDistanceTest, FrozenIndicesAndDistancesSizeMismatchThrows)
   ASSERT_EQ("frozen indices/distances size mismatch", ft.second);
 }
 
-
-
-TYPED_TEST(UnsignedDistanceTest, NegativeFrozenDistanceThrows)
+TYPED_TEST(UnsignedDistanceTest, InvalidFrozenDistanceThrows)
 {
   using namespace std;
 
   typedef TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
-  typedef thinks::fmm::UniformSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
+  typedef thinks::fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
 
-  auto const grid_size = util::FilledArray<kDimension>(size_t{10});
-  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
-  auto const speed = ScalarType{1};
+  auto const invalid_frozen_distances = array<ScalarType, 2>{{
+    ScalarType{-1},
+    numeric_limits<ScalarType>::quiet_NaN()
+  }};
 
-  auto frozen_indices = vector<array<int32_t, kDimension>>();
-  auto index_iter = util::IndexIterator<kDimension>(grid_size);
-  frozen_indices.push_back(index_iter.index());
+  for (auto const invalid_frozen_distance : invalid_frozen_distances) {
+    auto const grid_size = util::FilledArray<kDimension>(size_t{10});
+    auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+    auto const speed = ScalarType{1};
 
-  auto const frozen_distances =
-    vector<ScalarType>(1, ScalarType{-1}); // Negative!
+    auto frozen_indices = vector<array<int32_t, kDimension>>();
+    auto index_iter = util::IndexIterator<kDimension>(grid_size);
+    frozen_indices.push_back(index_iter.index());
 
-  auto const ft = util::FunctionThrows<runtime_error>(
-    [=]() {
-      auto const unsigned_distance = thinks::fmm::UnsignedDistance(
-        grid_size,
-        frozen_indices,
-        frozen_distances,
-        EikonalSolverType(grid_spacing, speed));
-    });
+    auto const frozen_distances =
+      vector<ScalarType>(1, invalid_frozen_distance); // Invalid!
 
-  auto expected_reason = stringstream();
-  expected_reason << "invalid frozen distance: " << ScalarType{-1};
+    auto const ft = util::FunctionThrows<runtime_error>(
+      [=]() {
+        auto const unsigned_distance = thinks::fmm::UnsignedDistance(
+          grid_size,
+          frozen_indices,
+          frozen_distances,
+          EikonalSolverType(grid_spacing, speed));
+      });
 
-  ASSERT_TRUE(ft.first);
-  ASSERT_EQ(expected_reason.str(), ft.second);
+    auto expected_reason = stringstream();
+    expected_reason << "invalid frozen distance: " << invalid_frozen_distance;
+
+    ASSERT_TRUE(ft.first);
+    ASSERT_EQ(expected_reason.str(), ft.second);
+  }
 }
-
-
-TYPED_TEST(UnsignedDistanceTest, NanFrozenDistanceThrows)
-{
-  using namespace std;
-
-  typedef TypeParam::ScalarType ScalarType;
-  static constexpr size_t kDimension = TypeParam::kDimension;
-  typedef thinks::fmm::UniformSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
-
-  auto const grid_size = util::FilledArray<kDimension>(size_t{10});
-  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
-  auto const speed = ScalarType{1};
-
-  auto frozen_indices = vector<array<int32_t, kDimension>>();
-  auto index_iter = util::IndexIterator<kDimension>(grid_size);
-  frozen_indices.push_back(index_iter.index());
-
-  auto const frozen_distances =
-    vector<ScalarType>(1, numeric_limits<ScalarType>::quiet_NaN()); // NaN!
-
-  auto const ft = util::FunctionThrows<runtime_error>(
-    [=]() {
-      auto const unsigned_distance = thinks::fmm::UnsignedDistance(
-        grid_size,
-        frozen_indices,
-        frozen_distances,
-        EikonalSolverType(grid_spacing, speed));
-    });
-
-  auto expected_reason = stringstream();
-  expected_reason << "invalid frozen distance: " << numeric_limits<ScalarType>::quiet_NaN();
-
-  ASSERT_TRUE(ft.first);
-  ASSERT_EQ(expected_reason.str(), ft.second);
-}
-
 
 TYPED_TEST(UnsignedDistanceTest, EikonalSolverFailThrows)
 {
@@ -1409,8 +1537,7 @@ TYPED_TEST(UnsignedDistanceTest, EikonalSolverFailThrows)
   ASSERT_EQ("negative discriminant", ft.second);
 }
 
-
-TYPED_TEST(UnsignedDistanceTest, DifferentSpeed)
+TYPED_TEST(UnsignedDistanceTest, DifferentUniformSpeed)
 {
   using namespace std;
 
@@ -1451,14 +1578,13 @@ TYPED_TEST(UnsignedDistanceTest, DifferentSpeed)
   }
 }
 
+TYPED_TEST(UnsignedDistanceTest, DISABLED_NonUniformGridSpacing)
+{
+
+}
 
 
-
-
-
-
-
-
+// UnsignedDistanceAccuracy fixture.
 
 TYPED_TEST(UnsignedDistanceAccuracyTest, UniformSpeedHyperSphereStats)
 {
@@ -1466,7 +1592,8 @@ TYPED_TEST(UnsignedDistanceAccuracyTest, UniformSpeedHyperSphereStats)
 
   typedef TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
-  typedef thinks::fmm::UniformSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
+  typedef thinks::fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
 
   auto const grid_size = util::FilledArray<kDimension>(size_t{100});
   auto const grid_spacing = util::FilledArray<kDimension>(ScalarType(0.01));
@@ -1496,15 +1623,71 @@ TYPED_TEST(UnsignedDistanceAccuracyTest, UniformSpeedHyperSphereStats)
   ASSERT_LT(distance_stats.max_abs_error, Thresholds::max_abs_error_threshold());
   ASSERT_LT(distance_stats.avg_abs_error, Thresholds::avg_abs_error_threshold());
   ASSERT_LT(distance_stats.std_dev_abs_error, Thresholds::std_dev_abs_error_threshold());
-  //cerr << distance_stats << endl;
+  cerr << distance_stats << endl;
 }
 
-
-TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_UniformSpeedHighAccuracyHyperSphereStats)
+TYPED_TEST(UnsignedDistanceAccuracyTest, HighAccuracyUniformSpeedHyperSphereStats)
 {
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  typedef thinks::fmm::HighAccuracyUniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  auto const grid_size = util::FilledArray<kDimension>(size_t{100});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType(0.01));
+  auto const uniform_speed = ScalarType{1};
+
+  auto const sphere_center = util::FilledArray<kDimension>(ScalarType(0.5));
+  auto const sphere_radius = ScalarType(0.25);
+
+  auto const distance_stats =
+    util::HyperSphereDistanceStats<ScalarType, kDimension>(
+      sphere_center,
+      sphere_radius,
+      grid_size,
+      grid_spacing,
+      [](ScalarType const x) { return fabs(x); },
+      [=](auto const frozen_indices,
+          auto const frozen_distances) {
+        return thinks::fmm::UnsignedDistance(
+          grid_size,
+          frozen_indices,
+          frozen_distances,
+          EikonalSolverType(grid_spacing, uniform_speed));
+      });
+
+  typedef util::UnsignedDistanceAccuracyThresholds<ScalarType, kDimension> Thresholds;
+  ASSERT_EQ(distance_stats.min_abs_error, Thresholds::min_abs_error_threshold());
+  ASSERT_LT(distance_stats.max_abs_error, Thresholds::max_abs_error_threshold());
+  ASSERT_LT(distance_stats.avg_abs_error, Thresholds::avg_abs_error_threshold());
+  ASSERT_LT(distance_stats.std_dev_abs_error, Thresholds::std_dev_abs_error_threshold());
+  cerr << "HIGH ACCURACY" << endl;
+  cerr << distance_stats << endl;
 }
 
+TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_VaryingSpeed)
+{
+  ASSERT_TRUE(false);
+}
 
+TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_HighAccuracyVaryingSpeed)
+{
+  ASSERT_TRUE(false);
+}
+
+TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_GradientLength)
+{
+
+}
+
+TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_HighAccuracyGradientLength)
+{
+
+}
+
+#if 0
 TYPED_TEST(UnsignedDistanceTest, DISABLED_DistanceAccuracyOnHyperSphere)
 {
   using namespace std;
@@ -1603,28 +1786,14 @@ TYPED_TEST(UnsignedDistanceTest, DISABLED_DistanceAccuracyOnHyperSphere)
     ASSERT_LE(fabs(unsigned_distance[i] - ground_truth[i]), 1e-3);
   }
 }
+#endif
 
 
-TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_UniformSpeed)
-{
-  ASSERT_TRUE(false);
-}
-
-TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_HighAccuracyUniformSpeed)
-{
-  ASSERT_TRUE(false);
-}
+// SignedDistance fixture.
 
 
-TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_VaryingSpeed)
-{
-  ASSERT_TRUE(false);
-}
+// SignedDistanceAccuracy fixture.
 
-TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_HighAccuracyVaryingSpeed)
-{
-  ASSERT_TRUE(false);
-}
 
 #if 0
 
