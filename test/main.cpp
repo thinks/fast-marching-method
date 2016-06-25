@@ -1,3 +1,4 @@
+#if 0
 #include <exception>
 #include <fstream>
 #include <iostream>
@@ -11,7 +12,7 @@
 namespace {
 
 template<typename R, typename T> inline
-R clamp(T const low, T const high, T const value)
+R Clamp(T const low, T const high, T const value)
 {
   using namespace std;
 
@@ -19,18 +20,18 @@ R clamp(T const low, T const high, T const value)
 }
 
 template<typename R, typename U, typename InIter> inline
-std::vector<R> transformedAsVector(
+std::vector<R> TransformedAsVector(
   InIter const begin, InIter const end, U const unary_op)
 {
   using namespace std;
 
-  auto r = vector<R>();
+  auto r = vector<R>{};
   transform(begin, end, back_inserter(r), unary_op);
   return r;
 }
 
 template<typename T, typename InIter> inline
-std::vector<T> signedNormalized(InIter const in_begin, InIter const in_end)
+std::vector<T> SignedNormalized(InIter const in_begin, InIter const in_end)
 {
   using namespace std;
 
@@ -54,7 +55,7 @@ std::vector<T> signedNormalized(InIter const in_begin, InIter const in_end)
   auto const pos_factor = max_pos_value > T(0) ? T(1) / max_pos_value : T(-1);
   auto const neg_factor = min_neg_value < T(0) ? T(-1) / min_neg_value : T(-1);
 
-  return transformedAsVector<T>(
+  return TransformedAsVector<T>(
     in_begin,
     in_end,
     [=](auto const value) {
@@ -74,8 +75,9 @@ std::vector<T> signedNormalized(InIter const in_begin, InIter const in_end)
     });
 }
 
+
 template<typename InIter, typename C> inline
-std::vector<std::uint8_t> pixelsFromValues(
+std::vector<std::uint8_t> PixelsFromValues(
   InIter const in_begin,
   InIter const in_end,
   C const pixel_from_value)
@@ -92,7 +94,7 @@ std::vector<std::uint8_t> pixelsFromValues(
 }
 
 template<typename T>
-void writeGradMagImages(
+void WriteGradMagImages(
   thinks::fmm::test::GradientMagnitudeStats<T, 2> const& grad_mag_stats,
   std::string const& prefix)
 {
@@ -109,12 +111,12 @@ void writeGradMagImages(
       array<uint8_t, 3>{{
         uint8_t(0),
         uint8_t(0),
-        clamp<uint8_t>(
+        Clamp<uint8_t>(
           T(0),
           T(numeric_limits<uint8_t>::max()),
           numeric_limits<uint8_t>::max() * fabs(x))}} :
       array<uint8_t, 3>{{
-        clamp<uint8_t>(
+        Clamp<uint8_t>(
           T(0),
           T(numeric_limits<uint8_t>::max()),
           numeric_limits<uint8_t>::max() * x),
@@ -127,28 +129,28 @@ void writeGradMagImages(
 
   stringstream ss_input;
   ss_input << prefix << "_input_" << typeid(T).name() << ".ppm";
-  auto const normalized_input = signedNormalized<T>(
+  auto const normalized_input = SignedNormalized<T>(
     begin(grad_mag_stats.input_buffer),
     end(grad_mag_stats.input_buffer));
   ppm::writeRgbImage(
     ss_input.str(),
     width,
     height,
-    pixelsFromValues(
+    PixelsFromValues(
       begin(normalized_input),
       end(normalized_input),
       pixel_from_value));
 
   stringstream ss_distance;
   ss_distance << prefix << "_distance_" << typeid(T).name() << ".ppm";
-  auto const normalized_distance = signedNormalized<T>(
+  auto const normalized_distance = SignedNormalized<T>(
     begin(grad_mag_stats.distance_buffer),
     end(grad_mag_stats.distance_buffer));
   ppm::writeRgbImage(
     ss_distance.str(),
     width,
     height,
-    pixelsFromValues(
+    PixelsFromValues(
       begin(normalized_distance),
       end(normalized_distance),
       pixel_from_value));
@@ -179,21 +181,21 @@ void writeGradMagImages(
 
   stringstream ss_error;
   ss_error << prefix << "_error_" << typeid(T).name() << ".ppm";
-  auto const normalized_error = signedNormalized<T>(
+  auto const normalized_error = SignedNormalized<T>(
     begin(grad_mag_stats.error_buffer),
     end(grad_mag_stats.error_buffer));
   ppm::writeRgbImage(
     ss_error.str(),
     width,
     height,
-    pixelsFromValues(
+    PixelsFromValues(
       begin(normalized_error),
       end(normalized_error),
       pixel_from_value));
 }
 
 template<typename T>
-void writeDistStatImages(
+void WriteDistStatImages(
   thinks::fmm::test::DistanceValueStats<T, 2> const& dist_stats,
   std::string const& prefix)
 {
@@ -210,12 +212,12 @@ void writeDistStatImages(
       array<uint8_t, 3>{{
         uint8_t(0),
         uint8_t(0),
-        clamp<uint8_t>(
+        Clamp<uint8_t>(
           T(0),
           T(numeric_limits<uint8_t>::max()),
           numeric_limits<uint8_t>::max() * fabs(x))}} :
       array<uint8_t, 3>{{
-        clamp<uint8_t>(
+        Clamp<uint8_t>(
           T(0),
           T(numeric_limits<uint8_t>::max()),
           numeric_limits<uint8_t>::max() * x),
@@ -228,60 +230,110 @@ void writeDistStatImages(
 
   stringstream ss_input;
   ss_input << prefix << "_input_" << typeid(T).name() << ".ppm";
-  auto const normalized_input = signedNormalized<T>(
+  auto const normalized_input = SignedNormalized<T>(
     begin(dist_stats.input_buffer),
     end(dist_stats.input_buffer));
   ppm::writeRgbImage(
     ss_input.str(),
     width,
     height,
-    pixelsFromValues(
+    PixelsFromValues(
      begin(normalized_input),
      end(normalized_input),
      pixel_from_value));
 
   stringstream ss_distance;
   ss_distance << prefix << "_distance_" << typeid(T).name() << ".ppm";
-  auto const normalized_distance = signedNormalized<T>(
+  auto const normalized_distance = SignedNormalized<T>(
     begin(dist_stats.distance_buffer),
     end(dist_stats.distance_buffer));
   ppm::writeRgbImage(
     ss_distance.str(),
     width,
     height,
-    pixelsFromValues(
+    PixelsFromValues(
       begin(normalized_distance),
       end(normalized_distance),
       pixel_from_value));
 
   stringstream ss_gt;
   ss_gt << prefix << "_gt_" << typeid(T).name() << ".ppm";
-  auto const normalized_gt = signedNormalized<T>(
+  auto const normalized_gt = SignedNormalized<T>(
     begin(dist_stats.distance_ground_truth_buffer),
     end(dist_stats.distance_ground_truth_buffer));
   ppm::writeRgbImage(
     ss_gt.str(),
     width,
     height,
-    pixelsFromValues(
+    PixelsFromValues(
       begin(normalized_gt),
       end(normalized_gt),
       pixel_from_value));
 
   stringstream ss_error;
   ss_error << prefix << "_error_" << typeid(T).name() << ".ppm";
-  auto const normalized_error = signedNormalized<T>(
+  auto const normalized_error = SignedNormalized<T>(
     begin(dist_stats.error_buffer),
     end(dist_stats.error_buffer));
   ppm::writeRgbImage(
     ss_error.str(),
     width,
     height,
-    pixelsFromValues(
+    PixelsFromValues(
       begin(normalized_error),
       end(normalized_error),
       pixel_from_value));
 }
+
+
+template<std::size_t N>
+void TestUnsignedDistanceN()
+{
+  using namespace std;
+  using namespace thinks::fmm;
+
+  auto const grad_mag_stats_f = test::UnsignedGradientMagnitudeStats<float, N>();
+  cout << grad_mag_stats_f << endl;
+  WriteGradMagImages<float>(grad_mag_stats_f, "unsigned_grad_mag");
+
+  auto const grad_mag_stats_d = test::UnsignedGradientMagnitudeStats<double, N>();
+  cout << grad_mag_stats_d << endl;
+  WriteGradMagImages<double>(grad_mag_stats_d, "unsigned_grad_mag");
+
+  auto const dist_stats_f = test::UnsignedDistanceValueStats<float, N>();
+  cout << dist_stats_f << endl;
+  WriteDistStatImages<float>(dist_stats_f, "unsigned_dist_stat");
+
+  auto const dist_stats_d = test::UnsignedDistanceValueStats<double, N>();
+  cout << dist_stats_d << endl;
+  WriteDistStatImages<double>(dist_stats_d, "unsigned_dist_stat");
+}
+
+
+template<std::size_t N>
+void TestSignedDistanceN()
+{
+  using namespace std;
+  using namespace thinks::fmm;
+
+  auto const grad_mag_stats_f = test::SignedGradientMagnitudeStats<float, N>();
+  cout << grad_mag_stats_f << endl;
+  WriteGradMagImages<float>(grad_mag_stats_f, "signed_grad_mag");
+
+  auto const grad_mag_stats_d = test::SignedGradientMagnitudeStats<double, N>();
+  cout << grad_mag_stats_d << endl;
+  WriteGradMagImages<double>(grad_mag_stats_d, "signed_grad_mag");
+
+  auto const dist_stats_f = test::SignedDistanceValueStats<float, N>();
+  cout << dist_stats_f << endl;
+  WriteDistStatImages<float>(dist_stats_f, "signed_dist_stat");
+
+  auto const dist_stats_d = test::SignedDistanceValueStats<double, N>();
+  cout << dist_stats_d << endl;
+  WriteDistStatImages<double>(dist_stats_d, "signed_dist_stat");
+}
+
+
 
 } // namespace
 
@@ -318,8 +370,19 @@ ostream& operator<<(
 }
 
 } // namespace std
+#endif
 
 
+#include <gtest/gtest.h>
+
+int main(int argc, char* argv[])
+{
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
+
+
+#if 0
 int main(int argc, char* argv[])
 {
   using namespace std;
@@ -327,104 +390,14 @@ int main(int argc, char* argv[])
 
   auto success = true;
   try {
-    {
-      cout << "Unsigned distance" << endl
-           << "-----------------" << endl;
-
-#if 1
-      auto const grad_mag_stats2f = test::UnsignedGradientMagnitudeStats<float, 2>();
-      cout << grad_mag_stats2f << endl;
-      writeGradMagImages<float>(grad_mag_stats2f, "unsigned_grad_mag");
-
-      auto const grad_mag_stats2d = test::UnsignedGradientMagnitudeStats<double, 2>();
-      cout << grad_mag_stats2d << endl;
-      writeGradMagImages<double>(grad_mag_stats2d, "unsigned_grad_mag");
-
-      auto const dist_stats2f = test::UnsignedDistanceValueStats<float, 2>();
-      cout << dist_stats2f << endl;
-      writeDistStatImages<float>(dist_stats2f, "unsigned_dist_stat");
-
-      auto const dist_stats2d = test::UnsignedDistanceValueStats<double, 2>();
-      cout << dist_stats2d << endl;
-      writeDistStatImages<double>(dist_stats2d, "unsigned_dist_stat");
+    cout << "Unsigned distance" << endl
+         << "-----------------" << endl;
+    TestUnsignedDistance();
 
 
-      //auto const negative_center2f = test::unsignedNegativeCenter<float, 2>();
-      //cout << negative_center2f << endl;
-      //writeDistStatImages<float>(negative_center2f, "negative_center");
-#endif
-
-#if 0
-      auto const grad_mag_stats3f = test::unsignedGradientMagnitudeStats<float, 3>();
-      cout << grad_mag_stats3f << endl;
-      auto const grad_mag_stats3d = test::unsignedGradientMagnitudeStats<double, 3>();
-      cout << grad_mag_stats3d << endl;
-
-      auto const dist_stats3f = test::unsignedDistanceValueStats<float, 3>();
-      cout << dist_stats3f << endl;
-      auto const dist_stats3d = test::unsignedDistanceValueStats<double, 3>();
-      cout << dist_stats3d << endl;
-#endif
-
-#if 0
-      auto const grad_mag_stats4f = test::unsignedGradientMagnitudeStats<float, 4>();
-      cout << grad_mag_stats4f << endl;
-      auto const grad_mag_stats4d = test::unsignedGradientMagnitudeStats<double, 4>();
-      cout << grad_mag_stats4d << endl;
-
-      auto const dist_stats4f = test::unsignedDistanceValueStats<float, 4>();
-      cout << dist_stats4f << endl;
-      auto const dist_stats4d = test::unsignedDistanceValueStats<double, 4>();
-      cout << dist_stats4d << endl;
-#endif
-    }
-
-    {
-      cout << "Signed distance" << endl
-           << "-----------------" << endl;
-
-#if 1
-      auto const grad_mag_stats2f = test::SignedGradientMagnitudeStats<float, 2>();
-      cout << grad_mag_stats2f << endl;
-      writeGradMagImages<float>(grad_mag_stats2f, "signed_grad_mag");
-
-      auto const grad_mag_stats2d = test::SignedGradientMagnitudeStats<double, 2>();
-      cout << grad_mag_stats2d << endl;
-      writeGradMagImages<double>(grad_mag_stats2d, "signed_grad_mag");
-
-      auto const dist_stats2f = test::SignedDistanceValueStats<float, 2>();
-      cout << dist_stats2f << endl;
-      writeDistStatImages<float>(dist_stats2f, "signed_dist_stat");
-
-      auto const dist_stats2d = test::SignedDistanceValueStats<double, 2>();
-      cout << dist_stats2d << endl;
-      writeDistStatImages<double>(dist_stats2d, "signed_dist_stat");
-#endif
-
-#if 0
-      auto const grad_mag_stats3f = test::signedGradientMagnitudeStats<float, 3>();
-      cout << grad_mag_stats3f << endl;
-      auto const grad_mag_stats3d = test::signedGradientMagnitudeStats<double, 3>();
-      cout << grad_mag_stats3d << endl;
-
-      auto const dist_stats3f = test::signedDistanceValueStats<float, 3>();
-      cout << dist_stats3f << endl;
-      auto const dist_stats3d = test::signedDistanceValueStats<double, 3>();
-      cout << dist_stats3d << endl;
-#endif
-
-#if 0
-      auto const grad_mag_stats4f = test::signedGradientMagnitudeStats<float, 4>();
-      cout << grad_mag_stats4f << endl;
-      auto const grad_mag_stats4d = test::signedGradientMagnitudeStats<double, 4>();
-      cout << grad_mag_stats4d << endl;
-
-      auto const dist_stats4f = test::signedDistanceValueStats<float, 4>();
-      cout << dist_stats4f << endl;
-      auto const dist_stats4d = test::signedDistanceValueStats<double, 4>();
-      cout << dist_stats4d << endl;
-#endif
-    }
+    cout << "Signed distance" << endl
+         << "---------------" << endl;
+    TestSignedDistance();
   }
   catch (exception& ex) {
     cerr << "Unhandled exception: " << ex.what() << endl;
@@ -433,3 +406,4 @@ int main(int argc, char* argv[])
 
   return success ? EXIT_SUCCESS : EXIT_FAILURE;
 }
+#endif
