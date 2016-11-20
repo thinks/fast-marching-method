@@ -372,7 +372,6 @@ ostream& operator<<(
 } // namespace std
 #endif
 
-
 #include <gtest/gtest.h>
 
 int main(int argc, char* argv[])
@@ -380,30 +379,3 @@ int main(int argc, char* argv[])
   ::testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
 }
-
-
-#if 0
-int main(int argc, char* argv[])
-{
-  using namespace std;
-  using namespace thinks::fmm;
-
-  auto success = true;
-  try {
-    cout << "Unsigned distance" << endl
-         << "-----------------" << endl;
-    TestUnsignedDistance();
-
-
-    cout << "Signed distance" << endl
-         << "---------------" << endl;
-    TestSignedDistance();
-  }
-  catch (exception& ex) {
-    cerr << "Unhandled exception: " << ex.what() << endl;
-    success = false;
-  }
-
-  return success ? EXIT_SUCCESS : EXIT_FAILURE;
-}
-#endif

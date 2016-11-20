@@ -92,6 +92,51 @@ std::vector<T> SignedNormalized(InIter const in_begin, InIter const in_end)
     });
   return r;
 }
+
+template<typename T>
+void writeRgbImage(
+  std::string const& filename,
+  std::size_t width,
+  std::size_t height,
+  std::vector<T> const& pixel_data)
+{
+  using namespace std;
+
+  // Negative values in shades of blue, positive values in shades of red.
+  // Very large values as grey.
+  auto const pixel_from_value = [](T const x) {
+    if (x == numeric_limits<T>::max()) {
+      return array<uint8_t, 3>{{128, 128, 128}};
+    }
+    return x < T{0} ?
+      array<uint8_t, 3>{{
+        uint8_t{0},
+        uint8_t{0},
+        Clamp<uint8_t>(
+          T{0},
+          T(numeric_limits<uint8_t>::max()),
+          numeric_limits<uint8_t>::max() * fabs(x))}} :
+      array<uint8_t, 3>{{
+        Clamp<uint8_t>(
+          T{0},
+          T(numeric_limits<uint8_t>::max()),
+          numeric_limits<uint8_t>::max() * x),
+        uint8_t{0},
+        uint8_t{0}}};
+  };
+
+  auto const norm_pixel_data =
+    SignedNormalized<T>(begin(pixel_data), end(pixel_data));
+  thinks::ppm::writeRgbImage(
+    filename,
+    width,
+    height,
+    PixelsFromValues(
+      begin(norm_pixel_data),
+      end(norm_pixel_data),
+      pixel_from_value));
+}
+
 #endif // TMP!!!
 
 
@@ -113,6 +158,26 @@ std::size_t LinearSize(std::array<std::size_t, N> const& a)
 {
   using namespace std;
   return accumulate(begin(a), end(a), size_t{1}, multiplies<size_t>());
+}
+
+
+//! Returns true if @a index is inside @a size, otherwise false.
+template<std::size_t N> inline
+bool Inside(
+  std::array<std::int32_t, N> const& index,
+  std::array<std::size_t, N> const& size)
+{
+  using namespace std;
+
+  for (auto i = size_t{0}; i < N; ++i) {
+    // Cast is safe since we check that index[i] is greater than or
+    // equal to zero first.
+    if (!(0 <= index[i] && static_cast<size_t>(index[i]) < size[i])) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 
@@ -149,12 +214,12 @@ std::string ToString(std::array<T, N> const& a)
 
 
 //! Returns the distance between positions @a u and @a v.
-template<typename T, std::size_t N> inline
+template<typename T, std::size_t N>
 T Distance(std::array<T, N> const& u, std::array<T, N> const& v)
 {
   using namespace std;
 
-  static_assert(is_floating_point<T>::value, "type must be floating point");
+  static_assert(is_floating_point<T>::value, "scalar type must be floating point");
 
   auto distance_squared = T{0};
   for (auto i = size_t{0}; i < N; ++i) {
@@ -162,6 +227,22 @@ T Distance(std::array<T, N> const& u, std::array<T, N> const& v)
     distance_squared += delta * delta;
   }
   return sqrt(distance_squared);
+}
+
+
+//! Returns the magnitude of the vector @a v.
+template<typename T, std::size_t N>
+T Magnitude(std::array<T, N> const& v)
+{
+  using namespace std;
+
+  static_assert(is_floating_point<T>::value, "scalar type must be floating point");
+
+  auto mag_squared = T{0};
+  for (auto i = size_t{0}; i < N; ++i) {
+    mag_squared += v[i] * v[i];
+  }
+  return sqrt(mag_squared);
 }
 
 
@@ -475,8 +556,14 @@ std::vector<T> InputBuffer(
   auto input_buffer = vector<T>(LinearSize(grid_size), numeric_limits<T>::max());
   auto input_grid = Grid<T, N>(grid_size, input_buffer.front());
   for (auto i = size_t{0}; i < frozen_indices.size(); ++i) {
-    input_grid.Cell(frozen_indices[i]) = frozen_distances[i];
+    auto const frozen_index = frozen_indices[i];
+    if (!util::Inside(frozen_index, grid_size)) {
+      throw runtime_error("index outside grid");
+    }
+
+    input_grid.Cell(frozen_index) = frozen_distances[i];
   }
+
   return input_buffer;
 }
 
@@ -575,9 +662,6 @@ struct DistanceStats
 };
 
 
-
-
-
 template<typename T, std::size_t N,
          typename DistanceFunction, typename DistanceModifier>
 DistanceStats<T, N> HyperSphereDistanceStats(
@@ -589,14 +673,6 @@ DistanceStats<T, N> HyperSphereDistanceStats(
   DistanceFunction const distance_function)
 {
   using namespace std;
-
-  /*
-  auto const grid_size = FilledArray<N>(size_t{100});
-  auto const grid_spacing = FilledArray<N>(T(0.01));
-
-  auto const center = FilledArray<N>(T(0.5));
-  auto const radius = T(0.25);
-*/
 
   auto frozen_indices = vector<array<int32_t, N>>();
   auto frozen_distances = vector<T>();
@@ -642,6 +718,110 @@ DistanceStats<T, N> HyperSphereDistanceStats(
     distance_buffer,
     distance_ground_truth_buffer,
     error_buffer};
+}
+
+
+template<typename T, std::size_t N>
+std::array<T, N> Gradient(
+  std::array<std::int32_t, N> const& index,
+  Grid<T, N> const& grid,
+  std::array<T, N> const& grid_spacing)
+{
+  using namespace std;
+
+  static_assert(is_floating_point<T>::value,
+                "scalar type must be floating point");
+
+  array<T, N> grad;
+  auto const size = grid.size();
+
+  for (size_t i = 0; i < N; ++i) {
+    auto pos_index = index;
+    auto neg_index = index;
+    pos_index[i] += size_t{1};
+    neg_index[i] -= size_t{1};
+
+    auto const cell = grid.Cell(index);
+
+    // Use central difference if possible.
+    auto const pos_inside =
+      0 <= pos_index[i] && static_cast<size_t>(pos_index[i]) < size[i];
+    auto const neg_inside =
+      0 <= neg_index[i] && static_cast<size_t>(neg_index[i]) < size[i];
+    if (pos_inside && neg_inside) {
+      auto const pos_cell = grid.Cell(pos_index);
+      auto const neg_cell = grid.Cell(neg_index);
+      if (!(pos_cell > cell && neg_cell > cell)) {
+        grad[i] = (pos_cell - neg_cell) / (T{2} * grid_spacing[i]);
+      }
+      else {
+        grad[i] = (pos_cell - cell) / grid_spacing[i];
+      }
+    }
+    else if (pos_inside) {
+      auto const pos_cell = grid.Cell(pos_index);
+      grad[i] = (pos_cell - cell) / grid_spacing[i];
+    }
+    else if (neg_inside) {
+      auto const neg_cell = grid.Cell(neg_index);
+      grad[i] = (cell - neg_cell) / grid_spacing[i];
+    }
+    else {
+      throw runtime_error("invalid gradient");
+    }
+  }
+  return grad;
+}
+
+
+template<typename T, std::size_t N> inline
+std::vector<std::array<T, N>> DistanceGradients(
+  Grid<T, N> const& distance_grid,
+  std::array<T, N> const& grid_spacing)
+{
+  using namespace std;
+
+  auto grad_buffer = vector<array<T, N>>(LinearSize(distance_grid.size()));
+  auto grad_grid = Grid<array<T, N>, N>(distance_grid.size(), grad_buffer.front());
+
+  auto index_iter = IndexIterator<N>(grad_grid.size());
+  while (index_iter.has_next()) {
+    auto const index = index_iter.index();
+    grad_grid.Cell(index) = Gradient(index, distance_grid, grid_spacing);
+    index_iter.Next();
+  }
+
+  return grad_buffer;
+}
+
+
+template<typename T, std::size_t N>
+std::vector<T> GradientMagnitudeErrors(
+  Grid<T, N> const& grad_mag_grid,
+  std::vector<std::array<int32_t, N>> const& frozen_indices)
+{
+  using namespace std;
+
+  auto frozen_buffer = vector<uint8_t>(LinearSize(grad_mag_grid.size()), uint8_t{0});
+  auto frozen_grid = Grid<uint8_t, N>(grad_mag_grid.size(), frozen_buffer.front());
+  for (auto const& frozen_index : frozen_indices) {
+    frozen_grid.Cell(frozen_index) = uint8_t{1};
+  }
+
+  auto grad_mag_error_buffer = vector<T>(LinearSize(grad_mag_grid.size()), T{0});
+  auto grad_mag_error_grid =
+    Grid<T, N>(grad_mag_grid.size(), grad_mag_error_buffer.front());
+
+  auto index_iter = IndexIterator<N>(grad_mag_error_grid.size());
+  while (index_iter.has_next()) {
+    auto const index = index_iter.index();
+    if (frozen_grid.Cell(index) == uint8_t{0}) {
+      grad_mag_error_grid.Cell(index) = grad_mag_grid.Cell(index) - T{1};
+    }
+    index_iter.Next();
+  }
+
+  return grad_mag_error_buffer;
 }
 
 
@@ -1677,17 +1857,6 @@ TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_HighAccuracyVaryingSpeed)
   ASSERT_TRUE(false);
 }
 
-TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_GradientLength)
-{
-
-}
-
-TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_HighAccuracyGradientLength)
-{
-
-}
-
-#if 0
 TYPED_TEST(UnsignedDistanceTest, DISABLED_DistanceAccuracyOnHyperSphere)
 {
   using namespace std;
@@ -1786,7 +1955,88 @@ TYPED_TEST(UnsignedDistanceTest, DISABLED_DistanceAccuracyOnHyperSphere)
     ASSERT_LE(fabs(unsigned_distance[i] - ground_truth[i]), 1e-3);
   }
 }
+
+TYPED_TEST(UnsignedDistanceAccuracyTest, GradientLength)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  typedef thinks::fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  auto const grid_size = util::FilledArray<kDimension>(size_t{100});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType(0.01));
+  auto const uniform_speed = ScalarType{1};
+
+  auto const hyper_sphere_center = util::FilledArray<kDimension>(ScalarType(0.5));
+  auto const hyper_sphere_radius = ScalarType(0.25);
+
+  auto frozen_indices = vector<array<int32_t, kDimension>>();
+  auto frozen_distances = vector<ScalarType>();
+  util::HyperSphereFrozenCells(
+    hyper_sphere_center,
+    hyper_sphere_radius,
+    grid_size,
+    grid_spacing,
+    [](ScalarType const x) { return fabs(x); },
+    &frozen_indices,
+    &frozen_distances);
+
+#if 1
+  auto const input_buffer =
+    util::InputBuffer(grid_size, frozen_indices, frozen_distances);
+  auto ss_input = stringstream();
+  ss_input << "./grad_mag_input_" << typeid(ScalarType).name() << ".ppm";
+  util::writeRgbImage(
+    ss_input.str(),
+    grid_size[0],
+    grid_size[1],
+    input_buffer);
 #endif
+
+  auto distance_buffer =
+    thinks::fmm::UnsignedDistance(
+      grid_size,
+      frozen_indices,
+      frozen_distances,
+      EikonalSolverType(grid_spacing, uniform_speed));
+  auto const distance_grid = util::Grid<ScalarType, kDimension>(
+    grid_size, distance_buffer.front());
+
+  auto const grad_buffer = util::DistanceGradients(distance_grid, grid_spacing);
+  auto grad_mag_buffer = vector<ScalarType>(grad_buffer.size());
+  for (auto i = size_t{0}; i < grad_buffer.size(); ++i) {
+    grad_mag_buffer[i] = util::Magnitude(grad_buffer[i]);
+  }
+  auto const grad_mag_grid =
+    util::Grid<ScalarType, kDimension>(grid_size, grad_mag_buffer.front());
+
+  auto const grad_mag_error_buffer =
+    util::GradientMagnitudeErrors(
+      grad_mag_grid,
+      frozen_indices);
+#if 1
+  auto ss_error = stringstream();
+  ss_error << "./grad_mag_error_" << typeid(ScalarType).name() << ".ppm";
+  util::writeRgbImage(
+    ss_error.str(),
+    grid_size[0],
+    grid_size[1],
+    grad_mag_error_buffer);
+#endif
+
+  auto const error_stats = util::ErrorStatistics(grad_mag_error_buffer);
+  cerr << "min: " << error_stats.min_abs_error << endl;
+  cerr << "max: " << error_stats.max_abs_error << endl;
+  cerr << "avg: " << error_stats.avg_abs_error << endl;
+
+}
+
+TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_HighAccuracyGradientLength)
+{
+
+}
 
 
 // SignedDistance fixture.
@@ -1923,75 +2173,8 @@ std::array<T, N> rayHyperSphereIntersection(
 }
 
 
-template<std::size_t N>
-struct Neighborhood
-{
-  static std::array<std::array<std::int32_t, N>, 2 * N> offsets()
-  {
-    using namespace std;
-
-    array<array<int32_t, N>, 2 * N> n;
-    for (size_t i = 0; i < N; ++i) {
-      for (size_t j = 0; j < N; ++j) {
-        if (j == i) {
-          n[2 * i + 0][j] = +1;
-          n[2 * i + 1][j] = -1;
-        }
-        else {
-          n[2 * i + 0][j] = 0;
-          n[2 * i + 1][j] = 0;
-        }
-      }
-    }
-    return n;
-  }
-};
 
 
-template<typename T, std::size_t N> inline
-std::array<T, N> gradient(
-  Grid<T, N> const& grid,
-  typename Grid<T, N>::index_type const& index,
-  std::array<T, N> const& dx,
-  std::array<std::array<std::int32_t, N>, 2 * N> const& neighbor_offsets)
-{
-  using namespace std;
-
-  typedef typename Grid<T, N>::index_type IndexType;
-
-  array<T, N> grad;
-  auto const size = grid.size();
-
-  for (size_t i = 0; i < N; ++i) {
-    auto const neighbor_pos_offset = neighbor_offsets[2 * i  + 0];
-    auto const neighbor_neg_offset = neighbor_offsets[2 * i  + 1];
-    auto pos_index = index;
-    auto neg_index = index;
-    for (size_t j = 0; j < N; ++j) {
-      pos_index[j] += neighbor_pos_offset[j];
-      neg_index[j] += neighbor_neg_offset[j];
-    }
-
-    // Use central difference if possible.
-    auto const pos_inside =
-      0 <= pos_index[i] && static_cast<size_t>(pos_index[i]) < size[i];
-    auto const neg_inside =
-      0 <= neg_index[i] && static_cast<size_t>(neg_index[i]) < size[i];
-    if (pos_inside && neg_inside) {
-      grad[i] = (grid.cell(pos_index) - grid.cell(neg_index)) / (T(2) * dx[i]);
-    }
-    else if (pos_inside) {
-      grad[i] = (grid.cell(pos_index) - grid.cell(index)) / dx[i];
-    }
-    else if (neg_inside) {
-      grad[i] = (grid.cell(index) - grid.cell(neg_index)) / dx[i];
-    }
-    else {
-      grad[i] = numeric_limits<T>::quiet_NaN();
-    }
-  }
-  return grad;
-}
 
 
 template<typename T, std::size_t N> inline

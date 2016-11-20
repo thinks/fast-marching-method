@@ -673,54 +673,6 @@ std::size_t HyperVolume(
 }
 
 
-template<std::size_t N> inline
-void InitialUnsignedNarrowBand(
-  std::vector<std::array<std::int32_t, N>> const& frozen_indices,
-  std::array<std::size_t, N> const& grid_size,
-  std::vector<std::array<std::int32_t, N>>* narrow_band_indices)
-{
-  using namespace std;
-
-  assert(!frozen_indices.empty());
-  assert(narrow_band_indices != nullptr);
-  narrow_band_indices->clear();
-
-  enum class NarrowBandCell : uint8_t {
-    kBackground = uint8_t{0},
-    kFrozen,
-    kNarrowBand
-  };
-
-  auto narrow_band_buffer =
-    vector<NarrowBandCell>(LinearSize(grid_size), NarrowBandCell::kBackground);
-  auto narrow_band_grid = Grid<NarrowBandCell, N>(grid_size, narrow_band_buffer);
-
-  // Set frozen cells.
-  for (auto const& frozen_index : frozen_indices) {
-    assert(Inside(frozen_index, narrow_band_grid.size()));
-    narrow_band_grid.Cell(frozen_index) = NarrowBandCell::kFrozen;
-  }
-
-  // Find face neighbors of frozen cells, which then become
-  // the initial narrow band.
-  auto const kNeighborOffsets = array<int32_t, 2>{{-1, 1}};
-  for (auto const& frozen_index : frozen_indices) {
-    for (auto i = size_t{0}; i < N; ++i) {
-      for (auto const neighbor_offset : kNeighborOffsets) {
-        auto neighbor_index = frozen_index;
-        neighbor_index[i] += neighbor_offset;
-
-        if (Inside(neighbor_index, narrow_band_grid.size())) {
-          auto& neighbor_cell = narrow_band_grid.Cell(neighbor_index);
-          if (neighbor_cell == NarrowBandCell::kBackground) {
-            neighbor_cell = NarrowBandCell::kNarrowBand;
-            narrow_band_indices->push_back(neighbor_index);
-          }
-        }
-      }
-    }
-  }
-}
 
 
 template<std::size_t N> inline
