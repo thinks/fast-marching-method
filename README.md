@@ -51,7 +51,11 @@ Total test time (real) =    0.35 sec
 
 ```
 
-![hello world](https://github.com/thinks/fast-marching-method/blob/master/test/img/unsigned_grad_mag_float.png?raw=true "grad mag")
+For more detailed test output you can run the test executable directly:
+
+```
+$ D:/fmm-build/fast-marching-method-test.exe
+```
 
 
 ## Future Work
