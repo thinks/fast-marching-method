@@ -1,0 +1,524 @@
+[==========] Running 190 tests from 42 test cases.
+[----------] Global test environment set-up.
+[----------] 2 tests from UniformSpeedEikonalSolverTest/0, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,1>
+[ RUN      ] UniformSpeedEikonalSolverTest/0.InvalidGridSpacingThrows
+[       OK ] UniformSpeedEikonalSolverTest/0.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] UniformSpeedEikonalSolverTest/0.InvalidSpeedThrows
+[       OK ] UniformSpeedEikonalSolverTest/0.InvalidSpeedThrows (1 ms)
+[----------] 2 tests from UniformSpeedEikonalSolverTest/0 (1 ms total)
+
+[----------] 2 tests from UniformSpeedEikonalSolverTest/1, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,2>
+[ RUN      ] UniformSpeedEikonalSolverTest/1.InvalidGridSpacingThrows
+[       OK ] UniformSpeedEikonalSolverTest/1.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] UniformSpeedEikonalSolverTest/1.InvalidSpeedThrows
+[       OK ] UniformSpeedEikonalSolverTest/1.InvalidSpeedThrows (0 ms)
+[----------] 2 tests from UniformSpeedEikonalSolverTest/1 (0 ms total)
+
+[----------] 2 tests from UniformSpeedEikonalSolverTest/2, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,3>
+[ RUN      ] UniformSpeedEikonalSolverTest/2.InvalidGridSpacingThrows
+[       OK ] UniformSpeedEikonalSolverTest/2.InvalidGridSpacingThrows (1 ms)
+[ RUN      ] UniformSpeedEikonalSolverTest/2.InvalidSpeedThrows
+[       OK ] UniformSpeedEikonalSolverTest/2.InvalidSpeedThrows (0 ms)
+[----------] 2 tests from UniformSpeedEikonalSolverTest/2 (1 ms total)
+
+[----------] 2 tests from UniformSpeedEikonalSolverTest/3, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,4>
+[ RUN      ] UniformSpeedEikonalSolverTest/3.InvalidGridSpacingThrows
+[       OK ] UniformSpeedEikonalSolverTest/3.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] UniformSpeedEikonalSolverTest/3.InvalidSpeedThrows
+[       OK ] UniformSpeedEikonalSolverTest/3.InvalidSpeedThrows (0 ms)
+[----------] 2 tests from UniformSpeedEikonalSolverTest/3 (1 ms total)
+
+[----------] 2 tests from UniformSpeedEikonalSolverTest/4, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,1>
+[ RUN      ] UniformSpeedEikonalSolverTest/4.InvalidGridSpacingThrows
+[       OK ] UniformSpeedEikonalSolverTest/4.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] UniformSpeedEikonalSolverTest/4.InvalidSpeedThrows
+[       OK ] UniformSpeedEikonalSolverTest/4.InvalidSpeedThrows (0 ms)
+[----------] 2 tests from UniformSpeedEikonalSolverTest/4 (0 ms total)
+
+[----------] 2 tests from UniformSpeedEikonalSolverTest/5, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,2>
+[ RUN      ] UniformSpeedEikonalSolverTest/5.InvalidGridSpacingThrows
+[       OK ] UniformSpeedEikonalSolverTest/5.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] UniformSpeedEikonalSolverTest/5.InvalidSpeedThrows
+[       OK ] UniformSpeedEikonalSolverTest/5.InvalidSpeedThrows (0 ms)
+[----------] 2 tests from UniformSpeedEikonalSolverTest/5 (0 ms total)
+
+[----------] 2 tests from UniformSpeedEikonalSolverTest/6, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,3>
+[ RUN      ] UniformSpeedEikonalSolverTest/6.InvalidGridSpacingThrows
+[       OK ] UniformSpeedEikonalSolverTest/6.InvalidGridSpacingThrows (1 ms)
+[ RUN      ] UniformSpeedEikonalSolverTest/6.InvalidSpeedThrows
+[       OK ] UniformSpeedEikonalSolverTest/6.InvalidSpeedThrows (0 ms)
+[----------] 2 tests from UniformSpeedEikonalSolverTest/6 (1 ms total)
+
+[----------] 2 tests from UniformSpeedEikonalSolverTest/7, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,4>
+[ RUN      ] UniformSpeedEikonalSolverTest/7.InvalidGridSpacingThrows
+[       OK ] UniformSpeedEikonalSolverTest/7.InvalidGridSpacingThrows (1 ms)
+[ RUN      ] UniformSpeedEikonalSolverTest/7.InvalidSpeedThrows
+[       OK ] UniformSpeedEikonalSolverTest/7.InvalidSpeedThrows (0 ms)
+[----------] 2 tests from UniformSpeedEikonalSolverTest/7 (1 ms total)
+
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/0, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,1>
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/0.InvalidGridSpacingThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/0.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/0.InvalidSpeedThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/0.InvalidSpeedThrows (0 ms)
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/0 (0 ms total)
+
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/1, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,2>
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/1.InvalidGridSpacingThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/1.InvalidGridSpacingThrows (1 ms)
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/1.InvalidSpeedThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/1.InvalidSpeedThrows (0 ms)
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/1 (1 ms total)
+
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/2, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,3>
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/2.InvalidGridSpacingThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/2.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/2.InvalidSpeedThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/2.InvalidSpeedThrows (0 ms)
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/2 (0 ms total)
+
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/3, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,4>
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/3.InvalidGridSpacingThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/3.InvalidGridSpacingThrows (1 ms)
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/3.InvalidSpeedThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/3.InvalidSpeedThrows (0 ms)
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/3 (1 ms total)
+
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/4, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,1>
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/4.InvalidGridSpacingThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/4.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/4.InvalidSpeedThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/4.InvalidSpeedThrows (1 ms)
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/4 (1 ms total)
+
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/5, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,2>
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/5.InvalidGridSpacingThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/5.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/5.InvalidSpeedThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/5.InvalidSpeedThrows (0 ms)
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/5 (0 ms total)
+
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/6, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,3>
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/6.InvalidGridSpacingThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/6.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/6.InvalidSpeedThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/6.InvalidSpeedThrows (1 ms)
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/6 (1 ms total)
+
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/7, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,4>
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/7.InvalidGridSpacingThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/7.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] HighAccuracyUniformSpeedEikonalSolverTest/7.InvalidSpeedThrows
+[       OK ] HighAccuracyUniformSpeedEikonalSolverTest/7.InvalidSpeedThrows (0 ms)
+[----------] 2 tests from HighAccuracyUniformSpeedEikonalSolverTest/7 (0 ms total)
+
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/0, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,1>
+[ RUN      ] VaryingSpeedEikonalSolverTest/0.InvalidGridSpacingThrows
+[       OK ] VaryingSpeedEikonalSolverTest/0.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/0.InvalidSpeedThrows
+[       OK ] VaryingSpeedEikonalSolverTest/0.InvalidSpeedThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/0.InvalidSpeedBufferThrows
+[       OK ] VaryingSpeedEikonalSolverTest/0.InvalidSpeedBufferThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/0.InvalidSpeedGridSizeThrows
+[       OK ] VaryingSpeedEikonalSolverTest/0.InvalidSpeedGridSizeThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/0.IndexOutsideSpeedGridThrows
+[       OK ] VaryingSpeedEikonalSolverTest/0.IndexOutsideSpeedGridThrows (0 ms)
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/0 (0 ms total)
+
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/1, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,2>
+[ RUN      ] VaryingSpeedEikonalSolverTest/1.InvalidGridSpacingThrows
+[       OK ] VaryingSpeedEikonalSolverTest/1.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/1.InvalidSpeedThrows
+[       OK ] VaryingSpeedEikonalSolverTest/1.InvalidSpeedThrows (1 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/1.InvalidSpeedBufferThrows
+[       OK ] VaryingSpeedEikonalSolverTest/1.InvalidSpeedBufferThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/1.InvalidSpeedGridSizeThrows
+[       OK ] VaryingSpeedEikonalSolverTest/1.InvalidSpeedGridSizeThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/1.IndexOutsideSpeedGridThrows
+[       OK ] VaryingSpeedEikonalSolverTest/1.IndexOutsideSpeedGridThrows (0 ms)
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/1 (1 ms total)
+
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/2, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,3>
+[ RUN      ] VaryingSpeedEikonalSolverTest/2.InvalidGridSpacingThrows
+[       OK ] VaryingSpeedEikonalSolverTest/2.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/2.InvalidSpeedThrows
+[       OK ] VaryingSpeedEikonalSolverTest/2.InvalidSpeedThrows (1 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/2.InvalidSpeedBufferThrows
+[       OK ] VaryingSpeedEikonalSolverTest/2.InvalidSpeedBufferThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/2.InvalidSpeedGridSizeThrows
+[       OK ] VaryingSpeedEikonalSolverTest/2.InvalidSpeedGridSizeThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/2.IndexOutsideSpeedGridThrows
+[       OK ] VaryingSpeedEikonalSolverTest/2.IndexOutsideSpeedGridThrows (0 ms)
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/2 (1 ms total)
+
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/3, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,4>
+[ RUN      ] VaryingSpeedEikonalSolverTest/3.InvalidGridSpacingThrows
+[       OK ] VaryingSpeedEikonalSolverTest/3.InvalidGridSpacingThrows (1 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/3.InvalidSpeedThrows
+[       OK ] VaryingSpeedEikonalSolverTest/3.InvalidSpeedThrows (1 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/3.InvalidSpeedBufferThrows
+[       OK ] VaryingSpeedEikonalSolverTest/3.InvalidSpeedBufferThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/3.InvalidSpeedGridSizeThrows
+[       OK ] VaryingSpeedEikonalSolverTest/3.InvalidSpeedGridSizeThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/3.IndexOutsideSpeedGridThrows
+[       OK ] VaryingSpeedEikonalSolverTest/3.IndexOutsideSpeedGridThrows (3 ms)
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/3 (5 ms total)
+
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/4, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,1>
+[ RUN      ] VaryingSpeedEikonalSolverTest/4.InvalidGridSpacingThrows
+[       OK ] VaryingSpeedEikonalSolverTest/4.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/4.InvalidSpeedThrows
+[       OK ] VaryingSpeedEikonalSolverTest/4.InvalidSpeedThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/4.InvalidSpeedBufferThrows
+[       OK ] VaryingSpeedEikonalSolverTest/4.InvalidSpeedBufferThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/4.InvalidSpeedGridSizeThrows
+[       OK ] VaryingSpeedEikonalSolverTest/4.InvalidSpeedGridSizeThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/4.IndexOutsideSpeedGridThrows
+[       OK ] VaryingSpeedEikonalSolverTest/4.IndexOutsideSpeedGridThrows (0 ms)
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/4 (0 ms total)
+
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/5, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,2>
+[ RUN      ] VaryingSpeedEikonalSolverTest/5.InvalidGridSpacingThrows
+[       OK ] VaryingSpeedEikonalSolverTest/5.InvalidGridSpacingThrows (1 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/5.InvalidSpeedThrows
+[       OK ] VaryingSpeedEikonalSolverTest/5.InvalidSpeedThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/5.InvalidSpeedBufferThrows
+[       OK ] VaryingSpeedEikonalSolverTest/5.InvalidSpeedBufferThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/5.InvalidSpeedGridSizeThrows
+[       OK ] VaryingSpeedEikonalSolverTest/5.InvalidSpeedGridSizeThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/5.IndexOutsideSpeedGridThrows
+[       OK ] VaryingSpeedEikonalSolverTest/5.IndexOutsideSpeedGridThrows (0 ms)
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/5 (1 ms total)
+
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/6, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,3>
+[ RUN      ] VaryingSpeedEikonalSolverTest/6.InvalidGridSpacingThrows
+[       OK ] VaryingSpeedEikonalSolverTest/6.InvalidGridSpacingThrows (1 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/6.InvalidSpeedThrows
+[       OK ] VaryingSpeedEikonalSolverTest/6.InvalidSpeedThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/6.InvalidSpeedBufferThrows
+[       OK ] VaryingSpeedEikonalSolverTest/6.InvalidSpeedBufferThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/6.InvalidSpeedGridSizeThrows
+[       OK ] VaryingSpeedEikonalSolverTest/6.InvalidSpeedGridSizeThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/6.IndexOutsideSpeedGridThrows
+[       OK ] VaryingSpeedEikonalSolverTest/6.IndexOutsideSpeedGridThrows (0 ms)
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/6 (2 ms total)
+
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/7, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,4>
+[ RUN      ] VaryingSpeedEikonalSolverTest/7.InvalidGridSpacingThrows
+[       OK ] VaryingSpeedEikonalSolverTest/7.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/7.InvalidSpeedThrows
+[       OK ] VaryingSpeedEikonalSolverTest/7.InvalidSpeedThrows (1 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/7.InvalidSpeedBufferThrows
+[       OK ] VaryingSpeedEikonalSolverTest/7.InvalidSpeedBufferThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/7.InvalidSpeedGridSizeThrows
+[       OK ] VaryingSpeedEikonalSolverTest/7.InvalidSpeedGridSizeThrows (0 ms)
+[ RUN      ] VaryingSpeedEikonalSolverTest/7.IndexOutsideSpeedGridThrows
+[       OK ] VaryingSpeedEikonalSolverTest/7.IndexOutsideSpeedGridThrows (3 ms)
+[----------] 5 tests from VaryingSpeedEikonalSolverTest/7 (4 ms total)
+
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/0, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,1>
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/0.InvalidGridSpacingThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/0.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/0.InvalidSpeedThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/0.InvalidSpeedThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/0.InvalidSpeedBufferThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/0.InvalidSpeedBufferThrows (1 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/0.InvalidSpeedGridSizeThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/0.InvalidSpeedGridSizeThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/0.InvalidSpeedGridThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/0.InvalidSpeedGridThrows (0 ms)
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/0 (1 ms total)
+
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/1, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,2>
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/1.InvalidGridSpacingThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/1.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/1.InvalidSpeedThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/1.InvalidSpeedThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/1.InvalidSpeedBufferThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/1.InvalidSpeedBufferThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/1.InvalidSpeedGridSizeThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/1.InvalidSpeedGridSizeThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/1.InvalidSpeedGridThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/1.InvalidSpeedGridThrows (0 ms)
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/1 (1 ms total)
+
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/2, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,3>
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/2.InvalidGridSpacingThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/2.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/2.InvalidSpeedThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/2.InvalidSpeedThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/2.InvalidSpeedBufferThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/2.InvalidSpeedBufferThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/2.InvalidSpeedGridSizeThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/2.InvalidSpeedGridSizeThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/2.InvalidSpeedGridThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/2.InvalidSpeedGridThrows (1 ms)
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/2 (1 ms total)
+
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/3, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,4>
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/3.InvalidGridSpacingThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/3.InvalidGridSpacingThrows (1 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/3.InvalidSpeedThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/3.InvalidSpeedThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/3.InvalidSpeedBufferThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/3.InvalidSpeedBufferThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/3.InvalidSpeedGridSizeThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/3.InvalidSpeedGridSizeThrows (1 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/3.InvalidSpeedGridThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/3.InvalidSpeedGridThrows (1 ms)
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/3 (3 ms total)
+
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/4, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,1>
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/4.InvalidGridSpacingThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/4.InvalidGridSpacingThrows (1 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/4.InvalidSpeedThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/4.InvalidSpeedThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/4.InvalidSpeedBufferThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/4.InvalidSpeedBufferThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/4.InvalidSpeedGridSizeThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/4.InvalidSpeedGridSizeThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/4.InvalidSpeedGridThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/4.InvalidSpeedGridThrows (0 ms)
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/4 (1 ms total)
+
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/5, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,2>
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/5.InvalidGridSpacingThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/5.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/5.InvalidSpeedThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/5.InvalidSpeedThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/5.InvalidSpeedBufferThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/5.InvalidSpeedBufferThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/5.InvalidSpeedGridSizeThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/5.InvalidSpeedGridSizeThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/5.InvalidSpeedGridThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/5.InvalidSpeedGridThrows (0 ms)
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/5 (0 ms total)
+
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/6, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,3>
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/6.InvalidGridSpacingThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/6.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/6.InvalidSpeedThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/6.InvalidSpeedThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/6.InvalidSpeedBufferThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/6.InvalidSpeedBufferThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/6.InvalidSpeedGridSizeThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/6.InvalidSpeedGridSizeThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/6.InvalidSpeedGridThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/6.InvalidSpeedGridThrows (0 ms)
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/6 (1 ms total)
+
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/7, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,4>
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/7.InvalidGridSpacingThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/7.InvalidGridSpacingThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/7.InvalidSpeedThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/7.InvalidSpeedThrows (1 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/7.InvalidSpeedBufferThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/7.InvalidSpeedBufferThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/7.InvalidSpeedGridSizeThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/7.InvalidSpeedGridSizeThrows (0 ms)
+[ RUN      ] HighAccuracyVaryingSpeedEikonalSolverTest/7.InvalidSpeedGridThrows
+[       OK ] HighAccuracyVaryingSpeedEikonalSolverTest/7.InvalidSpeedGridThrows (1 ms)
+[----------] 5 tests from HighAccuracyVaryingSpeedEikonalSolverTest/7 (2 ms total)
+
+[----------] 9 tests from UnsignedDistanceTest/0, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,1>
+[ RUN      ] UnsignedDistanceTest/0.ZeroElementInGridSizeThrows
+[       OK ] UnsignedDistanceTest/0.ZeroElementInGridSizeThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/0.EmptyBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/0.EmptyBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/0.FullGridBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/0.FullGridBoundaryIndicesThrows (1 ms)
+[ RUN      ] UnsignedDistanceTest/0.DuplicateBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/0.DuplicateBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/0.BoundaryIndexOutsideGridThrows
+[       OK ] UnsignedDistanceTest/0.BoundaryIndexOutsideGridThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/0.BoundaryIndicesAndDistancesSizeMismatchThrows
+[       OK ] UnsignedDistanceTest/0.BoundaryIndicesAndDistancesSizeMismatchThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/0.InvalidBoundaryDistanceThrows
+[       OK ] UnsignedDistanceTest/0.InvalidBoundaryDistanceThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/0.EikonalSolverFailThrows
+[       OK ] UnsignedDistanceTest/0.EikonalSolverFailThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/0.DifferentUniformSpeed
+[       OK ] UnsignedDistanceTest/0.DifferentUniformSpeed (0 ms)
+[----------] 9 tests from UnsignedDistanceTest/0 (1 ms total)
+
+[----------] 9 tests from UnsignedDistanceTest/1, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,2>
+[ RUN      ] UnsignedDistanceTest/1.ZeroElementInGridSizeThrows
+[       OK ] UnsignedDistanceTest/1.ZeroElementInGridSizeThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/1.EmptyBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/1.EmptyBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/1.FullGridBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/1.FullGridBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/1.DuplicateBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/1.DuplicateBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/1.BoundaryIndexOutsideGridThrows
+[       OK ] UnsignedDistanceTest/1.BoundaryIndexOutsideGridThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/1.BoundaryIndicesAndDistancesSizeMismatchThrows
+[       OK ] UnsignedDistanceTest/1.BoundaryIndicesAndDistancesSizeMismatchThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/1.InvalidBoundaryDistanceThrows
+[       OK ] UnsignedDistanceTest/1.InvalidBoundaryDistanceThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/1.EikonalSolverFailThrows
+[       OK ] UnsignedDistanceTest/1.EikonalSolverFailThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/1.DifferentUniformSpeed
+[       OK ] UnsignedDistanceTest/1.DifferentUniformSpeed (0 ms)
+[----------] 9 tests from UnsignedDistanceTest/1 (0 ms total)
+
+[----------] 9 tests from UnsignedDistanceTest/2, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,3>
+[ RUN      ] UnsignedDistanceTest/2.ZeroElementInGridSizeThrows
+[       OK ] UnsignedDistanceTest/2.ZeroElementInGridSizeThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/2.EmptyBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/2.EmptyBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/2.FullGridBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/2.FullGridBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/2.DuplicateBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/2.DuplicateBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/2.BoundaryIndexOutsideGridThrows
+[       OK ] UnsignedDistanceTest/2.BoundaryIndexOutsideGridThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/2.BoundaryIndicesAndDistancesSizeMismatchThrows
+[       OK ] UnsignedDistanceTest/2.BoundaryIndicesAndDistancesSizeMismatchThrows (1 ms)
+[ RUN      ] UnsignedDistanceTest/2.InvalidBoundaryDistanceThrows
+[       OK ] UnsignedDistanceTest/2.InvalidBoundaryDistanceThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/2.EikonalSolverFailThrows
+[       OK ] UnsignedDistanceTest/2.EikonalSolverFailThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/2.DifferentUniformSpeed
+[       OK ] UnsignedDistanceTest/2.DifferentUniformSpeed (1 ms)
+[----------] 9 tests from UnsignedDistanceTest/2 (2 ms total)
+
+[----------] 9 tests from UnsignedDistanceTest/3, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,4>
+[ RUN      ] UnsignedDistanceTest/3.ZeroElementInGridSizeThrows
+[       OK ] UnsignedDistanceTest/3.ZeroElementInGridSizeThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/3.EmptyBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/3.EmptyBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/3.FullGridBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/3.FullGridBoundaryIndicesThrows (1 ms)
+[ RUN      ] UnsignedDistanceTest/3.DuplicateBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/3.DuplicateBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/3.BoundaryIndexOutsideGridThrows
+[       OK ] UnsignedDistanceTest/3.BoundaryIndexOutsideGridThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/3.BoundaryIndicesAndDistancesSizeMismatchThrows
+[       OK ] UnsignedDistanceTest/3.BoundaryIndicesAndDistancesSizeMismatchThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/3.InvalidBoundaryDistanceThrows
+[       OK ] UnsignedDistanceTest/3.InvalidBoundaryDistanceThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/3.EikonalSolverFailThrows
+[       OK ] UnsignedDistanceTest/3.EikonalSolverFailThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/3.DifferentUniformSpeed
+[       OK ] UnsignedDistanceTest/3.DifferentUniformSpeed (21 ms)
+[----------] 9 tests from UnsignedDistanceTest/3 (22 ms total)
+
+[----------] 9 tests from UnsignedDistanceTest/4, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,1>
+[ RUN      ] UnsignedDistanceTest/4.ZeroElementInGridSizeThrows
+[       OK ] UnsignedDistanceTest/4.ZeroElementInGridSizeThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/4.EmptyBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/4.EmptyBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/4.FullGridBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/4.FullGridBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/4.DuplicateBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/4.DuplicateBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/4.BoundaryIndexOutsideGridThrows
+[       OK ] UnsignedDistanceTest/4.BoundaryIndexOutsideGridThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/4.BoundaryIndicesAndDistancesSizeMismatchThrows
+[       OK ] UnsignedDistanceTest/4.BoundaryIndicesAndDistancesSizeMismatchThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/4.InvalidBoundaryDistanceThrows
+[       OK ] UnsignedDistanceTest/4.InvalidBoundaryDistanceThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/4.EikonalSolverFailThrows
+[       OK ] UnsignedDistanceTest/4.EikonalSolverFailThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/4.DifferentUniformSpeed
+[       OK ] UnsignedDistanceTest/4.DifferentUniformSpeed (0 ms)
+[----------] 9 tests from UnsignedDistanceTest/4 (0 ms total)
+
+[----------] 9 tests from UnsignedDistanceTest/5, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,2>
+[ RUN      ] UnsignedDistanceTest/5.ZeroElementInGridSizeThrows
+[       OK ] UnsignedDistanceTest/5.ZeroElementInGridSizeThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/5.EmptyBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/5.EmptyBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/5.FullGridBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/5.FullGridBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/5.DuplicateBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/5.DuplicateBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/5.BoundaryIndexOutsideGridThrows
+[       OK ] UnsignedDistanceTest/5.BoundaryIndexOutsideGridThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/5.BoundaryIndicesAndDistancesSizeMismatchThrows
+[       OK ] UnsignedDistanceTest/5.BoundaryIndicesAndDistancesSizeMismatchThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/5.InvalidBoundaryDistanceThrows
+[       OK ] UnsignedDistanceTest/5.InvalidBoundaryDistanceThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/5.EikonalSolverFailThrows
+[       OK ] UnsignedDistanceTest/5.EikonalSolverFailThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/5.DifferentUniformSpeed
+[       OK ] UnsignedDistanceTest/5.DifferentUniformSpeed (1 ms)
+[----------] 9 tests from UnsignedDistanceTest/5 (1 ms total)
+
+[----------] 9 tests from UnsignedDistanceTest/6, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,3>
+[ RUN      ] UnsignedDistanceTest/6.ZeroElementInGridSizeThrows
+[       OK ] UnsignedDistanceTest/6.ZeroElementInGridSizeThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/6.EmptyBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/6.EmptyBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/6.FullGridBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/6.FullGridBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/6.DuplicateBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/6.DuplicateBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/6.BoundaryIndexOutsideGridThrows
+[       OK ] UnsignedDistanceTest/6.BoundaryIndexOutsideGridThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/6.BoundaryIndicesAndDistancesSizeMismatchThrows
+[       OK ] UnsignedDistanceTest/6.BoundaryIndicesAndDistancesSizeMismatchThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/6.InvalidBoundaryDistanceThrows
+[       OK ] UnsignedDistanceTest/6.InvalidBoundaryDistanceThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/6.EikonalSolverFailThrows
+[       OK ] UnsignedDistanceTest/6.EikonalSolverFailThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/6.DifferentUniformSpeed
+[       OK ] UnsignedDistanceTest/6.DifferentUniformSpeed (1 ms)
+[----------] 9 tests from UnsignedDistanceTest/6 (1 ms total)
+
+[----------] 9 tests from UnsignedDistanceTest/7, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,4>
+[ RUN      ] UnsignedDistanceTest/7.ZeroElementInGridSizeThrows
+[       OK ] UnsignedDistanceTest/7.ZeroElementInGridSizeThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/7.EmptyBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/7.EmptyBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/7.FullGridBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/7.FullGridBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/7.DuplicateBoundaryIndicesThrows
+[       OK ] UnsignedDistanceTest/7.DuplicateBoundaryIndicesThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/7.BoundaryIndexOutsideGridThrows
+[       OK ] UnsignedDistanceTest/7.BoundaryIndexOutsideGridThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/7.BoundaryIndicesAndDistancesSizeMismatchThrows
+[       OK ] UnsignedDistanceTest/7.BoundaryIndicesAndDistancesSizeMismatchThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/7.InvalidBoundaryDistanceThrows
+[       OK ] UnsignedDistanceTest/7.InvalidBoundaryDistanceThrows (0 ms)
+[ RUN      ] UnsignedDistanceTest/7.EikonalSolverFailThrows
+[       OK ] UnsignedDistanceTest/7.EikonalSolverFailThrows (1 ms)
+[ RUN      ] UnsignedDistanceTest/7.DifferentUniformSpeed
+[       OK ] UnsignedDistanceTest/7.DifferentUniformSpeed (20 ms)
+[----------] 9 tests from UnsignedDistanceTest/7 (22 ms total)
+
+[----------] 3 tests from UnsignedDistanceAccuracyTest/0, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,2>
+[ RUN      ] UnsignedDistanceAccuracyTest/0.UniformSpeedHyperSphereStats
+[       OK ] UnsignedDistanceAccuracyTest/0.UniformSpeedHyperSphereStats (5 ms)
+[ RUN      ] UnsignedDistanceAccuracyTest/0.HighAccuracyUniformSpeedHyperSphereStats
+[       OK ] UnsignedDistanceAccuracyTest/0.HighAccuracyUniformSpeedHyperSphereStats (6 ms)
+[ RUN      ] UnsignedDistanceAccuracyTest/0.GradientLength
+D:\GitHub\fast-marching-method\test\testFastMarchingMethod.cpp(2161): error: Value of: false
+  Actual: false
+Expected: true
+[  FAILED  ] UnsignedDistanceAccuracyTest/0.GradientLength, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,2> (9 ms)
+[----------] 3 tests from UnsignedDistanceAccuracyTest/0 (20 ms total)
+
+[----------] 3 tests from UnsignedDistanceAccuracyTest/1, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,2>
+[ RUN      ] UnsignedDistanceAccuracyTest/1.UniformSpeedHyperSphereStats
+[       OK ] UnsignedDistanceAccuracyTest/1.UniformSpeedHyperSphereStats (5 ms)
+[ RUN      ] UnsignedDistanceAccuracyTest/1.HighAccuracyUniformSpeedHyperSphereStats
+[       OK ] UnsignedDistanceAccuracyTest/1.HighAccuracyUniformSpeedHyperSphereStats (5 ms)
+[ RUN      ] UnsignedDistanceAccuracyTest/1.GradientLength
+D:\GitHub\fast-marching-method\test\testFastMarchingMethod.cpp(2161): error: Value of: false
+  Actual: false
+Expected: true
+[  FAILED  ] UnsignedDistanceAccuracyTest/1.GradientLength, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,2> (31 ms)
+[----------] 3 tests from UnsignedDistanceAccuracyTest/1 (41 ms total)
+
+[----------] Global test environment tear-down
+[==========] 190 tests from 42 test cases ran. (144 ms total)
+[  PASSED  ] 188 tests.
+[  FAILED  ] 2 tests, listed below:
+[  FAILED  ] UnsignedDistanceAccuracyTest/0.GradientLength, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<float,2>
+[  FAILED  ] UnsignedDistanceAccuracyTest/1.GradientLength, where TypeParam = struct `anonymous namespace'::ScalarDimensionPair<double,2>
+
+ 2 FAILED TESTS
+  YOU HAVE 22 DISABLED TESTS
+

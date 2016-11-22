@@ -113,7 +113,7 @@ std::string ToString(std::array<T, N> const& a)
 }
 
 
-//! Throws a std::runtime_error if one or more of the elements in
+//! Throws a std::invalid_argument if one or more of the elements in
 //! @a grid_size is zero.
 template<std::size_t N> inline
 void ThrowIfZeroElementInGridSize(std::array<std::size_t, N> const& grid_size)
@@ -124,13 +124,13 @@ void ThrowIfZeroElementInGridSize(std::array<std::size_t, N> const& grid_size)
               [](auto const x) { return x == size_t{0}; }) != end(grid_size)) {
     auto ss = stringstream();
     ss << "invalid grid size: " << ToString(grid_size);
-    throw runtime_error(ss.str());
+    throw invalid_argument(ss.str());
   }
 }
 
 
-//! Throws a std::runtime_error if the linear size of @a grid_size is not equal
-//! to @a cell_buffer_size.
+//! Throws a std::invalid_argument if the linear size of @a grid_size is not
+//! equal to @a cell_buffer_size.
 template<std::size_t N> inline
 void ThrowIfInvalidCellBufferSize(
   std::array<std::size_t, N> const& grid_size,
@@ -142,12 +142,12 @@ void ThrowIfInvalidCellBufferSize(
     auto ss = stringstream();
     ss << "grid size " << ToString(grid_size)
        << " does not match cell buffer size " << cell_buffer_size;
-    throw runtime_error(ss.str());
+    throw invalid_argument(ss.str());
   }
 }
 
 
-//! Throws a std::runtime_error if one or more of the elements in
+//! Throws a std::invalid_argument if one or more of the elements in
 //! @a grid_spacing is less than or equal to zero (or NaN).
 template<typename T, std::size_t N> inline
 void ThrowIfInvalidGridSpacing(std::array<T, N> const& grid_spacing)
@@ -155,15 +155,16 @@ void ThrowIfInvalidGridSpacing(std::array<T, N> const& grid_spacing)
   using namespace std;
 
   if (find_if(begin(grid_spacing), end(grid_spacing),
-              [](auto const x) { return isnan(x) || x <= T(0); }) != end(grid_spacing)) {
+              [](auto const x) { return isnan(x) || x <= T(0); }) !=
+      end(grid_spacing)) {
     auto ss = stringstream();
     ss << "invalid grid spacing: " << ToString(grid_spacing);
-    throw runtime_error(ss.str());
+    throw invalid_argument(ss.str());
   }
 }
 
 
-//! Throws a std::runtime_error if @a speed is less than or equal
+//! Throws a std::invalid_argument if @a speed is less than or equal
 //! to zero or NaN.
 template<typename T> inline
 void ThrowIfZeroOrNegativeOrNanSpeed(T const speed)
@@ -173,7 +174,7 @@ void ThrowIfZeroOrNegativeOrNanSpeed(T const speed)
   if (isnan(speed) || speed <= T{0}) {
     auto ss = stringstream();
     ss << "invalid speed: " << speed;
-    throw runtime_error(ss.str());
+    throw invalid_argument(ss.str());
   }
 }
 
@@ -214,8 +215,34 @@ std::size_t GridLinearIndex(
 }
 
 
-//! Allows accessing a linear array as if it where a higher dimensional
-//! object. Allows mutating operations on the underlying array.
+//! Access a linear array as if it were an N-dimensional grid.
+//! Allows mutating operations on the underlying array.
+//!
+//! Usage:
+//!   auto size = std::array<std::size_t, 2>();
+//!   size[0] = 2;
+//!   size[1] = 2;
+//!   auto cells = std::vector<float>(4);
+//!   cells[0] = 0.f;
+//!   cells[1] = 1.f;
+//!   cells[2] = 2.f;
+//!   cells[3] = 3.f;
+//!   auto grid = Grid(size, cells.front());
+//!   std::cout << "cell (0,0): " << grid.cell({{0, 0}}) << std::endl;
+//!   std::cout << "cell (1,0): " << grid.cell({{1, 0}}) << std::endl;
+//!   std::cout << "cell (0,1): " << grid.cell({{0, 1}}) << std::endl;
+//!   std::cout << "cell (1,1): " << grid.cell({{1, 1}}) << std::endl;
+//!
+//!   grid.Cell({{0, 1}}) = 5.3;
+//!   std::cout << "cell (0,1): " << grid.cell({{0, 1}}) << std::endl;
+//!
+//! Output:
+//!   cell (0,0): 0
+//!   cell (1,0): 1
+//!   cell (0,1): 2
+//!   cell (1,1): 3
+//!
+//!   cell (0,1): 5.3
 template<typename T, std::size_t N>
 class Grid
 {
@@ -266,9 +293,29 @@ private:
 };
 
 
-//! Allows const accessing a linear array as if it where a higher
-//! dimensional object. The underlying array cannot be changed through this
-//! interface.
+//! Access a linear array as if it were an N-dimensional grid.
+//! Does not allow mutating operations on the underlying array.
+//!
+//! Usage:
+//!   auto size = std::array<std::size_t, 2>();
+//!   size[0] = 2;
+//!   size[1] = 2;
+//!   auto cells = std::vector<float>(4);
+//!   cells[0] = 0.f;
+//!   cells[1] = 1.f;
+//!   cells[2] = 2.f;
+//!   cells[3] = 3.f;
+//!   auto grid = Grid(size, cells.front());
+//!   std::cout << "cell (0,0): " << grid.cell({{0, 0}}) << std::endl;
+//!   std::cout << "cell (1,0): " << grid.cell({{1, 0}}) << std::endl;
+//!   std::cout << "cell (0,1): " << grid.cell({{0, 1}}) << std::endl;
+//!   std::cout << "cell (1,1): " << grid.cell({{1, 1}}) << std::endl;
+//!
+//! Output:
+//!   cell (0,0): 0
+//!   cell (1,0): 1
+//!   cell (0,1): 2
+//!   cell (1,1): 3
 template<typename T, std::size_t N>
 class ConstGrid
 {
@@ -312,6 +359,8 @@ private:
 };
 
 
+//! Acceleration structure for keeping track of the smallest distance cell
+//! in the narrow band.
 template<typename T, std::size_t N>
 class NarrowBandStore
 {
@@ -359,20 +408,6 @@ private:
 };
 
 
-//! Returns base^exponent as a compile-time constant.
-constexpr std::size_t inline
-static_pow(std::size_t const base, std::size_t const exponent)
-{
-  using namespace std;
-
-  // NOTE: Cannot use loops in constexpr functions in C++11, have to use
-  // recursion here.
-  return exponent == size_t{0} ?
-    size_t{1} :
-    base * static_pow(base, exponent - 1);
-}
-
-
 template<std::size_t N>
 class IndexIterator
 {
@@ -418,8 +453,24 @@ private:
 };
 
 
+//! Returns base^exponent as a compile-time constant.
+//! Note: Not checking for integer overflow here!
+constexpr std::size_t inline
+static_pow(std::size_t const base, std::size_t const exponent)
+{
+  using namespace std;
+
+  // NOTE: Cannot use loops in constexpr functions in C++11, have to use
+  // recursion here.
+  return exponent == size_t{0} ?
+    size_t{1} :
+    base * static_pow(base, exponent - 1);
+}
+
+
 template<std::size_t N> inline
-std::array<std::array<std::int32_t, N>, static_pow(3, N) - 1> VertexNeighborOffsets()
+std::array<std::array<std::int32_t, N>, static_pow(3, N) - 1>
+VertexNeighborOffsets()
 {
   using namespace std;
 
@@ -674,56 +725,6 @@ std::size_t HyperVolume(
 
 
 template<std::size_t N> inline
-void InitialUnsignedNarrowBand(
-  std::vector<std::array<std::int32_t, N>> const& frozen_indices,
-  std::array<std::size_t, N> const& grid_size,
-  std::vector<std::array<std::int32_t, N>>* narrow_band_indices)
-{
-  using namespace std;
-
-  assert(!frozen_indices.empty());
-  assert(narrow_band_indices != nullptr);
-  narrow_band_indices->clear();
-
-  enum class NarrowBandCell : uint8_t {
-    kBackground = uint8_t{0},
-    kFrozen,
-    kNarrowBand
-  };
-
-  auto narrow_band_buffer =
-    vector<NarrowBandCell>(LinearSize(grid_size), NarrowBandCell::kBackground);
-  auto narrow_band_grid = Grid<NarrowBandCell, N>(grid_size, narrow_band_buffer);
-
-  // Set frozen cells.
-  for (auto const& frozen_index : frozen_indices) {
-    assert(Inside(frozen_index, narrow_band_grid.size()));
-    narrow_band_grid.Cell(frozen_index) = NarrowBandCell::kFrozen;
-  }
-
-  // Find face neighbors of frozen cells, which then become
-  // the initial narrow band.
-  auto const kNeighborOffsets = array<int32_t, 2>{{-1, 1}};
-  for (auto const& frozen_index : frozen_indices) {
-    for (auto i = size_t{0}; i < N; ++i) {
-      for (auto const neighbor_offset : kNeighborOffsets) {
-        auto neighbor_index = frozen_index;
-        neighbor_index[i] += neighbor_offset;
-
-        if (Inside(neighbor_index, narrow_band_grid.size())) {
-          auto& neighbor_cell = narrow_band_grid.Cell(neighbor_index);
-          if (neighbor_cell == NarrowBandCell::kBackground) {
-            neighbor_cell = NarrowBandCell::kNarrowBand;
-            narrow_band_indices->push_back(neighbor_index);
-          }
-        }
-      }
-    }
-  }
-}
-
-
-template<std::size_t N> inline
 void InitialSignedNarrowBands(
   std::vector<std::array<std::int32_t, N>> const& frozen_indices,
   std::array<std::size_t, N> const& grid_size,
@@ -868,37 +869,34 @@ void InitialSignedNarrowBands(
 }
 
 
-//! Returns true if the value @a d indicates that a distance cell should
-//! be considered frozen, otherwise false.
+//! Returns true if the (distance) value @a d indicates that a distance cell is
+//! frozen, otherwise false.
 template <typename T> inline
 bool frozen(T const d)
 {
-  using namespace std;
-
-  static_assert(is_floating_point<T>::value,
-                "scalar type must be floating point");
-
-  return d < numeric_limits<T>::max();
+  return d < std::numeric_limits<T>::max();
 }
 
 
+//! Returns a narrow band store containing estimated distances for the face
+//! neighbors of @a boundary_indices.
 template<typename T, std::size_t N, typename E> inline
 std::unique_ptr<NarrowBandStore<T, N>>
 InitialUnsignedNarrowBand(
-  std::vector<std::array<std::int32_t, N>> const& frozen_indices,
+  std::vector<std::array<std::int32_t, N>> const& boundary_indices,
   Grid<T, N> const& distance_grid,
   E const& eikonal_solver)
 {
   using namespace std;
 
-  assert(!frozen_indices.empty());
+  assert(!boundary_indices.empty());
 
   enum class NarrowBandCell : uint8_t {
     kBackground = uint8_t{0},
     kNarrowBand
   };
 
-  // Use a temporary grid to avoid adding cells with multiple frozen
+  // Use a temporary grid to avoid adding cells with multiple boundary
   // neighbors multiple times to the narrow band.
   auto narrow_band_buffer =
     vector<NarrowBandCell>(LinearSize(distance_grid.size()),
@@ -909,10 +907,10 @@ InitialUnsignedNarrowBand(
   auto narrow_band =
     unique_ptr<NarrowBandStore<T, N>>(new NarrowBandStore<T, N>());
 
-  // Find face neighbors of frozen cells, which then become
+  // Find face neighbors of boundary cells, which then become
   // the initial narrow band.
   auto const kNeighborOffsets = array<int32_t, 2>{{-1, 1}};
-  for (auto const& frozen_index : frozen_indices) {
+  for (auto const& frozen_index : boundary_indices) {
     assert(Inside(frozen_index, distance_grid.size()));
     assert(frozen(distance_grid.Cell(frozen_index)));
 
@@ -942,14 +940,15 @@ InitialUnsignedNarrowBand(
 }
 
 
-
-//! Set frozen cell state and distance on respective grids.
-//! Throws std::runtime_error if:
-//! - Frozen indices are empty, or
-//! - Not the same number of indices and distances, or
-//! - Any index is outside the distance grid, or
-//! - Any duplicate indices, or
-//! - Any distance does not pass the predicate test, or
+//! Set boundary distances on @a distance_grid. Distances are multiplied by
+//! @a multiplier (typically 1 or -1).
+//!
+//! Throws std::invalid_argument if:
+//! - Not the same number of @a indices and @a distances, or
+//! - @a indices (and @a distances) are empty, or
+//! - Any index is outside the @a distance_grid, or
+//! - Any duplicate in @a indices, or
+//! - Any value in @a distances does not pass the @a distance_predicate test, or
 //! - The whole grid is frozen.
 template <typename T, std::size_t N, typename D> inline
 void SetBoundaryCondition(
@@ -963,41 +962,43 @@ void SetBoundaryCondition(
 
   assert(distance_grid != nullptr);
 
-  if (indices.empty()) {
-    throw runtime_error("empty frozen indices");
-  }
-
   if (indices.size() != distances.size()) {
-    throw runtime_error("frozen indices/distances size mismatch");
+    throw invalid_argument("boundary indices/distances size mismatch");
   }
 
+  if (indices.empty()) {
+    throw invalid_argument("empty boundary condition");
+  }
+
+  auto const distance_grid_size = distance_grid->size();
   for (auto i = size_t{0}; i < indices.size(); ++i) {
     auto const index = indices[i];
     auto const distance = distances[i];
-    if (!Inside(index, distance_grid->size())) {
+
+    if (!Inside(index, distance_grid_size)) {
       auto ss = stringstream();
-      ss << "frozen index outside grid: " << ToString(index);
-      throw runtime_error(ss.str());
+      ss << "boundary index outside grid: " << ToString(index);
+      throw invalid_argument(ss.str());
     }
 
     if (!distance_predicate(distance)) {
       auto ss = stringstream();
-      ss << "invalid frozen distance: " << distance;
-      throw runtime_error(ss.str());
+      ss << "invalid boundary distance: " << distance;
+      throw invalid_argument(ss.str());
     }
 
     auto& distance_cell = distance_grid->Cell(index);
     if (frozen(distance_cell)) {
       auto ss = stringstream();
-      ss << "duplicate frozen index: " << ToString(index);
-      throw runtime_error(ss.str());
+      ss << "duplicate boundary index: " << ToString(index);
+      throw invalid_argument(ss.str());
     }
     distance_cell = multiplier * distance;
   }
 
-  // Here we know that all frozen indices are unique and inside the grid.
+  // Here we know that all boundary indices are unique and inside the grid.
   if (indices.size() == LinearSize(distance_grid->size())) {
-    throw std::runtime_error("whole grid frozen");
+    throw invalid_argument("whole grid is boundary");
   }
 }
 
@@ -1318,13 +1319,14 @@ public:
   //! - Non-negative
   //! - Non-NaN
   //!
-  //! Throws a std::runtime_error if @a index is outside the underlying grid.
+  //! Throws a std::invalid_argument if @a index is outside the
+  //! underlying grid.
   T Speed(std::array<std::int32_t, N> const& index) const
   {
     using namespace std;
 
     if (!Inside(index, speed_grid_.size())) {
-      throw runtime_error("index outside speed grid");
+      throw invalid_argument("index outside speed grid");
     }
 
     return speed_grid_.Cell(index);
@@ -1338,8 +1340,8 @@ private:
 
 
 //! Holds parameters related to the grid and provides methods for solving
-//! the eikonal equation for a single grid cell at a time using information
-//! about both distance and state of neighboring grid cells.
+//! the eikonal equation for a single grid cell at a time using
+//! the current distance grid.
 template<typename T, std::size_t N>
 class UniformSpeedEikonalSolver :
   public detail::UniformSpeedEikonalSolverBase<T, N>
