@@ -22,7 +22,8 @@ The easiest way to see how to use the FMM distance functions in this repository 
 Running the tests is simple. In a terminal do the following:
 
 ```bash
-$ git clone git@github.com:/thinks/fast-marching-method.git ./fmm
+$ cd d:
+$ git clone git@github.com:/thinks/fast-marching-method.git D:/fmm
 $ mkdir fmm-build
 $ cd fmm-build
 $ cmake ../fmm/test -DCMAKE_BUILD_TYPE=Release
@@ -30,9 +31,16 @@ $ cmake --build .
 $ ctest
 ```
 
-This clones the source code to a directory `fmm`, sets up an out-of-source build directory `fmm-build`, creates the default project files for your machine in the build directory (change `Release` to `Debug` for a debug build), builds the tests, runs the tests. If the tests pass you should see something like:
+In order, the following is being done:
+* Clone the source code to a directory `D:/fmm`.
+* Create an out-of-source build directory `fmm-build`.
+* Create the default project files for your machine in the build directory (change `Release` to `Debug` for a debug build).
+* Builds the tests.
+* Runs the tests. 
 
-```bash
+If the tests pass you should see something like:
+
+```
 Test project D:/fmm-build
     Start 1: fast-marching-method-test
 1/1 Test #1: fast-marching-method-test ........     Passed      0.33 sec
