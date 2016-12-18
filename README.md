@@ -18,8 +18,44 @@ The easiest way to see how to use the FMM distance functions in this repository 
 
 
 
-## Testing and Verification
-![hello world](https://github.com/thinks/fast-marching-method/blob/master/test/img/unsigned_grad_mag_float.png?raw=true "grad mag")
+## Tests
+Running the tests is simple. In a terminal do the following:
+
+```bash
+$ cd d:
+$ git clone git@github.com:/thinks/fast-marching-method.git D:/fmm
+$ mkdir fmm-build
+$ cd fmm-build
+$ cmake ../fmm/test -DCMAKE_BUILD_TYPE=Release
+$ cmake --build . 
+$ ctest
+```
+
+In order, the following is being done:
+* Clone the source code to a directory `D:/fmm`.
+* Create an out-of-source build directory `fmm-build`.
+* Create the default project files for your machine in the build directory (change `Release` to `Debug` for a debug build).
+* Builds the tests.
+* Runs the tests. 
+
+If the tests pass you should see something like:
+
+```
+Test project D:/fmm-build
+    Start 1: fast-marching-method-test
+1/1 Test #1: fast-marching-method-test ........     Passed      0.33 sec
+
+100% tests passed, 0 tests failed out of 1
+
+Total test time (real) =    0.35 sec
+
+```
+
+For more detailed test output you can run the test executable directly:
+
+```
+$ D:/fmm-build/fast-marching-method-test.exe
+```
 
 
 ## Future Work
