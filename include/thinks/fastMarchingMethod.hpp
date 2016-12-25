@@ -1,5 +1,5 @@
-#ifndef THINKS_FMM_FASTMARCHINGMETHOD_HPP_INCLUDED
-#define THINKS_FMM_FASTMARCHINGMETHOD_HPP_INCLUDED
+#ifndef THINKS_FASTMARCHINGMETHOD_HPP_INCLUDED
+#define THINKS_FASTMARCHINGMETHOD_HPP_INCLUDED
 
 #include <algorithm>
 #include <array>
@@ -1872,4 +1872,4 @@ std::vector<T> SignedDistance(
 } // namespace fast_marching_method
 } // namespace thinks
 
-#endif // THINKS_FMM_FASTMARCHINGMETHOD_HPP_INCLUDED
+#endif // THINKS_FASTMARCHINGMETHOD_HPP_INCLUDED
