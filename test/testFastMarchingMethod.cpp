@@ -1280,7 +1280,7 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, InvalidSpeedGridSizeThrows)
       vector<ScalarType>(util::LinearSize(speed_grid_size), ScalarType{1});
 
     auto expected_reason = stringstream();
-    expected_reason << "invalid grid size: "
+    expected_reason << "invalid size: "
                     << util::ToString(speed_grid_size);
 
     // Act.
@@ -1479,7 +1479,7 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidSpeedGridSizeThrows
       vector<ScalarType>(util::LinearSize(speed_grid_size), ScalarType{1});
 
     auto expected_reason = stringstream();
-    expected_reason << "invalid grid size: " << util::ToString(speed_grid_size);
+    expected_reason << "invalid size: " << util::ToString(speed_grid_size);
 
     // Act.
     auto const ft = util::FunctionThrows<invalid_argument>(
@@ -1557,7 +1557,7 @@ TYPED_TEST(UnsignedDistanceTest, ZeroElementInGridSizeThrows)
     auto const boundary_distances = vector<ScalarType>(1, ScalarType{1});
 
     auto expected_reason = stringstream();
-    expected_reason << "invalid grid size: " << util::ToString(grid_size);
+    expected_reason << "invalid size: " << util::ToString(grid_size);
 
     // Act.
     auto const ft = util::FunctionThrows<invalid_argument>(
@@ -1645,7 +1645,7 @@ TYPED_TEST(UnsignedDistanceTest, FullGridBoundaryIndicesThrows)
 
   // Assert.
   ASSERT_TRUE(ft.first);
-  ASSERT_EQ("whole grid is boundary", ft.second);
+  ASSERT_EQ("empty narrow band", ft.second);
 }
 
 TYPED_TEST(UnsignedDistanceTest, DuplicateBoundaryIndicesThrows)
@@ -1713,8 +1713,9 @@ TYPED_TEST(UnsignedDistanceTest, BoundaryIndexOutsideGridThrows)
   auto const boundary_distances = vector<ScalarType>(2, ScalarType{1});
 
   auto expected_reason = stringstream();
-  expected_reason << "boundary index outside grid: "
-                  << util::ToString(boundary_indices.back());
+  expected_reason << "boundary index outside grid - "
+                  << "index: " << util::ToString(boundary_indices.back()) << ", "
+                  << "grid size: " << util::ToString(grid_size);
 
   // Act.
   auto const ft = util::FunctionThrows<invalid_argument>(
@@ -1910,6 +1911,64 @@ TYPED_TEST(UnsignedDistanceTest, DifferentUniformSpeed)
   }
 }
 
+TYPED_TEST(UnsignedDistanceTest, BoxBoundary)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  if (kDimension == 1) {
+    return;
+  }
+
+  // Arrange.
+  auto const grid_size = util::FilledArray<kDimension>(size_t{10});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+
+  auto boundary_indices = vector<array<int32_t, kDimension>>();
+  auto index_iter = util::IndexIterator<kDimension>(grid_size);
+  while (index_iter.has_next()) {
+    auto const index = index_iter.index();
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      if (index[i] == 0 || index[i] == grid_size[i] - 1) {
+        boundary_indices.push_back(index);
+        break;
+      }
+    }
+    index_iter.Next();
+  }
+
+  auto boundary_distances = vector<ScalarType>(
+    boundary_indices.size(), ScalarType{0});
+
+  auto const speed = ScalarType{1};
+
+  // Act.
+  auto const unsigned_distance = fmm::UnsignedDistance(
+    grid_size,
+    boundary_indices,
+    boundary_distances,
+    EikonalSolverType(grid_spacing, speed));
+
+  // Assert.
+  for (auto const d : unsigned_distance) {
+    ASSERT_GE(d, ScalarType{0});
+  }
+
+#if 1 // TMP
+  if (kDimension == 2 && typeid(ScalarType).name() == "float") {
+    util::writeRgbImage(
+      "./UnsignedDistanceTest_BoxBoundary.ppm",
+      grid_size[0],
+      grid_size[1],
+      unsigned_distance);
+  }
+#endif
+}
 
 // UnsignedDistanceAccuracy fixture.
 // TODO - different dx.
@@ -2215,18 +2274,17 @@ TYPED_TEST(SignedDistanceTest, ZeroElementInGridSizeThrows)
     EikonalSolverType;
 
   // Arrange.
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+  auto const speed = ScalarType{1};
+  auto boundary_indices = vector<array<int32_t, kDimension>>();
+  boundary_indices.push_back(util::FilledArray<kDimension>(int32_t{0}));
+  auto const boundary_distances = vector<ScalarType>(1, ScalarType{1});
   for (auto i = size_t{0}; i < kDimension; ++i) {
     auto grid_size = util::FilledArray<kDimension>(size_t{10});
     grid_size[i] = 0; // Zero element in i'th position.
-    auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
-    auto const speed = ScalarType{1};
-
-    auto boundary_indices = vector<array<int32_t, kDimension>>();
-    boundary_indices.push_back(util::FilledArray<kDimension>(int32_t{0}));
-    auto const boundary_distances = vector<ScalarType>(1, ScalarType{1});
 
     auto expected_reason = stringstream();
-    expected_reason << "invalid grid size: " << util::ToString(grid_size);
+    expected_reason << "invalid size: " << util::ToString(grid_size);
 
     // Act.
     auto const ft = util::FunctionThrows<invalid_argument>(
@@ -2314,7 +2372,7 @@ TYPED_TEST(SignedDistanceTest, FullGridBoundaryIndicesThrows)
 
   // Assert.
   ASSERT_TRUE(ft.first);
-  ASSERT_EQ("whole grid is boundary", ft.second);
+  ASSERT_EQ("empty narrow band", ft.second);
 }
 
 TYPED_TEST(SignedDistanceTest, DuplicateBoundaryIndicesThrows)
@@ -2382,8 +2440,9 @@ TYPED_TEST(SignedDistanceTest, BoundaryIndexOutsideGridThrows)
   auto const boundary_distances = vector<ScalarType>(2, ScalarType{1});
 
   auto expected_reason = stringstream();
-  expected_reason << "boundary index outside grid: "
-                  << util::ToString(boundary_indices.back());
+  expected_reason << "boundary index outside grid - "
+                  << "index: " << util::ToString(boundary_indices.back()) << ", "
+                  << "grid size: " << util::ToString(grid_size);
 
   // Act.
   auto const ft = util::FunctionThrows<invalid_argument>(
@@ -2576,523 +2635,154 @@ TYPED_TEST(SignedDistanceTest, DifferentUniformSpeed)
     auto const d2 = signed_distance2[i];
     ASSERT_LE(fabs(speed1 * d1 - speed2 * d2), ScalarType(1e-3));
   }
+
+#if 1 // TMP
+  if (kDimension == 2 && typeid(ScalarType).name() == "float") {
+    util::writeRgbImage(
+      "./SignedDistanceTest_DifferentUniformSpeed_speed1.ppm",
+      grid_size[0],
+      grid_size[1],
+      signed_distance1);
+    util::writeRgbImage(
+      "./SignedDistanceTest_DifferentUniformSpeed_speed2.ppm",
+      grid_size[0],
+      grid_size[1],
+      signed_distance2);
+  }
+#endif
+}
+
+TYPED_TEST(SignedDistanceTest, BoxBoundaryHasOnlyInside)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  if (kDimension == 1) {
+    return;
+  }
+
+  // Arrange.
+  auto const grid_size = util::FilledArray<kDimension>(size_t{10});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+
+  auto boundary_indices = vector<array<int32_t, kDimension>>();
+  auto index_iter = util::IndexIterator<kDimension>(grid_size);
+  while (index_iter.has_next()) {
+    auto const index = index_iter.index();
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      if (index[i] == 0 || index[i] == grid_size[i] - 1) {
+        boundary_indices.push_back(index);
+        break;
+      }
+    }
+    index_iter.Next();
+  }
+
+  auto boundary_distances = vector<ScalarType>(
+    boundary_indices.size(), ScalarType{0});
+
+  auto const speed = ScalarType{1};
+
+  // Act.
+  auto const signed_distance = fmm::SignedDistance(
+    grid_size,
+    boundary_indices,
+    boundary_distances,
+    EikonalSolverType(grid_spacing, speed));
+
+  // Assert.
+  // Check that we have negative distance inside the box.
+  for (auto const d : signed_distance) {
+    ASSERT_LE(d, ScalarType{0});
+  }
+
+#if 1 // TMP
+  if (kDimension == 2 && typeid(ScalarType).name() == "float") {
+    util::writeRgbImage(
+      "./SignedDistanceTest_BoxBoundaryHasOnlyInside.ppm",
+      grid_size[0],
+      grid_size[1],
+      signed_distance);
+  }
+#endif
+}
+
+TYPED_TEST(SignedDistanceTest, BoxBoundaryWithOutsideCorner)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  if (kDimension == 1) {
+    return;
+  }
+
+  // Arrange.
+  auto const grid_size = util::FilledArray<kDimension>(size_t{10});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+
+  auto boundary_indices = vector<array<int32_t, kDimension>>();
+  auto index_iter = util::IndexIterator<kDimension>(grid_size);
+  while (index_iter.has_next()) {
+    auto const index = index_iter.index();
+    // Don't add the top corner to the boundary condition.
+    if (index != util::FilledArray<kDimension>(int32_t{9})) {
+      for (auto i = size_t{0}; i < kDimension; ++i) {
+        if (index[i] == 0 || index[i] == grid_size[i] - 1) {
+          boundary_indices.push_back(index);
+          break;
+        }
+      }
+    }
+    index_iter.Next();
+  }
+
+  auto boundary_distances = vector<ScalarType>(
+    boundary_indices.size(), ScalarType{0});
+
+  auto const speed = ScalarType{1};
+
+  // Act.
+  auto signed_distance = fmm::SignedDistance(
+    grid_size,
+    boundary_indices,
+    boundary_distances,
+    EikonalSolverType(grid_spacing, speed));
+
+  auto const distance_grid = util::Grid<ScalarType, kDimension>(
+    grid_size, signed_distance.front());
+  auto const mid_cell = util::FilledArray<kDimension>(int32_t{5});
+  auto const corner_cell = util::FilledArray<kDimension>(int32_t{9});
+
+  // Assert.
+  // Check that we have negative distance inside the box and positive distance
+  // in the corner.
+  ASSERT_LT(distance_grid.Cell(mid_cell), ScalarType{0});
+  ASSERT_GT(distance_grid.Cell(corner_cell), ScalarType{0});
+
+#if 1 // TMP
+  if (kDimension == 2 && typeid(ScalarType).name() == "float") {
+    util::writeRgbImage(
+      "./SignedDistanceTest_BoxBoundaryWithOutsideCorner.ppm",
+      grid_size[0],
+      grid_size[1],
+      signed_distance);
+  }
+#endif
 }
 
 
 // SignedDistanceAccuracy fixture.
 // TODO
-
-#if 0
-
-namespace detail {
-
-
-template<typename T, typename R, typename U> inline
-std::vector<R> TransformedVector(std::vector<T> const& v, U const unary_op)
-{
-  using namespace std;
-
-  auto r = vector<R>(v.size());
-  transform(begin(v), end(v), begin(r), unary_op);
-  return r;
-}
-
-
-
-
-template<typename T, std::size_t N> inline
-std::array<T, N> add(std::array<T, N> const& u, std::array<T, N> const& v)
-{
-  using namespace std;
-
-  auto r = array<T, N>{};
-  transform(begin(u), end(u), begin(v), begin(r),
-            [](auto const ux, auto const vx){ return ux + vx; });
-  return r;
-}
-
-
-template<typename T, std::size_t N> inline
-std::array<T, N> sub(std::array<T, N> const& u, std::array<T, N> const& v)
-{
-  using namespace std;
-
-  auto r = array<T, N>{};
-  transform(begin(u), end(u), begin(v), begin(r),
-            [](auto const ux, auto const vx){ return ux - vx; });
-  return r;
-}
-
-
-template<typename T, std::size_t N> inline
-std::array<T, N> mult(T const t, std::array<T, N> const& v)
-{
-  using namespace std;
-
-  auto r = v;
-  for (auto i = size_t{0}; i < N; ++i) {
-    v *= t;
-  }
-  return r;
-}
-
-
-template<typename T, std::size_t N> inline
-T dot(std::array<T, N> const& u, std::array<T, N> const& v)
-{
-  using namespace std;
-
-  auto sum = T(0);
-  for (auto i = size_t{0}; i < N; ++i) {
-    sum += u[i] * v[i];
-  }
-  return sum;
-}
-
-
-template<typename T> inline
-std::array<T, 2> solveQuadratic(T const a, T const b, T const c)
-{
-  using namespace std;
-
-  T const eps = 1e-9;
-
-  assert(abs(a) > eps);
-
-  T const discr = b * b - T(4) * a * c;
-  if (discr < T(0)) {
-    return {{numeric_limits<T>::quiet_NaN(), numeric_limits<T>::quiet_NaN()}};
-  }
-  else if (discr < eps) {
-    T const r = T(-0.5) * b / a;
-    return {{r, r}};
-  }
-
-  T const q = (b > 0) ?
-    T(-0.5) * (b + sqrt(discr)) : T(-0.5) * (b - sqrt(discr));
-  T const x0 = q / a;
-  T const x1 = c / q;
-  return {{min(x0, x1), max(x0, x1)}};
-}
-
-
-template<typename T, std::size_t N> inline
-std::array<T, N> rayHyperSphereIntersection(
-  std::array<T, N> const& rayOrigin,
-  std::array<T, N> const& rayDirection,
-  std::array<T, N> const& center,
-  T const radius)
-{
-  using namespace std;
-
-  auto const p = sub(rayOrigin, center);
-  auto const a = dot(rayDirection, rayDirection);
-  auto const b = T(2) * dot(rayDirection, p);
-  auto const c = dot(p, p) - radius * radius;
-
-  auto const q = solveQuadratic(a, b, c);
-
-  if (any_of(begin(q), end(q), [](auto const x) { return isnan(x); })) {
-    // No intersection.
-    return FilledArray<T, N>(numeric_limits<T>::quiet_NaN());
-  }
-
-  if (q[0] < T(0)) {
-    if (q[1] < T(0)) {
-      // Both intersections behind ray origin.
-      return FilledArray<T, N>(numeric_limits<T>::quiet_NaN());
-    }
-
-    return add(rayOrigin, mult(q[1], rayDirection));
-  }
-
-  return add(rayOrigin, mult(q[0], rayDirection));
-}
-
-
-
-
-
-
-template<typename T, std::size_t N> inline
-T Magnitude(std::array<T, N> const& v)
-{
-  using namespace std;
-
-  auto mag_squared = T{0};
-  for (auto i = size_t{0}; i < N; ++i) {
-    mag_squared += v[i] * v[i];
-  }
-  return sqrt(mag_squared);
-}
-
-
-
-
-template<typename T, std::size_t N> inline
-std::array<T, N> Normalized(std::array<T, N> const& v)
-{
-  using namespace std;
-
-  auto n = v;
-  auto const mag_factor = T{1} / Magnitude(v);
-  for (auto i = size_t{0}; i < N; ++i) {
-    n[i] *= mag_factor;
-  }
-  return n;
-}
-
-
-
-
-
-
-
-template<typename T, std::size_t N> inline
-std::vector<std::array<T, N>> DistanceGradients(
-  std::vector<T>& distance_buffer,
-  std::array<std::size_t, N> const& grid_size,
-  std::array<T, N> const& grid_spacing)
-{
-  using namespace std;
-
-  auto const linear_size = LinearSize(grid_size);
-  if (linear_size != distance_buffer.size()) {
-    throw runtime_error("grid/buffer size mismatch");
-  }
-
-  Grid<T, N> distance_grid(grid_size, distance_buffer.front());
-
-  auto grad_buffer = vector<array<T, N>>(linear_size);
-  auto grad_grid = Grid<array<T, N>, N>(grid_size, grad_buffer.front());
-
-  auto index_iter = IndexIterator<N>(grid_size);
-  auto valid_index = bool{true};
-  while (valid_index) {
-    auto const index = index_iter.index();
-    grad_grid.cell(index) = gradient(
-      distance_grid,
-      index,
-      grid_spacing,
-      Neighborhood<N>::offsets());
-    valid_index = index_iter.Next();
-  }
-
-  return grad_buffer;
-}
-
-} // namespace detail
-
-
-
-
-
-
-template<typename T, std::size_t N>
-struct GradientMagnitudeStats
-{
-  static const std::size_t kSize = N;
-
-  double min_abs_error;
-  double max_abs_error;
-  double avg_abs_error;
-  double std_dev_abs_error;
-
-  double duration_in_s;
-
-  std::array<std::size_t, N> grid_size;
-  std::vector<T> input_buffer;
-  std::vector<T> distance_buffer;
-  std::vector<std::array<T, N>> grad_buffer;
-  std::vector<T> error_buffer;
-};
-
-
-template<typename T, std::size_t N> inline
-GradientMagnitudeStats<T, N> UnsignedGradientMagnitudeStats()
-{
-  using namespace std;
-  using namespace detail;
-
-  auto const center = FilledArray<N>(T(0.5));
-  auto const radius = T(0.25);
-  auto const grid_size = FilledArray<N>(size_t{100});
-  auto const grid_spacing = FilledArray<N>(T(0.01));
-  auto const speed = T(1);
-
-  auto frozen_indices = vector<array<int32_t, N>>();
-  auto frozen_distances = vector<T>();
-  auto normals = vector<array<T, N>>();
-  HyperSphereFrozenCells<T, N>(
-    center,
-    radius,
-    grid_size,
-    grid_spacing,
-    &frozen_indices,
-    &frozen_distances,
-    &normals);
-
-  // TMP!!
-  for (auto iter = begin(frozen_distances); iter != end(frozen_distances); ++iter) {
-    *iter = fabs(*iter);
-  }
-
-  auto const start_time = chrono::system_clock::now();
-  auto distance_buffer = UnsignedDistance<T, N>(
-    grid_size,
-    grid_spacing,
-    speed,
-    frozen_indices,
-    frozen_distances);
-  auto const end_time = chrono::system_clock::now();
-
-  auto const input_buffer = InputBuffer(
-    grid_size,
-    frozen_indices,
-    frozen_distances);
-
-  auto const grad_buffer = DistanceGradients(
-    distance_buffer,
-    grid_size,
-    grid_spacing);
-
-  auto ground_truth_buffer = vector<T>(grad_buffer.size());
-  fill(begin(ground_truth_buffer), end(ground_truth_buffer), T(1));
-  auto const error_buffer = ErrorBuffer(
-    TransformedVector<array<T, N>, T>(
-      grad_buffer,
-      [](array<T, N> const& g) { return Magnitude(g); }),
-    ground_truth_buffer);
-  auto stats = ErrorStatistics(error_buffer);
-
-  return GradientMagnitudeStats<T, N>{
-    stats.min_abs_error,
-    stats.max_abs_error,
-    stats.avg_abs_error,
-    stats.std_dev_abs_error,
-    chrono::duration<double>(end_time - start_time).count(),
-    grid_size,
-    input_buffer,
-    distance_buffer,
-    grad_buffer,
-    error_buffer};
-}
-
-
-template<typename T, std::size_t N> inline
-GradientMagnitudeStats<T, N> SignedGradientMagnitudeStats()
-{
-  using namespace std;
-  using namespace detail;
-
-  auto const center = FilledArray<N>(T(0.5));
-  auto const radius = T(0.25);
-  auto const grid_size = FilledArray<N>(size_t{100});
-  auto const grid_spacing = FilledArray<N>(T(0.01));
-  auto const speed = T(1);
-
-  auto frozen_indices = vector<array<int32_t, N>>();
-  auto frozen_distances = vector<T>();
-  auto normals = vector<array<T, N>>();
-  HyperSphereFrozenCells<T, N>(
-    center,
-    radius,
-    grid_size,
-    grid_spacing,
-    &frozen_indices,
-    &frozen_distances,
-    &normals);
-
-  auto const start_time = chrono::system_clock::now();
-  auto distance_buffer = SignedDistance<T, N>(
-    grid_size,
-    grid_spacing,
-    speed,
-    frozen_indices,
-    frozen_distances);
-  auto const end_time = chrono::system_clock::now();
-
-  auto const input_buffer = InputBuffer(
-    grid_size,
-    frozen_indices,
-    frozen_distances);
-
-  auto const grad_buffer = DistanceGradients(
-    distance_buffer,
-    grid_size,
-    grid_spacing);
-
-  auto ground_truth_buffer = vector<T>(grad_buffer.size());
-  fill(begin(ground_truth_buffer), end(ground_truth_buffer), T(1));
-  auto const error_buffer = ErrorBuffer(
-    TransformedVector<array<T, N>, T>(
-      grad_buffer,
-      [](array<T, N> const& g) { return Magnitude(g); }),
-    ground_truth_buffer);
-  auto stats = ErrorStatistics(error_buffer);
-
-  return GradientMagnitudeStats<T, N>{
-    stats.min_abs_error,
-    stats.max_abs_error,
-    stats.avg_abs_error,
-    stats.std_dev_abs_error,
-    chrono::duration<double>(end_time - start_time).count(),
-    grid_size,
-    input_buffer,
-    distance_buffer,
-    grad_buffer,
-    error_buffer};
-}
-
-
-template<typename T, std::size_t N>
-struct DistanceValueStats
-{
-  static const std::size_t kSize = N;
-
-  double min_abs_error;
-  double max_abs_error;
-  double avg_abs_error;
-  double std_dev_abs_error;
-
-  double duration_in_s;
-
-  std::array<std::size_t, N> grid_size;
-  std::vector<T> input_buffer;
-  std::vector<T> distance_buffer;
-  std::vector<T> distance_ground_truth_buffer;
-  std::vector<T> error_buffer;
-};
-
-
-template<typename T, std::size_t N> inline
-DistanceValueStats<T, N> UnsignedDistanceValueStats()
-{
-  using namespace std;
-  using namespace detail;
-
-  auto const center = FilledArray<N>(T(0.5));
-  auto const radius = T(0.25);
-  auto const grid_size = FilledArray<N>(size_t{100});
-  auto const grid_spacing = FilledArray<N>(T(0.01));
-  auto const speed = T(1);
-
-  auto frozen_indices = vector<array<int32_t, N>>();
-  auto frozen_distances = vector<T>();
-  auto normals = vector<array<T, N>>();
-  auto distance_ground_truth_buffer = vector<T>();
-  HyperSphereFrozenCells<T, N>(
-    center,
-    radius,
-    grid_size,
-    grid_spacing,
-    &frozen_indices,
-    &frozen_distances,
-    &normals,
-    &distance_ground_truth_buffer,
-    [](auto const d) { return fabs(d); });
-
-  // TMP!!
-  for (auto iter = begin(frozen_distances); iter != end(frozen_distances); ++iter) {
-    *iter = fabs(*iter);
-  }
-
-  auto const start_time = chrono::system_clock::now();
-  auto distance_buffer = UnsignedDistance<T, N>(
-    grid_size,
-    grid_spacing,
-    speed,
-    frozen_indices,
-    frozen_distances);
-  auto const end_time = chrono::system_clock::now();
-
-  auto const input_buffer = InputBuffer(
-    grid_size,
-    frozen_indices,
-    frozen_distances);
-
-  auto const error_buffer = ErrorBuffer(
-    distance_buffer,
-    distance_ground_truth_buffer);
-
-  auto const stats = ErrorStatistics(error_buffer);
-
-  return DistanceValueStats<T, N>{
-    stats.min_abs_error,
-    stats.max_abs_error,
-    stats.avg_abs_error,
-    stats.std_dev_abs_error,
-    chrono::duration<double>(end_time - start_time).count(),
-    grid_size,
-    input_buffer,
-    distance_buffer,
-    distance_ground_truth_buffer,
-    error_buffer};
-}
-
-
-template<typename T, std::size_t N> inline
-DistanceValueStats<T, N> SignedDistanceValueStats()
-{
-  using namespace std;
-  using namespace detail;
-
-  auto const center = FilledArray<N>(T(0.5));
-  auto const radius = T(0.25);
-  auto const grid_size = FilledArray<N>(size_t{100});
-  auto const grid_spacing = FilledArray<N>(T(0.01));
-  auto const speed = T(1);
-
-  auto frozen_indices = vector<array<int32_t, N>>();
-  auto frozen_distances = vector<T>();
-  auto normals = vector<array<T, N>>();
-  auto distance_ground_truth_buffer = vector<T>();
-  HyperSphereFrozenCells<T, N>(
-    center,
-    radius,
-    grid_size,
-    grid_spacing,
-    &frozen_indices,
-    &frozen_distances,
-    &normals,
-    &distance_ground_truth_buffer);
-
-  auto const start_time = chrono::system_clock::now();
-  auto distance_buffer = SignedDistance<T, N>(
-    grid_size,
-    grid_spacing,
-    speed,
-    frozen_indices,
-    frozen_distances);
-  auto const end_time = chrono::system_clock::now();
-
-  auto const input_buffer = InputBuffer(
-    grid_size,
-    frozen_indices,
-    frozen_distances);
-
-  auto const error_buffer = ErrorBuffer(
-    distance_buffer,
-    distance_ground_truth_buffer);
-
-  auto const stats = ErrorStatistics(error_buffer);
-
-  return DistanceValueStats<T, N>{
-    stats.min_abs_error,
-    stats.max_abs_error,
-    stats.avg_abs_error,
-    stats.std_dev_abs_error,
-    chrono::duration<double>(end_time - start_time).count(),
-    grid_size,
-    input_buffer,
-    distance_buffer,
-    distance_ground_truth_buffer,
-    error_buffer};
-}
-
-
-
-#endif
 
 } // namespace
 
