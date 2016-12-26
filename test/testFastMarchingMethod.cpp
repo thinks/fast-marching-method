@@ -1975,6 +1975,65 @@ TYPED_TEST(UnsignedDistanceTest, BoxBoundary)
 #endif
 }
 
+TYPED_TEST(UnsignedDistanceTest, Checkerboard)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  if (kDimension == 1) {
+    return;
+  }
+
+  // Arrange.
+  auto const grid_size = util::FilledArray<kDimension>(size_t{10});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+
+  auto boundary_indices = vector<array<int32_t, kDimension>>();
+  auto index_iter = util::IndexIterator<kDimension>(grid_size);
+  auto even = [](auto const i) { return i % 2 == 0; };
+  while (index_iter.has_next()) {
+    auto const index = index_iter.index();
+    if (all_of(begin(index), end(index), even) ||
+        none_of(begin(index), end(index), even)) {
+       boundary_indices.push_back(index);
+    }
+    index_iter.Next();
+  }
+
+  auto boundary_distances = vector<ScalarType>(
+    boundary_indices.size(), ScalarType{0});
+
+  auto const speed = ScalarType{1};
+
+  // Act.
+  auto const unsigned_distance = fmm::UnsignedDistance(
+    grid_size,
+    boundary_indices,
+    boundary_distances,
+    EikonalSolverType(grid_spacing, speed));
+
+  // Assert.
+  // This test exists to ensure that it is possible to run this input.
+
+#if 1 // TMP
+  if (kDimension == 2) {
+    auto ss = stringstream();
+    ss << "./UnsignedDistanceTest_Checkerboard_"
+       << typeid(ScalarType).name() << ".ppm";
+    util::writeRgbImage(
+      ss.str(),
+      grid_size[0],
+      grid_size[1],
+      unsigned_distance);
+  }
+#endif
+}
+
 TYPED_TEST(UnsignedDistanceTest, OverlappingCircles)
 {
   using namespace std;
@@ -2068,9 +2127,9 @@ TYPED_TEST(UnsignedDistanceTest, CircleInsideCircle)
   auto const grid_spacing = util::FilledArray<kDimension>(ScalarType(0.02));
   auto const uniform_speed = ScalarType{1};
 
-  auto sphere_center1 = util::FilledArray<kDimension>(ScalarType{0.5});
-  auto const sphere_radius1 = ScalarType{0.25};
-  auto sphere_center2 = util::FilledArray<kDimension>(ScalarType{0.5});
+  auto const sphere_center1 = util::FilledArray<kDimension>(ScalarType{0.5});
+  auto const sphere_radius1 = ScalarType(0.25);
+  auto const sphere_center2 = util::FilledArray<kDimension>(ScalarType{0.5});
   auto const sphere_radius2 = ScalarType(0.45);
 
   auto sphere_boundary_indices1 = vector<array<int32_t, kDimension>>();
@@ -2125,10 +2184,6 @@ TYPED_TEST(UnsignedDistanceTest, CircleInsideCircle)
 #endif
 }
 
-TYPED_TEST(UnsignedDistanceTest, CheckerBoardPattern)
-{
-
-}
 
 // UnsignedDistanceAccuracy fixture.
 // TODO - different dx.
@@ -2935,6 +2990,241 @@ TYPED_TEST(SignedDistanceTest, BoxBoundaryWithOutsideCorner)
 #endif
 }
 
+TYPED_TEST(SignedDistanceTest, Checkerboard)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  if (kDimension == 1) {
+    return;
+  }
+
+  // Arrange.
+  auto const grid_size = util::FilledArray<kDimension>(size_t{10});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+
+  auto boundary_indices = vector<array<int32_t, kDimension>>();
+  auto index_iter = util::IndexIterator<kDimension>(grid_size);
+  auto even = [](auto const i) { return i % 2 == 0; };
+  while (index_iter.has_next()) {
+    auto const index = index_iter.index();
+    if (all_of(begin(index), end(index), even) ||
+        none_of(begin(index), end(index), even)) {
+       boundary_indices.push_back(index);
+    }
+    index_iter.Next();
+  }
+
+  auto boundary_distances = vector<ScalarType>(
+    boundary_indices.size(), ScalarType{0});
+
+  auto const speed = ScalarType{1};
+
+  // Act.
+  auto signed_distance = fmm::SignedDistance(
+    grid_size,
+    boundary_indices,
+    boundary_distances,
+    EikonalSolverType(grid_spacing, speed));
+
+  // Assert.
+  auto distance_grid =
+    util::Grid<ScalarType, kDimension>(grid_size, signed_distance.front());
+  auto distance_iter = util::IndexIterator<kDimension>(grid_size);
+  while (distance_iter.has_next()) {
+    auto const index = distance_iter.index();
+    auto border = false;
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      if (index[i] == 0 || index[i] + 1 == grid_size[i]) {
+        border = true;
+        break;
+      }
+    }
+
+    if (border) {
+      ASSERT_GE(distance_grid.Cell(index), ScalarType{0});
+    }
+    else {
+      ASSERT_LE(distance_grid.Cell(index), ScalarType{0});
+    }
+
+    distance_iter.Next();
+  }
+
+#if 1 // TMP
+  if (kDimension == 2) {
+    auto ss = stringstream();
+    ss << "./SignedDistanceTest_Checkerboard_"
+       << typeid(ScalarType).name() << ".ppm";
+    util::writeRgbImage(
+      ss.str(),
+      grid_size[0],
+      grid_size[1],
+      signed_distance);
+  }
+#endif
+}
+
+TYPED_TEST(SignedDistanceTest, OverlappingCircles)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  // Arrange.
+  auto const grid_size = util::FilledArray<kDimension>(size_t{50});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType(0.02));
+  auto const uniform_speed = ScalarType{1};
+
+  auto sphere_center1 = util::FilledArray<kDimension>(ScalarType{0.5});
+  sphere_center1[0] = ScalarType(0.4);
+  auto const sphere_radius1 = ScalarType{0.25};
+  auto sphere_center2 = util::FilledArray<kDimension>(ScalarType{0.5});
+  sphere_center2[0] = ScalarType(0.6);
+  auto const sphere_radius2 = ScalarType{0.25};
+
+  auto sphere_boundary_indices1 = vector<array<int32_t, kDimension>>();
+  auto sphere_boundary_distances1 = vector<ScalarType>();
+  util::HyperSphereBoundaryCells(
+    sphere_center1,
+    sphere_radius1,
+    grid_size,
+    grid_spacing,
+    [](ScalarType const d) { return d; },
+    &sphere_boundary_indices1,
+    &sphere_boundary_distances1);
+  auto sphere_boundary_indices2 = vector<array<int32_t, kDimension>>();
+  auto sphere_boundary_distances2 = vector<ScalarType>();
+  util::HyperSphereBoundaryCells(
+    sphere_center2,
+    sphere_radius2,
+    grid_size,
+    grid_spacing,
+    [](ScalarType const d) { return d; },
+    &sphere_boundary_indices2,
+    &sphere_boundary_distances2);
+
+  auto boundary_indices = sphere_boundary_indices1;
+  auto boundary_distances = sphere_boundary_distances1;
+  for (auto i = size_t{0}; i < sphere_boundary_indices2.size(); ++i) {
+    auto const index = sphere_boundary_indices2[i];
+    if (find(begin(boundary_indices), end(boundary_indices), index) ==
+        end(boundary_indices)) {
+      boundary_indices.push_back(index);
+      boundary_distances.push_back(sphere_boundary_distances2[i]);
+    }
+  }
+
+  // Act.
+  auto signed_distance = fmm::SignedDistance(
+    grid_size,
+    boundary_indices,
+    boundary_distances,
+    EikonalSolverType(grid_spacing, uniform_speed));
+
+  // Assert.
+  auto distance_grid =
+    util::Grid<ScalarType, kDimension>(grid_size, signed_distance.front());
+
+  auto sphere_center_index1 = util::FilledArray<kDimension>(int32_t{0});
+  auto sphere_center_index2 = util::FilledArray<kDimension>(int32_t{0});
+  for (auto i = size_t{0}; i < kDimension; ++i) {
+    sphere_center_index1[i] =
+      static_cast<int32_t>(sphere_center1[i] / grid_spacing[i]);
+    sphere_center_index2[i] =
+      static_cast<int32_t>(sphere_center2[i] / grid_spacing[i]);
+  }
+
+  auto x_begin = min(sphere_center_index1[0], sphere_center_index2[0]);
+  auto x_end = max(sphere_center_index1[0], sphere_center_index2[0]);
+  for (auto x = x_begin; x <= x_end; ++x) {
+    auto index = sphere_center_index1; // Get non-x components.
+    index[0] = x; // Set x from loop.
+    ASSERT_LE(distance_grid.Cell(index), ScalarType{0});
+  }
+
+#if 1 // TMP
+  if (kDimension == 2) {
+    auto ss = stringstream();
+    ss << "./SignedDistanceTest_OverlappingCircles_"
+       << typeid(ScalarType).name() << ".ppm";
+    util::writeRgbImage(
+      ss.str(),
+      grid_size[0],
+      grid_size[1],
+      signed_distance);
+  }
+#endif
+}
+
+TYPED_TEST(SignedDistanceTest, CircleInsideCircleThrows)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  // Arrange.
+  auto const grid_size = util::FilledArray<kDimension>(size_t{50});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType(0.02));
+  auto const uniform_speed = ScalarType{1};
+
+  auto const sphere_center1 = util::FilledArray<kDimension>(ScalarType{0.5});
+  auto const sphere_radius1 = ScalarType(0.25);
+  auto const sphere_center2 = util::FilledArray<kDimension>(ScalarType{0.5});
+  auto const sphere_radius2 = ScalarType(0.45);
+
+  auto sphere_boundary_indices1 = vector<array<int32_t, kDimension>>();
+  auto sphere_boundary_distances1 = vector<ScalarType>();
+  util::HyperSphereBoundaryCells(
+    sphere_center1,
+    sphere_radius1,
+    grid_size,
+    grid_spacing,
+    [](ScalarType const d) { return d; },
+    &sphere_boundary_indices1,
+    &sphere_boundary_distances1);
+  auto sphere_boundary_indices2 = vector<array<int32_t, kDimension>>();
+  auto sphere_boundary_distances2 = vector<ScalarType>();
+  util::HyperSphereBoundaryCells(
+    sphere_center2,
+    sphere_radius2,
+    grid_size,
+    grid_spacing,
+    [](ScalarType const d) { return d; },
+    &sphere_boundary_indices2,
+    &sphere_boundary_distances2);
+
+  auto boundary_indices = sphere_boundary_indices1;
+  auto boundary_distances = sphere_boundary_distances1;
+  for (auto i = size_t{0}; i < sphere_boundary_indices2.size(); ++i) {
+    boundary_indices.push_back(sphere_boundary_indices2[i]);
+    boundary_distances.push_back(sphere_boundary_distances2[i]);
+  }
+
+  // Act.
+  auto const signed_distance = fmm::SignedDistance(
+    grid_size,
+    boundary_indices,
+    boundary_distances,
+    EikonalSolverType(grid_spacing, uniform_speed));
+
+  // Assert.
+  // This test exists to ensure that it is possible to run this input.
+
+}
 
 // SignedDistanceAccuracy fixture.
 // TODO

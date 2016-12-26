@@ -892,19 +892,22 @@ DilationBands(
 
 
 //! Since dilation bands are constructed using a vertex neighborhood,
-//! not all dilation cells are face-connected to a foreground cell.
-//! Given a list of @a dilation_band_indices in the dilation grid coordinate
-//! system (padded by one in each direction), returns a list of narrow band
-//! indices in the distance grid coordinate system. The returned indices are
-//! guaranteed to be face-connected to at least one frozen cell
-//! in @a distance_grid.
+//! not all dilation cells are face-connected to a boundary cell.
+//! Given a list of @a dilation_band_indices in dilation grid coordinates
+//! (padded by one in each direction), returns a list of narrow band
+//! indices in distance grid coordinates. The returned indices are
+//! guaranteed to be face-connected to at least one boundary cell
+//! in @a boundary_mask_grid.
 //!
 //! Note that the returned list may be empty. This can happen if all
-//! @a dilation_band_indices are on the border of the dilation grid (or
-//! if @a dilation_band_indices is empty).
+//! @a dilation_band_indices are on the border of the dilation grid, i.e.
+//! outside the distance grid. It also happens if the @a dilation_band_indices
+//! list is empty, or if @a boundary_mask_grid has values such that the
+//! boundary is not face-connected to any of the dilation indices.
 //!
-//! Preconditions:
-//! - @a boundary_mask_grid has initialized boundary cells.
+//! It is assumed that the value int8_t{1} is used to tag boundary cells in
+//! @a boundary_mask_grid. Also, (transformed) dilation band indices are
+//! assumed not to be on a boundary.
 template<std::size_t N> inline
 std::vector<std::array<std::int32_t, N>>
 NarrowBandDilationBandCells(
@@ -919,9 +922,6 @@ NarrowBandDilationBandCells(
 
   auto narrow_band_indices = vector<array<int32_t, N>>();
   narrow_band_indices.reserve(dilation_band_indices.size());
-
-  // A narrow band is defined as a face-connected component of
-  // dilated cells.
   for (auto const& dilation_grid_index : dilation_band_indices) {
     // Since dilation bands are constructed using a vertex neighborhood,
     // not all dilation cells are face-connected to a boundary cell.
@@ -930,20 +930,20 @@ NarrowBandDilationBandCells(
     // (i.e. solving the eikonal equation).
     auto const distance_grid_index =
       DistanceGridIndexFromDilationGridIndex(dilation_grid_index);
+    assert(boundary_mask_grid.Cell(distance_grid_index) != uint8_t{1});
 
-    // If the dilation grid index is not inside the grid we
-    // definitely don't need it.
+    // If the distance grid index is not inside the boundary mask
+    // (i.e. distance) grid it cannot belong to a narrow band.
     if (Inside(distance_grid_index, boundary_mask_grid.size())) {
       // Check for boundary face-neighbors in each dimension.
       // If we find one boundary face-neighbor we are done.
-      auto found_boundary_face_neighbor = false;
       for (auto i = size_t{0}; i < N; ++i) {
         // +1
         auto neighbor_index = distance_grid_index;
         neighbor_index[i] += int32_t{1};
         if (Inside(neighbor_index, boundary_mask_grid.size()) &&
             boundary_mask_grid.Cell(neighbor_index) == uint8_t{1}) {
-          found_boundary_face_neighbor = true;
+          narrow_band_indices.push_back(distance_grid_index);
           break;
         }
         // -1
@@ -951,16 +951,13 @@ NarrowBandDilationBandCells(
         neighbor_index[i] -= int32_t{1};
         if (Inside(neighbor_index, boundary_mask_grid.size()) &&
             boundary_mask_grid.Cell(neighbor_index) == uint8_t{1}) {
-          found_boundary_face_neighbor = true;
+          narrow_band_indices.push_back(distance_grid_index);
           break;
         }
       }
-
-      if (found_boundary_face_neighbor) {
-        narrow_band_indices.push_back(distance_grid_index);
-      }
     }
   }
+  assert(narrow_band_indices.size() <= dilation_band_indices.size());
 
   return narrow_band_indices;
 }
