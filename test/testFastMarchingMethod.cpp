@@ -952,6 +952,47 @@ struct UnsignedDistanceAccuracyThresholds<double, 2>
   static constexpr double std_dev_abs_error_threshold() { return double{1}; }
 };
 
+// Numbers below inspired by the paper "ON THE IMPLEMENTATION OF FAST
+// MARCHING METHODS FOR 3D LATTICES" by J. Andreas Bærentzen.
+template<std::size_t N>
+struct PointSourceAccuracyBounds;
+
+template<>
+struct PointSourceAccuracyBounds<1>
+{
+  static constexpr double max_abs_error() { return double{1e-3}; }
+  static constexpr double avg_abs_error() { return double{1e-3}; }
+  static constexpr double high_accuracy_max_abs_error() { return double{1e-3}; }
+  static constexpr double high_accuracy_avg_abs_error() { return double{1e-3}; }
+};
+
+template<>
+struct PointSourceAccuracyBounds<2>
+{
+  static constexpr double max_abs_error() { return double{1.48}; }
+  static constexpr double avg_abs_error() { return double{0.89}; }
+  static constexpr double high_accuracy_max_abs_error() { return double{0.29}; }
+  static constexpr double high_accuracy_avg_abs_error() { return double{0.14}; }
+};
+
+template<>
+struct PointSourceAccuracyBounds<3>
+{
+  static constexpr double max_abs_error() { return double{1.51}; }
+  static constexpr double avg_abs_error() { return double{0.92}; }
+  static constexpr double high_accuracy_max_abs_error() { return double{0.28}; }
+  static constexpr double high_accuracy_avg_abs_error() { return double{0.07}; }
+};
+
+template<>
+struct PointSourceAccuracyBounds<4>
+{
+  static constexpr double max_abs_error() { return double{1.98}; }
+  static constexpr double avg_abs_error() { return double{1.27}; }
+  static constexpr double high_accuracy_max_abs_error() { return double{0.28}; }
+  static constexpr double high_accuracy_avg_abs_error() { return double{0.06}; }
+};
+
 } // namespace util
 
 template<typename S, std::size_t N>
@@ -2269,7 +2310,7 @@ TYPED_TEST(UnsignedDistanceTest, CircleInsideCircle)
 #endif
 }
 
-TYPED_TEST(UnsignedDistanceTest, HighAccuracy)
+TYPED_TEST(UnsignedDistanceTest, PointSourceHighAccuracy)
 {
   using namespace std;
 
@@ -2343,6 +2384,8 @@ TYPED_TEST(UnsignedDistanceTest, HighAccuracy)
     util::Grid<ScalarType, kDimension>(grid_size, unsigned_distance.front());
   auto high_accuracy_distance_grid = util::Grid<ScalarType, kDimension>(
     grid_size, high_accuracy_unsigned_distance.front());
+
+#if 0 // TMP
   auto dist_abs_error_buffer =
     vector<ScalarType>(util::LinearSize(grid_size), ScalarType{0});
   auto dist_abs_error_grid =
@@ -2351,6 +2394,10 @@ TYPED_TEST(UnsignedDistanceTest, HighAccuracy)
     vector<ScalarType>(util::LinearSize(grid_size), ScalarType{0});
   auto ha_dist_abs_error_grid = util::Grid<ScalarType, kDimension>(
     grid_size, ha_dist_abs_error_buffer.front());
+#endif
+
+  auto dist_abs_errors = vector<ScalarType>();
+  auto ha_dist_abs_errors = vector<ScalarType>();
 
   auto index_iter = util::IndexIterator<kDimension>(grid_size);
   while (index_iter.has_next()) {
@@ -2366,36 +2413,48 @@ TYPED_TEST(UnsignedDistanceTest, HighAccuracy)
     auto const gt_dist = util::Magnitude(delta);
     auto const dist = distance_grid.Cell(index);
     auto const ha_dist = high_accuracy_distance_grid.Cell(index);
-    dist_abs_error_grid.Cell(index) = abs(dist - gt_dist);
-    ha_dist_abs_error_grid.Cell(index) = abs(ha_dist - gt_dist);
+    auto const dist_abs_error = abs(dist - gt_dist);
+    auto const ha_dist_abs_error = abs(ha_dist - gt_dist);
+    if (gt_dist <= ScalarType{20}) {
+      dist_abs_errors.push_back(dist_abs_error);
+      ha_dist_abs_errors.push_back(ha_dist_abs_error);
+    }
+
+#if 0 // TMP
+    dist_abs_error_grid.Cell(index) = dist_abs_error;
+    ha_dist_abs_error_grid.Cell(index) = ha_dist_abs_error;
+#endif
+
     index_iter.Next();
   }
 
-  auto max_dist_abs_error = ScalarType{0};
-  auto avg_dist_abs_error = ScalarType{0};
-  for (auto const& dist_abs_error : dist_abs_error_buffer) {
-    max_dist_abs_error = max(max_dist_abs_error, dist_abs_error);
-    avg_dist_abs_error += dist_abs_error;
+  auto max_abs_error = ScalarType{0};
+  auto avg_abs_error = ScalarType{0};
+  for (auto const& dist_abs_error : dist_abs_errors) {
+    max_abs_error = max(max_abs_error, dist_abs_error);
+    avg_abs_error += dist_abs_error;
   }
-  avg_dist_abs_error /= util::LinearSize(grid_size);
+  avg_abs_error /= dist_abs_errors.size();
 
-  auto max_ha_dist_abs_error = ScalarType{0};
-  auto avg_ha_dist_abs_error = ScalarType{0};
-  for (auto const& ha_dist_abs_error : ha_dist_abs_error_buffer) {
-    max_ha_dist_abs_error = max(max_ha_dist_abs_error, ha_dist_abs_error);
-    avg_ha_dist_abs_error += ha_dist_abs_error;
+  auto high_accuracy_max_abs_error = ScalarType{0};
+  auto high_accuracy_avg_abs_error = ScalarType{0};
+  for (auto const& ha_dist_abs_error : ha_dist_abs_errors) {
+    high_accuracy_max_abs_error =
+      max(high_accuracy_max_abs_error, ha_dist_abs_error);
+    high_accuracy_avg_abs_error += ha_dist_abs_error;
   }
-  avg_ha_dist_abs_error /= util::LinearSize(grid_size);
+  high_accuracy_avg_abs_error /= ha_dist_abs_errors.size();
 
   // Assert.
-  // Numbers below inspired by the paper "ON THE IMPLEMENTATION OF FAST
-  // MARCHING METHODS FOR 3D LATTICES" by J. Andreas Bærentzen.
-  ASSERT_LE(max_dist_abs_error, ScalarType(1.48));
-  ASSERT_LE(avg_dist_abs_error, ScalarType(0.89));
-  ASSERT_LE(max_ha_dist_abs_error, ScalarType(0.29));
-  ASSERT_LE(avg_ha_dist_abs_error, ScalarType(0.14));
+  typedef util::PointSourceAccuracyBounds<kDimension> Bounds;
+  ASSERT_LE(max_abs_error, ScalarType(Bounds::max_abs_error()));
+  ASSERT_LE(avg_abs_error, ScalarType(Bounds::avg_abs_error()));
+  ASSERT_LE(high_accuracy_max_abs_error,
+            ScalarType(Bounds::high_accuracy_max_abs_error()));
+  ASSERT_LE(high_accuracy_avg_abs_error,
+            ScalarType(Bounds::high_accuracy_avg_abs_error()));
 
-#if 1 // TMP
+#if 0 // TMP
   if (kDimension == 2) {
     auto ss = stringstream();
     ss << "./UnsignedDistanceTest_HighAccuracy_FirstOrder_"
@@ -2404,7 +2463,7 @@ TYPED_TEST(UnsignedDistanceTest, HighAccuracy)
       ss.str(),
       grid_size[0],
       grid_size[1],
-      unsigned_distance);
+      signed_distance);
     auto ss2 = stringstream();
     ss2 << "./UnsignedDistanceTest_HighAccuracy_FirstOrder_abs_error_"
         << typeid(ScalarType).name() << ".ppm";
@@ -2421,7 +2480,7 @@ TYPED_TEST(UnsignedDistanceTest, HighAccuracy)
       ss3.str(),
       grid_size[0],
       grid_size[1],
-      high_accuracy_unsigned_distance);
+      high_accuracy_signed_distance);
     auto ss4 = stringstream();
     ss4 << "./UnsignedDistanceTest_HighAccuracy_SecondOrder_abs_error_"
         << typeid(ScalarType).name() << ".ppm";
@@ -3476,7 +3535,7 @@ TYPED_TEST(SignedDistanceTest, CircleInsideCircleThrows)
 
 }
 
-TYPED_TEST(SignedDistanceTest, HighAccuracy)
+TYPED_TEST(SignedDistanceTest, PointSourceHighAccuracy)
 {
   using namespace std;
 
@@ -3550,6 +3609,8 @@ TYPED_TEST(SignedDistanceTest, HighAccuracy)
     util::Grid<ScalarType, kDimension>(grid_size, signed_distance.front());
   auto high_accuracy_distance_grid = util::Grid<ScalarType, kDimension>(
     grid_size, high_accuracy_signed_distance.front());
+
+#if 0 // TMP
   auto dist_abs_error_buffer =
     vector<ScalarType>(util::LinearSize(grid_size), ScalarType{0});
   auto dist_abs_error_grid =
@@ -3558,6 +3619,10 @@ TYPED_TEST(SignedDistanceTest, HighAccuracy)
     vector<ScalarType>(util::LinearSize(grid_size), ScalarType{0});
   auto ha_dist_abs_error_grid = util::Grid<ScalarType, kDimension>(
     grid_size, ha_dist_abs_error_buffer.front());
+#endif
+
+  auto dist_abs_errors = vector<ScalarType>();
+  auto ha_dist_abs_errors = vector<ScalarType>();
 
   auto index_iter = util::IndexIterator<kDimension>(grid_size);
   while (index_iter.has_next()) {
@@ -3573,36 +3638,48 @@ TYPED_TEST(SignedDistanceTest, HighAccuracy)
     auto const gt_dist = util::Magnitude(delta);
     auto const dist = distance_grid.Cell(index);
     auto const ha_dist = high_accuracy_distance_grid.Cell(index);
-    dist_abs_error_grid.Cell(index) = abs(dist - gt_dist);
-    ha_dist_abs_error_grid.Cell(index) = abs(ha_dist - gt_dist);
+    auto const dist_abs_error = abs(dist - gt_dist);
+    auto const ha_dist_abs_error = abs(ha_dist - gt_dist);
+    if (gt_dist <= ScalarType{20}) {
+      dist_abs_errors.push_back(dist_abs_error);
+      ha_dist_abs_errors.push_back(ha_dist_abs_error);
+    }
+
+#if 0 // TMP
+    dist_abs_error_grid.Cell(index) = dist_abs_error;
+    ha_dist_abs_error_grid.Cell(index) = ha_dist_abs_error;
+#endif
+
     index_iter.Next();
   }
 
-  auto max_dist_abs_error = ScalarType{0};
-  auto avg_dist_abs_error = ScalarType{0};
-  for (auto const& dist_abs_error : dist_abs_error_buffer) {
-    max_dist_abs_error = max(max_dist_abs_error, dist_abs_error);
-    avg_dist_abs_error += dist_abs_error;
+  auto max_abs_error = ScalarType{0};
+  auto avg_abs_error = ScalarType{0};
+  for (auto const& dist_abs_error : dist_abs_errors) {
+    max_abs_error = max(max_abs_error, dist_abs_error);
+    avg_abs_error += dist_abs_error;
   }
-  avg_dist_abs_error /= util::LinearSize(grid_size);
+  avg_abs_error /= dist_abs_errors.size();
 
-  auto max_ha_dist_abs_error = ScalarType{0};
-  auto avg_ha_dist_abs_error = ScalarType{0};
-  for (auto const& ha_dist_abs_error : ha_dist_abs_error_buffer) {
-    max_ha_dist_abs_error = max(max_ha_dist_abs_error, ha_dist_abs_error);
-    avg_ha_dist_abs_error += ha_dist_abs_error;
+  auto high_accuracy_max_abs_error = ScalarType{0};
+  auto high_accuracy_avg_abs_error = ScalarType{0};
+  for (auto const& ha_dist_abs_error : ha_dist_abs_errors) {
+    high_accuracy_max_abs_error =
+      max(high_accuracy_max_abs_error, ha_dist_abs_error);
+    high_accuracy_avg_abs_error += ha_dist_abs_error;
   }
-  avg_ha_dist_abs_error /= util::LinearSize(grid_size);
+  high_accuracy_avg_abs_error /= ha_dist_abs_errors.size();
 
   // Assert.
-  // Numbers below inspired by the paper "ON THE IMPLEMENTATION OF FAST
-  // MARCHING METHODS FOR 3D LATTICES" by J. Andreas Bærentzen.
-  ASSERT_LE(max_dist_abs_error, ScalarType(1.48));
-  ASSERT_LE(avg_dist_abs_error, ScalarType(0.89));
-  ASSERT_LE(max_ha_dist_abs_error, ScalarType(0.29));
-  ASSERT_LE(avg_ha_dist_abs_error, ScalarType(0.14));
+  typedef util::PointSourceAccuracyBounds<kDimension> Bounds;
+  ASSERT_LE(max_abs_error, ScalarType(Bounds::max_abs_error()));
+  ASSERT_LE(avg_abs_error, ScalarType(Bounds::avg_abs_error()));
+  ASSERT_LE(high_accuracy_max_abs_error,
+            ScalarType(Bounds::high_accuracy_max_abs_error()));
+  ASSERT_LE(high_accuracy_avg_abs_error,
+            ScalarType(Bounds::high_accuracy_avg_abs_error()));
 
-#if 1 // TMP
+#if 0 // TMP
   if (kDimension == 2) {
     auto ss = stringstream();
     ss << "./SignedDistanceTest_HighAccuracy_FirstOrder_"
