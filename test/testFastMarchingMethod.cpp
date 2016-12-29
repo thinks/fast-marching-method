@@ -94,6 +94,35 @@ std::vector<T> SignedNormalized(InIter const in_begin, InIter const in_end)
   return r;
 }
 
+template<typename T, typename InIter> inline
+std::vector<T> MaxAbsNormalized(InIter const in_begin, InIter const in_end)
+{
+  using namespace std;
+
+  auto max_abs_value = T{0};
+  for (auto iter = in_begin; iter != in_end; ++iter) {
+    auto const value = *iter;
+    if (value == numeric_limits<T>::max()) {
+      continue;
+    }
+
+    max_abs_value = max(max_abs_value, abs(value));
+  }
+  auto r = vector<T>{};
+  transform(
+    in_begin,
+    in_end,
+    back_inserter(r),
+    [=](auto const value) {
+      if (value == numeric_limits<T>::max()) {
+        return value;
+      }
+      return value / max_abs_value;
+    });
+  return r;
+}
+
+
 template<typename T>
 void writeRgbImage(
   std::string const& filename,
@@ -128,6 +157,37 @@ void writeRgbImage(
 
   auto const norm_pixel_data =
     SignedNormalized<T>(begin(pixel_data), end(pixel_data));
+  thinks::ppm::writeRgbImage(
+    filename,
+    width,
+    height,
+    PixelsFromValues(
+      begin(norm_pixel_data),
+      end(norm_pixel_data),
+      pixel_from_value));
+}
+
+template<typename T>
+void writeGreyImage(
+  std::string const& filename,
+  std::size_t width,
+  std::size_t height,
+  std::vector<T> const& pixel_data)
+{
+  using namespace std;
+
+  // Negative values in shades of blue, positive values in shades of red.
+  // Very large values as grey.
+  auto const pixel_from_value = [](T const x) {
+    auto const intensity = Clamp<uint8_t>(
+      T{0},
+      T(numeric_limits<uint8_t>::max()),
+      numeric_limits<uint8_t>::max() * fabs(x));
+    return array<uint8_t, 3>{{intensity, intensity, intensity}};
+  };
+
+  auto const norm_pixel_data =
+    MaxAbsNormalized<T>(begin(pixel_data), end(pixel_data));
   thinks::ppm::writeRgbImage(
     filename,
     width,
@@ -373,6 +433,31 @@ private:
 };
 
 
+template<std::size_t N> inline
+std::array<std::array<std::int32_t, N>, static_pow(3, N) - 1>
+VertexNeighborOffsets()
+{
+  using namespace std;
+
+  auto neighbor_offsets = array<array<int32_t, N>, static_pow(3, N) - 1>();
+  auto offset_index = size_t{0};
+  auto index_size = array<size_t, N>{};
+  fill(begin(index_size), end(index_size), size_t{3});
+  auto index_iter = IndexIterator<N>(index_size);
+  while (index_iter.has_next()) {
+    auto offset = index_iter.index();
+    for_each(begin(offset), end(offset), [](auto& d) { d -= int32_t{1}; });
+    if (!all_of(begin(offset), end(offset), [](auto const i){ return i == 0; })) {
+      neighbor_offsets[offset_index++] = offset;
+    }
+    index_iter.Next();
+  }
+  assert(offset_index == static_pow(3, N) - 1);
+
+  return neighbor_offsets;
+}
+
+
 //! Access a linear array as if it were an N-dimensional grid.
 //!
 //! Usage:
@@ -606,7 +691,7 @@ std::vector<T> ErrorBuffer(
     begin(value_buffer), end(value_buffer),
     begin(ground_truth_buffer),
     begin(r),
-    [=](auto const v, auto const gt){ return (v - gt) / min_grid_spacing; });
+    [=](auto const v, auto const gt) { return (v - gt) / min_grid_spacing; });
   return r;
 }
 
@@ -2184,6 +2269,170 @@ TYPED_TEST(UnsignedDistanceTest, CircleInsideCircle)
 #endif
 }
 
+TYPED_TEST(UnsignedDistanceTest, HighAccuracy)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+  typedef fmm::HighAccuracyUniformSpeedEikonalSolver<ScalarType, kDimension>
+    HighAccuracyEikonalSolverType;
+
+  // Arrange.
+  auto const grid_size = util::FilledArray<kDimension>(size_t{41});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+  auto const uniform_speed = ScalarType(1);
+
+  // Simple point boundary for regular fast marching.
+  auto boundary_indices = vector<array<int32_t, kDimension>>();
+  boundary_indices.push_back(util::FilledArray<kDimension>(int32_t{20}));
+
+  auto boundary_distances = vector<ScalarType>();
+  boundary_distances.push_back(ScalarType{0});
+
+  // Compute exact distances in vertex neighborhood for high accuracy
+  // fast marching.
+  auto high_accuracy_boundary_indices = vector<array<int32_t, kDimension>>();
+  high_accuracy_boundary_indices.push_back(
+    util::FilledArray<kDimension>(int32_t{20})); // Center.
+  auto const vtx_neighbor_offsets = util::VertexNeighborOffsets<kDimension>();
+  for (auto const& vtx_neighbor_offset : vtx_neighbor_offsets) {
+    auto index = boundary_indices[0];
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      index[i] += vtx_neighbor_offset[i];
+    }
+    high_accuracy_boundary_indices.push_back(index);
+  }
+  auto high_accuracy_boundary_distances = vector<ScalarType>();
+  high_accuracy_boundary_distances.push_back(ScalarType{0}); // Center.
+  auto center_position = util::FilledArray<kDimension>(ScalarType(0));
+  for (auto i = size_t{0}; i < kDimension; ++i) {
+    center_position[i] =
+      (high_accuracy_boundary_indices[0][i] + ScalarType(0.5)) * grid_spacing[i];
+  }
+  for (auto j = size_t{1}; j < high_accuracy_boundary_indices.size(); ++j) {
+    auto const& index = high_accuracy_boundary_indices[j];
+    auto position = util::FilledArray<kDimension>(ScalarType(0));
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      position[i] = (index[i] + ScalarType(0.5)) * grid_spacing[i];
+    }
+    auto delta = util::FilledArray<kDimension>(ScalarType(0));
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      delta[i] = center_position[i] - position[i];
+    }
+    high_accuracy_boundary_distances.push_back(util::Magnitude(delta));
+  }
+
+  // Act.
+  auto unsigned_distance = fmm::UnsignedDistance(
+    grid_size,
+    boundary_indices,
+    boundary_distances,
+    EikonalSolverType(grid_spacing, uniform_speed));
+  auto high_accuracy_unsigned_distance = fmm::UnsignedDistance(
+    grid_size,
+    high_accuracy_boundary_indices,
+    high_accuracy_boundary_distances,
+    HighAccuracyEikonalSolverType(grid_spacing, uniform_speed));
+
+  // Compute errors.
+  auto distance_grid =
+    util::Grid<ScalarType, kDimension>(grid_size, unsigned_distance.front());
+  auto high_accuracy_distance_grid = util::Grid<ScalarType, kDimension>(
+    grid_size, high_accuracy_unsigned_distance.front());
+  auto dist_abs_error_buffer =
+    vector<ScalarType>(util::LinearSize(grid_size), ScalarType{0});
+  auto dist_abs_error_grid =
+    util::Grid<ScalarType, kDimension>(grid_size, dist_abs_error_buffer.front());
+  auto ha_dist_abs_error_buffer =
+    vector<ScalarType>(util::LinearSize(grid_size), ScalarType{0});
+  auto ha_dist_abs_error_grid = util::Grid<ScalarType, kDimension>(
+    grid_size, ha_dist_abs_error_buffer.front());
+
+  auto index_iter = util::IndexIterator<kDimension>(grid_size);
+  while (index_iter.has_next()) {
+    auto const index = index_iter.index();
+    auto position = util::FilledArray<kDimension>(ScalarType(0));
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      position[i] = (index[i] + ScalarType(0.5)) * grid_spacing[i];
+    }
+    auto delta = util::FilledArray<kDimension>(ScalarType(0));
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      delta[i] = center_position[i] - position[i];
+    }
+    auto const gt_dist = util::Magnitude(delta);
+    auto const dist = distance_grid.Cell(index);
+    auto const ha_dist = high_accuracy_distance_grid.Cell(index);
+    dist_abs_error_grid.Cell(index) = abs(dist - gt_dist);
+    ha_dist_abs_error_grid.Cell(index) = abs(ha_dist - gt_dist);
+    index_iter.Next();
+  }
+
+  auto max_dist_abs_error = ScalarType{0};
+  auto avg_dist_abs_error = ScalarType{0};
+  for (auto const& dist_abs_error : dist_abs_error_buffer) {
+    max_dist_abs_error = max(max_dist_abs_error, dist_abs_error);
+    avg_dist_abs_error += dist_abs_error;
+  }
+  avg_dist_abs_error /= util::LinearSize(grid_size);
+
+  auto max_ha_dist_abs_error = ScalarType{0};
+  auto avg_ha_dist_abs_error = ScalarType{0};
+  for (auto const& ha_dist_abs_error : ha_dist_abs_error_buffer) {
+    max_ha_dist_abs_error = max(max_ha_dist_abs_error, ha_dist_abs_error);
+    avg_ha_dist_abs_error += ha_dist_abs_error;
+  }
+  avg_ha_dist_abs_error /= util::LinearSize(grid_size);
+
+  // Assert.
+  // Numbers below inspired by the paper "ON THE IMPLEMENTATION OF FAST
+  // MARCHING METHODS FOR 3D LATTICES" by J. Andreas Bærentzen.
+  ASSERT_LE(max_dist_abs_error, ScalarType(1.48));
+  ASSERT_LE(avg_dist_abs_error, ScalarType(0.89));
+  ASSERT_LE(max_ha_dist_abs_error, ScalarType(0.29));
+  ASSERT_LE(avg_ha_dist_abs_error, ScalarType(0.14));
+
+#if 1 // TMP
+  if (kDimension == 2) {
+    auto ss = stringstream();
+    ss << "./UnsignedDistanceTest_HighAccuracy_FirstOrder_"
+       << typeid(ScalarType).name() << ".ppm";
+    util::writeRgbImage(
+      ss.str(),
+      grid_size[0],
+      grid_size[1],
+      unsigned_distance);
+    auto ss2 = stringstream();
+    ss2 << "./UnsignedDistanceTest_HighAccuracy_FirstOrder_abs_error_"
+        << typeid(ScalarType).name() << ".ppm";
+    util::writeGreyImage(
+      ss2.str(),
+      grid_size[0],
+      grid_size[1],
+      dist_abs_error_buffer);
+
+    auto ss3 = stringstream();
+    ss3 << "./UnsignedDistanceTest_HighAccuracy_SecondOrder_"
+        << typeid(ScalarType).name() << ".ppm";
+    util::writeRgbImage(
+      ss3.str(),
+      grid_size[0],
+      grid_size[1],
+      high_accuracy_unsigned_distance);
+    auto ss4 = stringstream();
+    ss4 << "./UnsignedDistanceTest_HighAccuracy_SecondOrder_abs_error_"
+        << typeid(ScalarType).name() << ".ppm";
+    util::writeGreyImage(
+      ss4.str(),
+      grid_size[0],
+      grid_size[1],
+      ha_dist_abs_error_buffer);
+  }
+#endif
+}
 
 // UnsignedDistanceAccuracy fixture.
 // TODO - different dx.
@@ -3146,6 +3395,7 @@ TYPED_TEST(SignedDistanceTest, OverlappingCircles)
 
   auto x_begin = min(sphere_center_index1[0], sphere_center_index2[0]);
   auto x_end = max(sphere_center_index1[0], sphere_center_index2[0]);
+  cerr << x_begin << " " << x_end << endl;
   for (auto x = x_begin; x <= x_end; ++x) {
     auto index = sphere_center_index1; // Get non-x components.
     index[0] = x; // Set x from loop.
@@ -3224,6 +3474,171 @@ TYPED_TEST(SignedDistanceTest, CircleInsideCircleThrows)
   // Assert.
   // This test exists to ensure that it is possible to run this input.
 
+}
+
+TYPED_TEST(SignedDistanceTest, HighAccuracy)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+  typedef fmm::HighAccuracyUniformSpeedEikonalSolver<ScalarType, kDimension>
+    HighAccuracyEikonalSolverType;
+
+  // Arrange.
+  auto const grid_size = util::FilledArray<kDimension>(size_t{41});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+  auto const uniform_speed = ScalarType(1);
+
+  // Simple point boundary for regular fast marching.
+  auto boundary_indices = vector<array<int32_t, kDimension>>();
+  boundary_indices.push_back(util::FilledArray<kDimension>(int32_t{20}));
+
+  auto boundary_distances = vector<ScalarType>();
+  boundary_distances.push_back(ScalarType{0});
+
+  // Compute exact distances in vertex neighborhood for high accuracy
+  // fast marching.
+  auto high_accuracy_boundary_indices = vector<array<int32_t, kDimension>>();
+  high_accuracy_boundary_indices.push_back(
+    util::FilledArray<kDimension>(int32_t{20})); // Center.
+  auto const vtx_neighbor_offsets = util::VertexNeighborOffsets<kDimension>();
+  for (auto const& vtx_neighbor_offset : vtx_neighbor_offsets) {
+    auto index = boundary_indices[0];
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      index[i] += vtx_neighbor_offset[i];
+    }
+    high_accuracy_boundary_indices.push_back(index);
+  }
+  auto high_accuracy_boundary_distances = vector<ScalarType>();
+  high_accuracy_boundary_distances.push_back(ScalarType{0}); // Center.
+  auto center_position = util::FilledArray<kDimension>(ScalarType(0));
+  for (auto i = size_t{0}; i < kDimension; ++i) {
+    center_position[i] =
+      (high_accuracy_boundary_indices[0][i] + ScalarType(0.5)) * grid_spacing[i];
+  }
+  for (auto j = size_t{1}; j < high_accuracy_boundary_indices.size(); ++j) {
+    auto const& index = high_accuracy_boundary_indices[j];
+    auto position = util::FilledArray<kDimension>(ScalarType(0));
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      position[i] = (index[i] + ScalarType(0.5)) * grid_spacing[i];
+    }
+    auto delta = util::FilledArray<kDimension>(ScalarType(0));
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      delta[i] = center_position[i] - position[i];
+    }
+    high_accuracy_boundary_distances.push_back(util::Magnitude(delta));
+  }
+
+  // Act.
+  auto signed_distance = fmm::SignedDistance(
+    grid_size,
+    boundary_indices,
+    boundary_distances,
+    EikonalSolverType(grid_spacing, uniform_speed));
+  auto high_accuracy_signed_distance = fmm::SignedDistance(
+    grid_size,
+    high_accuracy_boundary_indices,
+    high_accuracy_boundary_distances,
+    HighAccuracyEikonalSolverType(grid_spacing, uniform_speed));
+
+  // Compute errors.
+  auto distance_grid =
+    util::Grid<ScalarType, kDimension>(grid_size, signed_distance.front());
+  auto high_accuracy_distance_grid = util::Grid<ScalarType, kDimension>(
+    grid_size, high_accuracy_signed_distance.front());
+  auto dist_abs_error_buffer =
+    vector<ScalarType>(util::LinearSize(grid_size), ScalarType{0});
+  auto dist_abs_error_grid =
+    util::Grid<ScalarType, kDimension>(grid_size, dist_abs_error_buffer.front());
+  auto ha_dist_abs_error_buffer =
+    vector<ScalarType>(util::LinearSize(grid_size), ScalarType{0});
+  auto ha_dist_abs_error_grid = util::Grid<ScalarType, kDimension>(
+    grid_size, ha_dist_abs_error_buffer.front());
+
+  auto index_iter = util::IndexIterator<kDimension>(grid_size);
+  while (index_iter.has_next()) {
+    auto const index = index_iter.index();
+    auto position = util::FilledArray<kDimension>(ScalarType(0));
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      position[i] = (index[i] + ScalarType(0.5)) * grid_spacing[i];
+    }
+    auto delta = util::FilledArray<kDimension>(ScalarType(0));
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      delta[i] = center_position[i] - position[i];
+    }
+    auto const gt_dist = util::Magnitude(delta);
+    auto const dist = distance_grid.Cell(index);
+    auto const ha_dist = high_accuracy_distance_grid.Cell(index);
+    dist_abs_error_grid.Cell(index) = abs(dist - gt_dist);
+    ha_dist_abs_error_grid.Cell(index) = abs(ha_dist - gt_dist);
+    index_iter.Next();
+  }
+
+  auto max_dist_abs_error = ScalarType{0};
+  auto avg_dist_abs_error = ScalarType{0};
+  for (auto const& dist_abs_error : dist_abs_error_buffer) {
+    max_dist_abs_error = max(max_dist_abs_error, dist_abs_error);
+    avg_dist_abs_error += dist_abs_error;
+  }
+  avg_dist_abs_error /= util::LinearSize(grid_size);
+
+  auto max_ha_dist_abs_error = ScalarType{0};
+  auto avg_ha_dist_abs_error = ScalarType{0};
+  for (auto const& ha_dist_abs_error : ha_dist_abs_error_buffer) {
+    max_ha_dist_abs_error = max(max_ha_dist_abs_error, ha_dist_abs_error);
+    avg_ha_dist_abs_error += ha_dist_abs_error;
+  }
+  avg_ha_dist_abs_error /= util::LinearSize(grid_size);
+
+  // Assert.
+  // Numbers below inspired by the paper "ON THE IMPLEMENTATION OF FAST
+  // MARCHING METHODS FOR 3D LATTICES" by J. Andreas Bærentzen.
+  ASSERT_LE(max_dist_abs_error, ScalarType(1.48));
+  ASSERT_LE(avg_dist_abs_error, ScalarType(0.89));
+  ASSERT_LE(max_ha_dist_abs_error, ScalarType(0.29));
+  ASSERT_LE(avg_ha_dist_abs_error, ScalarType(0.14));
+
+#if 1 // TMP
+  if (kDimension == 2) {
+    auto ss = stringstream();
+    ss << "./SignedDistanceTest_HighAccuracy_FirstOrder_"
+       << typeid(ScalarType).name() << ".ppm";
+    util::writeRgbImage(
+      ss.str(),
+      grid_size[0],
+      grid_size[1],
+      signed_distance);
+    auto ss2 = stringstream();
+    ss2 << "./SignedDistanceTest_HighAccuracy_FirstOrder_abs_error_"
+        << typeid(ScalarType).name() << ".ppm";
+    util::writeGreyImage(
+      ss2.str(),
+      grid_size[0],
+      grid_size[1],
+      dist_abs_error_buffer);
+
+    auto ss3 = stringstream();
+    ss3 << "./SignedDistanceTest_HighAccuracy_SecondOrder_"
+        << typeid(ScalarType).name() << ".ppm";
+    util::writeRgbImage(
+      ss3.str(),
+      grid_size[0],
+      grid_size[1],
+      high_accuracy_signed_distance);
+    auto ss4 = stringstream();
+    ss4 << "./SignedDistanceTest_HighAccuracy_SecondOrder_abs_error_"
+        << typeid(ScalarType).name() << ".ppm";
+    util::writeGreyImage(
+      ss4.str(),
+      grid_size[0],
+      grid_size[1],
+      ha_dist_abs_error_buffer);
+  }
+#endif
 }
 
 // SignedDistanceAccuracy fixture.
