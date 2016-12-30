@@ -186,29 +186,31 @@ void writeGreyImage(
     return array<uint8_t, 3>{{intensity, intensity, intensity}};
   };
 
-  auto const norm_pixel_data =
+  auto const max_abs_normalized_pixel_data =
     MaxAbsNormalized<T>(begin(pixel_data), end(pixel_data));
   thinks::ppm::writeRgbImage(
     filename,
     width,
     height,
     PixelsFromValues(
-      begin(norm_pixel_data),
-      end(norm_pixel_data),
+      begin(max_abs_normalized_pixel_data),
+      end(max_abs_normalized_pixel_data),
       pixel_from_value));
 }
 
 #endif // TMP!!!
 
 
-//! Returns base^exponent as a compile-time constant.
+//! Returns @a base ^ @a exponent as a compile-time constant.
 constexpr std::size_t static_pow(std::size_t base, std::size_t const exponent)
 {
   using namespace std;
 
   // NOTE: Cannot use loops in constexpr functions in C++11, have to use
   // recursion here.
-  return exponent == size_t{0} ? size_t{1} : base * static_pow(base, exponent - 1);
+  return exponent == size_t{0} ?
+    size_t{1} :
+    base * static_pow(base, exponent - 1);
 }
 
 
@@ -356,8 +358,8 @@ std::pair<bool, std::string> FunctionThrows(F const func)
 //!
 //! Output:
 //!   [0, 0]
-//!   [0, 1]
 //!   [1, 0]
+//!   [0, 1]
 //!   [1, 1]
 template<std::size_t N>
 class IndexIterator
@@ -410,14 +412,14 @@ public:
       throw runtime_error("index iterator cannot be incremented");
     }
 
-    auto i = int32_t{N - 1};
-    while (i >= 0) {
-      if (static_cast<size_t>(index_[i]) < size_[i] - 1) {
+    auto i = size_t{0};
+    while (i < N) {
+      if (static_cast<size_t>(index_[i] + 1) < size_[i]) {
         ++index_[i];
         return true;
       }
       else {
-        index_[i--] = 0;
+        index_[i++] = 0;
       }
     }
 
@@ -2037,6 +2039,94 @@ TYPED_TEST(UnsignedDistanceTest, DifferentUniformSpeed)
   }
 }
 
+TYPED_TEST(UnsignedDistanceTest, VaryingSpeed)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::VaryingSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  // Arrange.
+  auto const grid_size = util::FilledArray<kDimension>(size_t{41});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+
+  auto boundary_indices = vector<array<int32_t, kDimension>>();
+  boundary_indices.push_back(util::FilledArray<kDimension>(int32_t{20}));
+
+  auto boundary_distances = vector<ScalarType>();
+  boundary_distances.push_back(ScalarType{0});
+
+  //auto const speed_grid_size = grid_size;
+  auto const speed_grid_size = util::FilledArray<kDimension>(size_t{2});
+  auto speed_buffer = vector<ScalarType>(util::LinearSize(speed_grid_size));
+  auto speed_grid =
+    util::Grid<ScalarType, kDimension>(speed_grid_size, speed_buffer.front());
+  auto const speed = ScalarType(1);
+  auto const mirror_speed = ScalarType(2);
+  auto speed_index_iter = util::IndexIterator<kDimension>(speed_grid.size());
+  while (speed_index_iter.has_next()) {
+    auto const index = speed_index_iter.index();
+    cerr << util::ToString(index) << endl;
+
+    if (index[0] < boundary_indices[0][0]) {
+      speed_grid.Cell(index) = mirror_speed;
+    }
+    else {
+      speed_grid.Cell(index) = speed;
+    }
+    speed_index_iter.Next();
+  }
+
+  // Act.
+  auto unsigned_distance = fmm::UnsignedDistance(
+    grid_size,
+    boundary_indices,
+    boundary_distances,
+    EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer));
+
+  // Assert.
+  auto distance_grid =
+    util::Grid<ScalarType, kDimension>(grid_size, unsigned_distance.front());
+
+  auto distance_index_iter = util::IndexIterator<kDimension>(grid_size);
+  while (distance_index_iter.has_next()) {
+    auto const index = distance_index_iter.index();
+    auto mid = true;
+    for (auto i = size_t{1}; i < kDimension; ++i) {
+      if (index[i] != grid_size[i] / 2) {
+        mid = false;
+        break;
+      }
+    }
+    if (index[0] > boundary_indices[0][0] && mid) {
+      auto mirror_index = index;
+      mirror_index[0] = 2 * boundary_indices[0][0] - index[0];
+      auto const distance = distance_grid.Cell(index);
+      auto const mirror_distance = distance_grid.Cell(mirror_index);
+      ASSERT_NEAR(distance * speed,
+                  mirror_distance * mirror_speed,
+                  1e-6);
+    }
+    distance_index_iter.Next();
+  }
+
+#if 1 // TMP
+  if (kDimension == 2) {
+    auto ss = stringstream();
+    ss << "./UnsignedDistanceTest_VaryingSpeed_"
+       << typeid(ScalarType).name() << ".ppm";
+    util::writeRgbImage(
+      ss.str(),
+      grid_size[0],
+      grid_size[1],
+      unsigned_distance);
+  }
+#endif
+}
+
 TYPED_TEST(UnsignedDistanceTest, DISABLED_NonUniformGridSpacing)
 {
   ASSERT_TRUE(false);
@@ -2225,7 +2315,7 @@ TYPED_TEST(UnsignedDistanceTest, OverlappingCircles)
   // This test exists to ensure that it is possible to run this input.
 
 #if 1 // TMP
-  if (kDimension == 2/* && is_same<ScalarType, float>::value*/) {
+  if (kDimension == 2) {
     auto ss = stringstream();
     ss << "./UnsignedDistanceTest_OverlappingCircles_"
        << typeid(ScalarType).name() << ".ppm";

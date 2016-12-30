@@ -23,6 +23,13 @@ int main(int argc, char* argv[])
     //"SignedDistanceTest/0*OverlappingCircles" ":"
 
 #if 1
+    //"UnsignedDistanceTest/0*VaryingSpeed" ":"
+    "UnsignedDistanceTest/1*VaryingSpeed" ":"
+    //"UnsignedDistanceTest/2*VaryingSpeed" ":"
+    //"UnsignedDistanceTest/3*VaryingSpeed" ":"
+#endif
+
+#if 0
     "UnsignedDistanceTest/1*CircleInsideCircle" ":"
     "SignedDistanceTest/0*CircleInsideCircleThrows" ":"
 #endif
