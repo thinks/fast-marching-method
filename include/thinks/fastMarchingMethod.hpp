@@ -1594,8 +1594,8 @@ protected:
 
   //! Returns the speed at @a index, guaranteed to be:
   //! - Non-zero
-  //! - Non-negative
-  //! - Non-NaN
+  //! - Positive
+  //! - Not NaN
   //!
   //! Throws a std::invalid_argument if @a index is outside the
   //! underlying grid.

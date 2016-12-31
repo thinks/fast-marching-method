@@ -19,12 +19,19 @@ int main(int argc, char* argv[])
     "SignedDistanceTest/2*HighAccuracy" ":"
 #endif
 
-    //"SignedDistanceTest/0*Checkerboard" ":"
+    "UnsignedDistanceTest*" ":"
     //"SignedDistanceTest/0*OverlappingCircles" ":"
+
+#if 0
+    "UnsignedDistanceTest/0*NonUniformGridSpacing" ":"
+    "UnsignedDistanceTest/1*NonUniformGridSpacing" ":"
+    "UnsignedDistanceTest/2*NonUniformGridSpacing" ":"
+    "UnsignedDistanceTest/3*NonUniformGridSpacing" ":"
+#endif
 
 #if 1
     //"UnsignedDistanceTest/0*VaryingSpeed" ":"
-    "UnsignedDistanceTest/1*VaryingSpeed" ":"
+    //"UnsignedDistanceTest/1*VaryingSpeed" ":"
     //"UnsignedDistanceTest/2*VaryingSpeed" ":"
     //"UnsignedDistanceTest/3*VaryingSpeed" ":"
 #endif

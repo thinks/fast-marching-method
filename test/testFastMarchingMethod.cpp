@@ -1773,7 +1773,7 @@ TYPED_TEST(UnsignedDistanceTest, FullGridBoundaryIndicesThrows)
 
   // Assert.
   ASSERT_TRUE(ft.first);
-  ASSERT_EQ("empty narrow band", ft.second);
+  ASSERT_EQ("cannot march empty narrow band", ft.second);
 }
 
 TYPED_TEST(UnsignedDistanceTest, DuplicateBoundaryIndicesThrows)
@@ -1989,8 +1989,9 @@ TYPED_TEST(UnsignedDistanceTest, EikonalSolverFailThrows)
     });
 
   // Assert.
+
   ASSERT_TRUE(ft.first);
-  ASSERT_EQ("negative discriminant", ft.second);
+  ASSERT_EQ("invalid distance", ft.second.substr(size_t{0}, 16));
 }
 
 TYPED_TEST(UnsignedDistanceTest, DifferentUniformSpeed)
@@ -2059,8 +2060,7 @@ TYPED_TEST(UnsignedDistanceTest, VaryingSpeed)
   auto boundary_distances = vector<ScalarType>();
   boundary_distances.push_back(ScalarType{0});
 
-  //auto const speed_grid_size = grid_size;
-  auto const speed_grid_size = util::FilledArray<kDimension>(size_t{2});
+  auto const speed_grid_size = grid_size;
   auto speed_buffer = vector<ScalarType>(util::LinearSize(speed_grid_size));
   auto speed_grid =
     util::Grid<ScalarType, kDimension>(speed_grid_size, speed_buffer.front());
@@ -2069,8 +2069,6 @@ TYPED_TEST(UnsignedDistanceTest, VaryingSpeed)
   auto speed_index_iter = util::IndexIterator<kDimension>(speed_grid.size());
   while (speed_index_iter.has_next()) {
     auto const index = speed_index_iter.index();
-    cerr << util::ToString(index) << endl;
-
     if (index[0] < boundary_indices[0][0]) {
       speed_grid.Cell(index) = mirror_speed;
     }
@@ -2127,9 +2125,76 @@ TYPED_TEST(UnsignedDistanceTest, VaryingSpeed)
 #endif
 }
 
-TYPED_TEST(UnsignedDistanceTest, DISABLED_NonUniformGridSpacing)
+TYPED_TEST(UnsignedDistanceTest, NonUniformGridSpacing)
 {
-  ASSERT_TRUE(false);
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  // Arrange.
+  auto const grid_size = util::FilledArray<kDimension>(size_t{31});
+  auto grid_spacing = util::FilledArray<kDimension>(ScalarType{0});
+  for (auto i = size_t{0}; i < kDimension; ++i) {
+    grid_spacing[i] = ScalarType{1} / (i + 1);
+  }
+  auto const uniform_speed = ScalarType(1);
+
+  auto boundary_indices = vector<array<int32_t, kDimension>>(
+    size_t{1}, util::FilledArray<kDimension>(int32_t{15}));
+  auto boundary_distances = vector<ScalarType>(size_t{1}, ScalarType{0});
+
+  // Act.
+  auto unsigned_distance = fmm::UnsignedDistance(
+    grid_size,
+    boundary_indices,
+    boundary_distances,
+    EikonalSolverType(grid_spacing, uniform_speed));
+
+  // Assert.
+  auto distance_grid =
+    util::Grid<ScalarType, kDimension>(grid_size, unsigned_distance.front());
+  auto center_position = util::FilledArray<kDimension>(ScalarType(0));
+  for (auto i = size_t{0}; i < kDimension; ++i) {
+    center_position[i] =
+      (boundary_indices[0][i] + ScalarType(0.5)) * grid_spacing[i];
+  }
+  auto index_iter = util::IndexIterator<kDimension>(grid_size);
+  while (index_iter.has_next()) {
+    auto const index = index_iter.index();
+    auto position = util::FilledArray<kDimension>(ScalarType(0));
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      position[i] = (index[i] + ScalarType(0.5)) * grid_spacing[i];
+    }
+    auto delta = util::FilledArray<kDimension>(ScalarType(0));
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      delta[i] = center_position[i] - position[i];
+    }
+    auto const gt_dist = util::Magnitude(delta);
+    auto const dist = distance_grid.Cell(index);
+    auto const abs_error = abs(gt_dist - dist);
+
+    typedef util::PointSourceAccuracyBounds<kDimension> Bounds;
+    ASSERT_LE(abs_error, ScalarType(Bounds::max_abs_error()));
+
+    index_iter.Next();
+  }
+
+#if 1 // TMP
+  if (kDimension == 2) {
+    auto ss = stringstream();
+    ss << "./UnsignedDistanceTest_NonUniformGridSpacing_"
+       << typeid(ScalarType).name() << ".ppm";
+    util::writeRgbImage(
+      ss.str(),
+      grid_size[0],
+      grid_size[1],
+      unsigned_distance);
+  }
+#endif
 }
 
 TYPED_TEST(UnsignedDistanceTest, BoxBoundary)
@@ -2418,11 +2483,10 @@ TYPED_TEST(UnsignedDistanceTest, PointSourceHighAccuracy)
   auto const uniform_speed = ScalarType(1);
 
   // Simple point boundary for regular fast marching.
-  auto boundary_indices = vector<array<int32_t, kDimension>>();
-  boundary_indices.push_back(util::FilledArray<kDimension>(int32_t{20}));
+  auto boundary_indices = vector<array<int32_t, kDimension>>(
+    size_t{1}, util::FilledArray<kDimension>(int32_t{20}));
 
-  auto boundary_distances = vector<ScalarType>();
-  boundary_distances.push_back(ScalarType{0});
+  auto boundary_distances = vector<ScalarType>(size_t{1}, ScalarType{0});
 
   // Compute exact distances in vertex neighborhood for high accuracy
   // fast marching.
@@ -2672,17 +2736,12 @@ TYPED_TEST(UnsignedDistanceAccuracyTest, HighAccuracyUniformSpeedHyperSphereStat
   //cerr << distance_stats << endl;
 }
 
-TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_VaryingSpeed)
-{
-  ASSERT_TRUE(false);
-}
-
 TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_HighAccuracyVaryingSpeed)
 {
   ASSERT_TRUE(false);
 }
 
-TYPED_TEST(UnsignedDistanceTest, DISABLED_DistanceAccuracyOnHyperSphere)
+TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_DistanceAccuracyOnHyperSphere)
 {
   using namespace std;
 
