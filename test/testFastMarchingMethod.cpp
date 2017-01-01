@@ -1448,9 +1448,6 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, IndexOutsideSpeedGridThrows)
   boundary_indices.push_back(index_iter.index());
   auto const boundary_distances = vector<ScalarType>(1, ScalarType{1});
 
-  auto expected_reason = stringstream();
-  expected_reason << "index outside speed grid";
-
   // Act.
   auto const ft = util::FunctionThrows<invalid_argument>(
     [=]() {
@@ -1463,7 +1460,7 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, IndexOutsideSpeedGridThrows)
 
   // Assert.
   ASSERT_TRUE(ft.first);
-  ASSERT_EQ(expected_reason.str(), ft.second);
+  ASSERT_EQ("speed index outside grid - index:" , ft.second.substr(0, 33));
 }
 
 
@@ -1622,7 +1619,7 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidSpeedGridSizeThrows
   }
 }
 
-TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidSpeedGridThrows)
+TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, IndexOutsideSpeedGridThrows)
 {
   using namespace std;
 
@@ -1657,7 +1654,7 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidSpeedGridThrows)
 
   // Assert.
   ASSERT_TRUE(ft.first);
-  ASSERT_EQ("index outside speed grid", ft.second);
+  ASSERT_EQ("speed index outside grid - index:" , ft.second.substr(0, 33));
 }
 
 
@@ -1773,7 +1770,7 @@ TYPED_TEST(UnsignedDistanceTest, FullGridBoundaryIndicesThrows)
 
   // Assert.
   ASSERT_TRUE(ft.first);
-  ASSERT_EQ("cannot march empty narrow band", ft.second);
+  ASSERT_EQ("empty narrow band", ft.second);
 }
 
 TYPED_TEST(UnsignedDistanceTest, DuplicateBoundaryIndicesThrows)
@@ -1989,7 +1986,6 @@ TYPED_TEST(UnsignedDistanceTest, EikonalSolverFailThrows)
     });
 
   // Assert.
-
   ASSERT_TRUE(ft.first);
   ASSERT_EQ("invalid distance", ft.second.substr(size_t{0}, 16));
 }

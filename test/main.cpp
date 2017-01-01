@@ -19,8 +19,16 @@ int main(int argc, char* argv[])
     "SignedDistanceTest/2*HighAccuracy" ":"
 #endif
 
+#if 1
     "UnsignedDistanceTest*" ":"
-    //"SignedDistanceTest/0*OverlappingCircles" ":"
+#endif
+
+#if 0
+    "UniformSpeedEikonalSolverTest*" ":"
+    "HighAccuracyUniformSpeedEikonalSolverTest*" ":"
+    "VaryingSpeedEikonalSolverTest*" ":"
+    "HighAccuracyVaryingSpeedEikonalSolverTest*" ":"
+#endif
 
 #if 0
     "UnsignedDistanceTest/0*NonUniformGridSpacing" ":"
