@@ -113,6 +113,35 @@ std::string ToString(std::array<T, N> const& a)
 }
 
 
+//! Returns true if @a grid_spacing is valid, otherwise false.
+template<typename T, std::size_t N>
+bool ValidGridSpacing(std::array<T, N> const& grid_spacing)
+{
+  using namespace std;
+
+  static_assert(is_floating_point<T>::value,
+                "grid spacing type must be floating point");
+
+  // All elements must be larger than or equal to a minimum value.
+  // Fails if any element is NaN.
+  return none_of(begin(grid_spacing), end(grid_spacing),
+                 [](auto const dx) { return !(dx >= T(1e-6)); });
+}
+
+
+//! Returns true if @a speed is valid, otherwise false.
+template<typename T>
+bool ValidSpeed(T const speed)
+{
+  using namespace std;
+
+  static_assert(is_floating_point<T>::value,
+                "speed type must be floating point");
+
+  return speed >= T(1e-6);
+}
+
+
 //! Throws an std::invalid_argument exception if one or more of the
 //! elements in @a size is zero.
 template<std::size_t N>
@@ -147,16 +176,13 @@ void ThrowIfInvalidCellBufferSize(
 }
 
 
-//! Throws an std::invalid_argument exceptoin if one or more of the elements in
-//! @a grid_spacing is less than or equal to zero or NaN.
+//! Throws an std::invalid_argument exception if @a grid_spacing is invalid.
 template<typename T, std::size_t N>
 void ThrowIfInvalidGridSpacing(std::array<T, N> const& grid_spacing)
 {
   using namespace std;
 
-  if (find_if(begin(grid_spacing), end(grid_spacing),
-              [](auto const x) { return isnan(x) || x <= T(0); }) !=
-      end(grid_spacing)) {
+  if (!ValidGridSpacing(grid_spacing)) {
     auto ss = stringstream();
     ss << "invalid grid spacing: " << ToString(grid_spacing);
     throw invalid_argument(ss.str());
@@ -164,14 +190,13 @@ void ThrowIfInvalidGridSpacing(std::array<T, N> const& grid_spacing)
 }
 
 
-//! Throws an std::invalid_argument exception if @a speed is less than or equal
-//! to zero or NaN.
+//! Throws an std::invalid_argument exception if @a speed is invalid.
 template<typename T>
 void ThrowIfZeroOrNegativeOrNanSpeed(T const speed)
 {
   using namespace std;
 
-  if (isnan(speed) || speed <= T{0}) {
+  if (!ValidSpeed(speed)) {
     auto ss = stringstream();
     ss << "invalid speed: " << speed;
     throw invalid_argument(ss.str());
@@ -243,18 +268,19 @@ void ThrowIfDuplicateBoundaryIndex(
 }
 
 
-//! Throws an std::runtime_error exception if the distance @a d is not valid
-//! when considered to be returned by an eikonal solver.
+//! Throws an std::runtime_error exception if @a arrival_time is not valid.
 template<typename T, std::size_t N>
-void ThrowIfInvalidEikonalDistance(
-  T const d,
+void ThrowIfInvalidArrivalTime(
+  T const arrival_time,
   std::array<int32_t, N> const& index)
 {
   using namespace std;
 
-  if (isnan(d) || d < T{0}) {
+  // Fail when d is NaN.
+  if (!(arrival_time >= T{0})) {
     auto ss = stringstream();
-    ss << "invalid distance " << d << " at index " << ToString(index);
+    ss << "invalid distance (arrival time)" << arrival_time
+       << " at index " << ToString(index);
     throw runtime_error(ss.str());
   }
 }
@@ -1394,7 +1420,7 @@ T SolveEikonalQuadratic(std::array<T, 3> const& q)
 }
 
 
-//! Solve the eikonal equation to get the arrival time (i.e. distance when
+//! Solve the eikonal equation to get the arrival time (which is distance when
 //! @a speed is one) at @a index.
 //!
 //! The returned value is guaranteed to be positive.
@@ -1420,19 +1446,15 @@ T SolveEikonal(
   static_assert(std::is_floating_point<T>::value,
                 "scalar type must be floating point");
 
-  assert(speed > T{0} && "Precondition");
-  assert(all_of(begin(grid_spacing), end(grid_spacing),
-                [](auto const dx) { return dx > T{0}; }) && "Precondition");
+  assert(ValidSpeed(speed) && "Precondition");
+  assert(ValidGridSpacing(grid_spacing) && "Precondition");
   assert(Inside(index, distance_grid.size()) && "Precondition");
   assert(!Frozen(distance_grid.Cell(index)) && "Precondition");
 
-  auto const neighbor_offsets = array<int32_t, 2>{{-1, 1}};
-
-  // Initialize quadratic coefficients.
-  auto q = array<T, 3>{{T{-1} / Squared(speed), T{0}, T{0}}};
-
   // Find the smallest frozen neighbor (if any) in each dimension.
-  auto const inverse_squared_grid_spacing = InverseSquared(grid_spacing);
+  auto const neighbor_offsets = array<int32_t, 2>{{-1, 1}};
+  auto frozen_neighbor_distances = array<pair<T, size_t>, N>();
+  auto frozen_neighbor_distances_count = size_t{0};
   for (auto i = size_t{0}; i < N; ++i) {
     auto neighbor_min_distance = numeric_limits<T>::max();
     assert(!Frozen(neighbor_min_distance));
@@ -1452,27 +1474,60 @@ T SolveEikonal(
       }
     }
 
-    // Update quadratic coefficients for the current dimension.
     // If no frozen neighbor was found that dimension does not contribute
-    // to the coefficients.
+    // to the arrival time.
     if (neighbor_min_distance < numeric_limits<T>::max()) {
-      auto const alpha = inverse_squared_grid_spacing[i];
-      q[0] += Squared(neighbor_min_distance) * alpha;
-      q[1] += T{-2} * neighbor_min_distance * alpha;
-      q[2] += alpha;
+      frozen_neighbor_distances[frozen_neighbor_distances_count++] =
+        {neighbor_min_distance, i};
     }
   }
+  assert(frozen_neighbor_distances_count > size_t{0} && "Precondition");
 
-  // TODO: smart things based on number of dimensions with neighbor.
+  auto arrival_time = numeric_limits<T>::quiet_NaN();
+  if (frozen_neighbor_distances_count == 1) {
+    // If frozen neighbor in only one dimension we don't need to solve a
+    // quadratic.
+    auto const distance = frozen_neighbor_distances[0].first;
+    auto const j = frozen_neighbor_distances[0].second;
+    arrival_time = distance + grid_spacing[j] / speed;
+  }
+  else {
+    // Initialize quadratic coefficients.
+    auto q = array<T, 3>{{T{-1} / Squared(speed), T{0}, T{0}}};
+    auto const inverse_squared_grid_spacing = InverseSquared(grid_spacing);
+    for (auto i = size_t{0}; i < frozen_neighbor_distances_count; ++i) {
+      auto const distance = frozen_neighbor_distances[i].first;
+      auto const j = frozen_neighbor_distances[i].second;
+      auto const alpha = inverse_squared_grid_spacing[j];
+      q[0] += Squared(distance) * alpha;
+      q[1] += T{-2} * distance * alpha;
+      q[2] += alpha;
+    }
+    arrival_time = SolveEikonalQuadratic(q);
+  }
 
-  auto const r = SolveEikonalQuadratic(q);
-  ThrowIfInvalidEikonalDistance(r, index);
-  return r;
+  ThrowIfInvalidArrivalTime(arrival_time, index);
+  return arrival_time;
 }
 
 
+//! Solve the eikonal equation to get the arrival time (which is distance when
+//! @a speed is one) at @a index. Uses second order derivatives where possible,
+//! this version is slower but more accurate. However, it is important to
+//! have good boundary conditions that allow second order derivatives to be
+//! used early when marching. Otherwise early errors will be propagated.
 //!
+//! The returned value is guaranteed to be positive.
 //!
+//! Preconditions:
+//! - @a speed must be greater than zero.
+//! - All elements of @a grid_spacing must be greater than zero.
+//! - @a index is inside @a distance_grid.
+//! - The cell at @a index must not be frozen in @a distance_grid.
+//! - There must be at least one cell in @a distance_grid that is a
+//!   frozen face-neighbor of @a index.
+//! - Cells in @a distance_grid that are not frozen must have the value
+//!   numeric_limits<T>::max().
 template<typename T, std::size_t N>
 T HighAccuracySolveEikonal(
   std::array<std::int32_t, N> const& index,
@@ -1485,15 +1540,15 @@ T HighAccuracySolveEikonal(
   static_assert(std::is_floating_point<T>::value,
                 "scalar type must be floating point");
 
-  assert(Inside(index, distance_grid.size()));
-  assert(!Frozen(distance_grid.Cell(index)));
-
-  static auto const neighbor_offsets = array<int32_t, 2>{{-1, 1}};
-
-  // Initialize quadratic coefficients.
-  auto q = array<T, 3>{{T{-1} / Squared(speed), T{0}, T{0}}};
+  assert(ValidSpeed(speed) && "Precondition");
+  assert(ValidGridSpacing(grid_spacing) && "Precondition");
+  assert(Inside(index, distance_grid.size()) && "Precondition");
+  assert(!Frozen(distance_grid.Cell(index)) && "Precondition");
 
   // Find the smallest frozen neighbor(s) (if any) in each dimension.
+  auto const neighbor_offsets = array<int32_t, 2>{{-1, 1}};
+  auto frozen_neighbor_distances = array<pair<pair<T, T>, size_t>, N>();
+  auto frozen_neighbor_distances_count = size_t{0};
   for (auto i = size_t{0}; i < N; ++i) {
     auto neighbor_min_distance = numeric_limits<T>::max();
     auto neighbor_min_distance2 = numeric_limits<T>::max();
@@ -1512,7 +1567,10 @@ T HighAccuracySolveEikonal(
           neighbor_min_distance = neighbor_distance;
 
           // Check if neighbor two steps away is frozen and has smaller
-          // (or equal) distance than neighbor one step away.
+          // (or equal) distance than neighbor one step away. Reset
+          // the distance first since otherwise we might get the secondary
+          // distance from the previous neighbor offset.
+          neighbor_min_distance2 = numeric_limits<T>::max();
           auto neighbor_index2 = neighbor_index;
           neighbor_index2[i] += neighbor_offset;
           if (Inside(neighbor_index2, distance_grid.size())) {
@@ -1527,31 +1585,181 @@ T HighAccuracySolveEikonal(
       }
     }
 
-    // Update quadratic coefficients for the current direction.
     if (neighbor_min_distance2 < numeric_limits<T>::max()) {
-      // Second order coefficients.
+      // Two frozen neighbors in this dimension.
       assert(neighbor_min_distance < numeric_limits<T>::max());
-      auto const alpha = T{9} / (T{4} * Squared(grid_spacing[i]));
-      auto const t = (T{1} / T{3}) *
-        (T{4} * neighbor_min_distance - neighbor_min_distance2);
-      q[0] += Squared(t) * alpha;
-      q[1] += T{-2} * t * alpha;
-      q[2] += alpha;
+      frozen_neighbor_distances[frozen_neighbor_distances_count++] =
+        {{neighbor_min_distance, neighbor_min_distance2}, i};
     }
     else if (neighbor_min_distance < numeric_limits<T>::max()) {
-      // First order coefficients.
-      auto const inv_grid_spacing_squared = InverseSquared(grid_spacing[i]);
-      q[0] += Squared(neighbor_min_distance) * inv_grid_spacing_squared;
-      q[1] += T{-2} * neighbor_min_distance * inv_grid_spacing_squared;
-      q[2] += inv_grid_spacing_squared;
+      frozen_neighbor_distances[frozen_neighbor_distances_count++] =
+        {{neighbor_min_distance, numeric_limits<T>::max()}, i};
+    }
+  }
+  assert(frozen_neighbor_distances_count > size_t{0} && "Precondition");
+
+  auto arrival_time = numeric_limits<T>::quiet_NaN();
+  if (frozen_neighbor_distances_count == 1) {
+    // If frozen neighbor in only one dimension we don't need to solve a
+    // quadratic.
+    auto const distance = frozen_neighbor_distances[0].first.first;
+    auto const j = frozen_neighbor_distances[0].second;
+    arrival_time = distance + grid_spacing[j] / speed;
+  }
+  else {
+    // Initialize quadratic coefficients.
+    auto q = array<T, 3>{{T{-1} / Squared(speed), T{0}, T{0}}};
+    auto const inverse_squared_grid_spacing = InverseSquared(grid_spacing);
+
+    for (auto i = size_t{0}; i < frozen_neighbor_distances_count; ++i) {
+      auto const distance = frozen_neighbor_distances[i].first.first;
+      auto const distance2 = frozen_neighbor_distances[i].first.second;
+      auto const j = frozen_neighbor_distances[i].second;
+      if (distance2 < numeric_limits<T>::max()) {
+        // Second order coefficients.
+        assert(distance < numeric_limits<T>::max());
+        auto const alpha = (T{9} / T{4}) * inverse_squared_grid_spacing[j];
+        auto const t = (T{1} / T{3}) * (T{4} * distance - distance2);
+        q[0] += Squared(t) * alpha;
+        q[1] += T{-2} * t * alpha;
+        q[2] += alpha;
+      }
+      else if (distance < numeric_limits<T>::max()) {
+        // First order coefficients.
+        auto const alpha = inverse_squared_grid_spacing[j];
+        q[0] += Squared(distance) * alpha;
+        q[1] += T{-2} * distance * alpha;
+        q[2] += alpha;
+      }
+    }
+    arrival_time = SolveEikonalQuadratic(q);
+  }
+
+  ThrowIfInvalidArrivalTime(arrival_time, index);
+  return arrival_time;
+}
+
+
+template<typename T>
+T BridsonEikonalDistance2D(
+    std::array<std::int32_t, 2> const& index,
+    Grid<T, 2> const& distance_grid,
+    T const dx)
+{
+  using namespace std;
+
+  auto phi = array<T, 2>{{numeric_limits<T>::max(), numeric_limits<T>::max()}};
+  auto phi_count = size_t{0};
+
+  // Find the smallest frozen neighbor(s) (if any) in each dimension.
+  for (auto i = size_t{0}; i < 2; ++i) {
+    auto neighbor_min_distance = numeric_limits<T>::max();
+    assert(!Frozen(neighbor_min_distance));
+
+    // -1
+    auto neighbor_index = index;
+    neighbor_index[i] -= 1;
+    if (Inside(neighbor_index, distance_grid.size())) {
+      auto const neighbor_distance = distance_grid.Cell(neighbor_index);
+      if (neighbor_distance < neighbor_min_distance) {
+        neighbor_min_distance = neighbor_distance;
+      }
+    }
+
+    // -1 + 2 = +1
+    neighbor_index[i] += 2;
+    if (Inside(neighbor_index, distance_grid.size())) {
+      auto const neighbor_distance = distance_grid.Cell(neighbor_index);
+      if (neighbor_distance < neighbor_min_distance) {
+        neighbor_min_distance = neighbor_distance;
+      }
+    }
+
+    if (neighbor_min_distance < numeric_limits<T>::max()) {
+      phi[phi_count++] = neighbor_min_distance;
+    }
+  }
+  assert(phi_count > 0);
+
+  // Sort ascending.
+  if (phi[1] < phi[0]) { swap(phi[0], phi[1]); }
+
+  auto distance = phi[0] + dx;
+  if (phi_count == 2 && distance > phi[1]) {
+    distance = T(0.5) * (phi[0] + phi[1] +
+      sqrt(T(2) * Squared(dx) - Squared(phi[1] - phi[0])));
+  }
+
+  // Arrival time is distance here since we have assumed that speed is one.
+  ThrowIfInvalidArrivalTime(distance, index);
+  return distance;
+}
+
+
+template<typename T>
+T BridsonEikonalDistance3D(
+    std::array<std::int32_t, 3> const& index,
+    Grid<T, 3> const& distance_grid,
+    T const dx)
+{
+  using namespace std;
+
+  auto phi = array<T, 3>{{
+    numeric_limits<T>::max(),
+    numeric_limits<T>::max(),
+    numeric_limits<T>::max()
+  }};
+  auto phi_count = size_t{0};
+
+  // Find the smallest frozen neighbor(s) (if any) in each dimension.
+  for (auto i = size_t{0}; i < N; ++i) {
+    auto neighbor_min_distance = numeric_limits<T>::max();
+
+    // -1
+    auto neighbor_index = index;
+    neighbor_index[i] -= 1;
+    if (Inside(neighbor_index, distance_grid.size())) {
+      auto const neighbor_distance = distance_grid.Cell(neighbor_index);
+      if (neighbor_distance < neighbor_min_distance) {
+        neighbor_min_distance = neighbor_distance;
+      }
+    }
+
+    // -1 + 2 = +1
+    neighbor_index[i] += 2;
+    if (Inside(neighbor_index, distance_grid.size())) {
+      auto const neighbor_distance = distance_grid.Cell(neighbor_index);
+      if (neighbor_distance < neighbor_min_distance) {
+        neighbor_min_distance = neighbor_distance;
+      }
+    }
+
+    if (neighbor_min_distance < numeric_limits<T>::max()) {
+      phi[phi_count++] = neighbor_min_distance;
+    }
+  }
+  assert(phi_count > 0);
+
+  // Sort ascending.
+  if (phi[0] > phi[1]) { swap(phi[0], phi[1]); }
+  if (phi[1] > phi[2]) { swap(phi[1], phi[2]); }
+  if (phi[0] > phi[1]) { swap(phi[0], phi[1]); }
+
+  auto distance = phi[0] + dx;
+  if (phi_count > 1 && distance > phi[1]) {
+    distance = T(0.5) * (phi[0] + phi[1] +
+      sqrt(T(2) * Squared(dx) - Squared(phi[1] - phi[0])));
+    if (phi_count == 3 && distance > phi[2]) {
+      auto const phi_sum = phi[0] + phi[1] +phi[2];
+      auto phi_sum_squared = Squared(phi[0]) + Squared(phi[1]) + Squared(phi[2]);
+      distance = (T(1) / T(3)) * (phi_sum + sqrt(max(
+        T(0),
+        Squared(phi_sum) - T(3) * (phi_sum_squared - Squared(dx)))));
     }
   }
 
-  // TODO: smart things based on number of dimensions with neighbor.
-
-  auto const r = SolveEikonalQuadratic(q);
-  ThrowIfInvalidEikonalDistance(r, index);
-  return r;
+  ThrowIfInvalidArrivalTime(distance, index);
+  return distance;
 }
 
 
@@ -1763,6 +1971,64 @@ public:
   }
 };
 
+
+template<typename T>
+class BridsonDistanceEikonalSolver3D
+{
+public:
+  typedef T ScalarType;
+  static std::size_t const kDimension = 3;
+
+  explicit BridsonDistanceEikonalSolver3D(T const dx)
+    : dx_(dx)
+  {
+    // TODO: check valid dx!
+  }
+
+  //! Returns the distance for grid cell at @a index given the current
+  //! distances (@a distance_grid) of other cells.
+  T Solve(
+    std::array<std::int32_t, 3> const& index,
+    detail::Grid<T, 3> const& distance_grid) const
+  {
+    return detail::BridsonEikonalDistance3D(
+      index,
+      distance_grid,
+      dx_);
+  }
+
+private:
+  T const dx_;
+};
+
+template<typename T>
+class BridsonDistanceEikonalSolver2D
+{
+public:
+  typedef T ScalarType;
+  static std::size_t const kDimension = 2;
+
+  explicit BridsonDistanceEikonalSolver2D(T const dx)
+    : dx_(dx)
+  {
+    // TODO: check valid dx!
+  }
+
+  //! Returns the distance for grid cell at @a index given the current
+  //! distances (@a distance_grid) of other cells.
+  T Solve(
+    std::array<std::int32_t, 2> const& index,
+    detail::Grid<T, 2> const& distance_grid) const
+  {
+    return detail::BridsonEikonalDistance2D(
+      index,
+      distance_grid,
+      dx_);
+  }
+
+private:
+  T const dx_;
+};
 
 template <typename T, std::size_t N>
 class HighAccuracyUniformSpeedEikonalSolver :

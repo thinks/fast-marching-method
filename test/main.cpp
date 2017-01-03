@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
     "SignedDistanceTest/2*HighAccuracy" ":"
 #endif
 
-#if 1
+#if 0
     "UnsignedDistanceTest*" ":"
 #endif
 
@@ -31,10 +31,18 @@ int main(int argc, char* argv[])
 #endif
 
 #if 0
+    "UnsignedDistanceTest/*EikonalSolverFailThrows" ":"
+#endif
+
+#if 0
     "UnsignedDistanceTest/0*NonUniformGridSpacing" ":"
     "UnsignedDistanceTest/1*NonUniformGridSpacing" ":"
     "UnsignedDistanceTest/2*NonUniformGridSpacing" ":"
     "UnsignedDistanceTest/3*NonUniformGridSpacing" ":"
+#endif
+
+#if 1
+    "BridsonDistanceTest*" ":"
 #endif
 
 #if 1

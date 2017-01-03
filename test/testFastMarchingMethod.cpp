@@ -333,6 +333,8 @@ std::pair<bool, std::string> FunctionThrows(F const func)
       ss << "incorrect exception type: '" << typeid(ex).name() << "' "
          << "(expected '" << typeid(E).name() << "')";
       reason = ss.str();
+
+      cerr << ex.what() << endl;
     }
     else {
       reason = ex.what();
@@ -1095,6 +1097,13 @@ protected:
 };
 
 
+template<typename T>
+class BridsonDistanceTest : public ::testing::Test {
+protected:
+  virtual ~BridsonDistanceTest() {}
+};
+
+
 // Associate types with fixtures.
 
 TYPED_TEST_CASE(UniformSpeedEikonalSolverTest, EikonalSolverTypes);
@@ -1120,10 +1129,11 @@ TYPED_TEST(UniformSpeedEikonalSolverTest, InvalidGridSpacingThrows)
     EikonalSolverType;
 
   // Arrange.
-  auto const invalid_grid_spacing_elements = array<ScalarType, 3>{{
+  auto const invalid_grid_spacing_elements = array<ScalarType, 4>{{
     ScalarType{0},
     ScalarType{-1},
-    numeric_limits<ScalarType>::quiet_NaN()
+    numeric_limits<ScalarType>::quiet_NaN(),
+    ScalarType(1e-7)
   }};
 
   for (auto const invalid_grid_spacing_element : invalid_grid_spacing_elements)
@@ -1161,10 +1171,11 @@ TYPED_TEST(UniformSpeedEikonalSolverTest, InvalidSpeedThrows)
     EikonalSolverType;
 
   // Arrange.
-  auto const invalid_speeds = array<ScalarType, 3>{{
+  auto const invalid_speeds = array<ScalarType, 4>{{
     ScalarType{0},
     ScalarType{-1},
-    numeric_limits<ScalarType>::quiet_NaN()
+    numeric_limits<ScalarType>::quiet_NaN(),
+    ScalarType(1e-7)
   }};
 
   for (auto const invalid_speed : invalid_speeds) {
@@ -1200,10 +1211,11 @@ TYPED_TEST(HighAccuracyUniformSpeedEikonalSolverTest, InvalidGridSpacingThrows)
     EikonalSolverType;
 
   // Arrange.
-  auto const invalid_grid_spacing_elements = array<ScalarType, 3>{{
+  auto const invalid_grid_spacing_elements = array<ScalarType, 4>{{
     ScalarType{0},
     ScalarType{-1},
-    numeric_limits<ScalarType>::quiet_NaN()
+    numeric_limits<ScalarType>::quiet_NaN(),
+    ScalarType(1e-7)
   }};
 
   for (auto const invalid_grid_spacing_element : invalid_grid_spacing_elements)
@@ -1241,10 +1253,11 @@ TYPED_TEST(HighAccuracyUniformSpeedEikonalSolverTest, InvalidSpeedThrows)
     EikonalSolverType;
 
   // Arrange.
-  auto const invalid_speeds = array<ScalarType, 3>{{
+  auto const invalid_speeds = array<ScalarType, 4>{{
     ScalarType{0},
     ScalarType{-1},
-    numeric_limits<ScalarType>::quiet_NaN()
+    numeric_limits<ScalarType>::quiet_NaN(),
+    ScalarType(1e-7)
   }};
 
   for (auto const invalid_speed : invalid_speeds) {
@@ -1280,10 +1293,11 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, InvalidGridSpacingThrows)
     EikonalSolverType;
 
   // Arrange.
-  auto const invalid_grid_spacing_elements = array<ScalarType, 3>{{
+  auto const invalid_grid_spacing_elements = array<ScalarType, 4>{{
     ScalarType{0},
     ScalarType{-1},
-    numeric_limits<ScalarType>::quiet_NaN()
+    numeric_limits<ScalarType>::quiet_NaN(),
+    ScalarType(1e-7)
   }};
 
   for (auto const invalid_grid_spacing_element : invalid_grid_spacing_elements)
@@ -1324,10 +1338,11 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, InvalidSpeedThrows)
     EikonalSolverType;
 
   // Arrange.
-  auto const invalid_speeds = array<ScalarType, 3>{{
+  auto const invalid_speeds = array<ScalarType, 4>{{
     ScalarType{0},
     ScalarType{-1},
-    numeric_limits<ScalarType>::quiet_NaN()
+    numeric_limits<ScalarType>::quiet_NaN(),
+    ScalarType(1e-7)
   }};
 
   for (auto const invalid_speed : invalid_speeds) {
@@ -1477,10 +1492,11 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidGridSpacingThrows)
     EikonalSolverType;
 
   // Arrange.
-  auto const invalid_grid_spacing_elements = array<ScalarType, 3>{{
+  auto const invalid_grid_spacing_elements = array<ScalarType, 4>{{
     ScalarType{0},
     ScalarType{-1},
-    numeric_limits<ScalarType>::quiet_NaN()
+    numeric_limits<ScalarType>::quiet_NaN(),
+    ScalarType(1e-7)
   }};
 
   for (auto const invalid_grid_spacing_element : invalid_grid_spacing_elements)
@@ -1521,10 +1537,11 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidSpeedThrows)
     EikonalSolverType;
 
   // Arrange.
-  auto const invalid_speeds = array<ScalarType, 3>{{
+  auto const invalid_speeds = array<ScalarType, 4>{{
     ScalarType{0},
     ScalarType{-1},
-    numeric_limits<ScalarType>::quiet_NaN()
+    numeric_limits<ScalarType>::quiet_NaN(),
+    ScalarType(1e-7)
   }};
 
   for (auto const invalid_speed : invalid_speeds) {
@@ -2639,6 +2656,96 @@ TYPED_TEST(UnsignedDistanceTest, PointSourceHighAccuracy)
       grid_size[0],
       grid_size[1],
       ha_dist_abs_error_buffer);
+  }
+#endif
+}
+
+TEST(BridsonDistanceTest, TwoDim)
+{
+  using namespace std;
+
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::BridsonDistanceEikonalSolver2D<double> EikonalSolverType;
+
+  // Arrange.
+  auto const grid_size = util::FilledArray<2>(size_t{41});
+  auto const dx = 1.0;
+
+  // Simple point boundary for regular fast marching.
+  auto boundary_indices = vector<array<int32_t, 2>>(
+    size_t{1}, util::FilledArray<2>(int32_t{20}));
+
+  auto boundary_distances = vector<double>(size_t{1}, 0.0);
+
+  // Act.
+  auto unsigned_distance = fmm::UnsignedDistance(
+    grid_size,
+    boundary_indices,
+    boundary_distances,
+    EikonalSolverType(dx));
+
+  // Compute errors.
+  auto distance_grid =
+    util::Grid<double, 2>(grid_size, unsigned_distance.front());
+
+  auto dist_abs_errors = vector<double>();
+
+  auto center_position = util::FilledArray<2>(0.0);
+  for (auto i = size_t{0}; i < 2; ++i) {
+    center_position[i] = (boundary_indices[0][i] + 0.5) * dx;
+  }
+
+  auto index_iter = util::IndexIterator<2>(grid_size);
+  while (index_iter.has_next()) {
+    auto const index = index_iter.index();
+    auto position = util::FilledArray<2>(0.0);
+    for (auto i = size_t{0}; i < 2; ++i) {
+      position[i] = (index[i] + 0.5) * dx;
+    }
+    auto delta = util::FilledArray<2>(0.0);
+    for (auto i = size_t{0}; i < 2; ++i) {
+      delta[i] = center_position[i] - position[i];
+    }
+    auto const gt_dist = util::Magnitude(delta);
+    auto const dist = distance_grid.Cell(index);
+    auto const dist_abs_error = abs(dist - gt_dist);
+    if (gt_dist <= 20.0) {
+      dist_abs_errors.push_back(dist_abs_error);
+    }
+
+#if 0 // TMP
+    dist_abs_error_grid.Cell(index) = dist_abs_error;
+    ha_dist_abs_error_grid.Cell(index) = ha_dist_abs_error;
+#endif
+
+    index_iter.Next();
+  }
+
+  auto max_abs_error = 0.0;
+  auto avg_abs_error = 0.0;
+  for (auto const& dist_abs_error : dist_abs_errors) {
+    max_abs_error = max(max_abs_error, dist_abs_error);
+    avg_abs_error += dist_abs_error;
+  }
+  avg_abs_error /= dist_abs_errors.size();
+
+  // Assert.
+  typedef util::PointSourceAccuracyBounds<2> Bounds;
+  //cerr << "max_abs_error: " << max_abs_error << endl;
+  //cerr << "avg_abs_error: " << avg_abs_error << endl;
+  ASSERT_LE(max_abs_error, Bounds::max_abs_error());
+  ASSERT_LE(avg_abs_error, Bounds::avg_abs_error());
+
+#if 1 // TMP
+  {
+    auto ss = stringstream();
+    ss << "./BridsonDistanceTest_2D_"
+       << typeid(double).name() << ".ppm";
+    util::writeRgbImage(
+      ss.str(),
+      grid_size[0],
+      grid_size[1],
+      unsigned_distance);
   }
 #endif
 }
