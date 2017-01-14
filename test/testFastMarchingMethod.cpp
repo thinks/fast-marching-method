@@ -12,194 +12,13 @@
 #include <gtest/gtest.h>
 
 #include <thinks/fastMarchingMethod.hpp>
-#include <../../ppm-io/include/thinks/ppm.hpp> // TMP!!!
-#include <iostream>
+
+// TMP!!!
+//#include <iostream>
 
 
 namespace {
 namespace util {
-
-#if 1 // TMP!!!
-template<typename R, typename T> inline
-R Clamp(T const low, T const high, T const value)
-{
-  using namespace std;
-
-  return static_cast<R>(min<T>(high, max<T>(low, value)));
-}
-
-template<typename InIter, typename C> inline
-std::vector<std::uint8_t> PixelsFromValues(
-  InIter const in_begin,
-  InIter const in_end,
-  C const pixel_from_value)
-{
-  using namespace std;
-
-  auto pixels = vector<uint8_t>();
-  for (auto iter = in_begin; iter != in_end; ++iter) {
-    auto const value = *iter;
-    auto const pixel = pixel_from_value(value);
-    pixels.insert(end(pixels), begin(pixel), end(pixel));
-  }
-  return pixels;
-}
-
-
-template<typename T, typename InIter> inline
-std::vector<T> SignedNormalized(InIter const in_begin, InIter const in_end)
-{
-  using namespace std;
-
-  auto max_pos_value = numeric_limits<T>::lowest();
-  auto min_neg_value = numeric_limits<T>::max();
-  for (auto iter = in_begin; iter != in_end; ++iter) {
-    auto const value = *iter;
-    if (value == numeric_limits<T>::max()) {
-      continue;
-    }
-
-    if (value > T(0)) {
-      max_pos_value = max(max_pos_value, value);
-    }
-
-    if (value < T(0)) {
-      min_neg_value = min(min_neg_value, value);
-    }
-  }
-
-  auto const pos_factor = max_pos_value > T(0) ? T(1) / max_pos_value : T(-1);
-  auto const neg_factor = min_neg_value < T(0) ? T(-1) / min_neg_value : T(-1);
-
-  auto r = vector<T>{};
-  transform(
-    in_begin,
-    in_end,
-    back_inserter(r),
-    [=](auto const value) {
-      if (value == numeric_limits<T>::max()) {
-        return value;
-      }
-
-      if (value > T(0) && pos_factor > T(0)) {
-        return pos_factor * value;
-      }
-
-      if (value < T(0) && neg_factor > T(0)) {
-        return neg_factor * value;
-      }
-
-      return T(0);
-    });
-  return r;
-}
-
-template<typename T, typename InIter> inline
-std::vector<T> MaxAbsNormalized(InIter const in_begin, InIter const in_end)
-{
-  using namespace std;
-
-  auto max_abs_value = T{0};
-  for (auto iter = in_begin; iter != in_end; ++iter) {
-    auto const value = *iter;
-    if (value == numeric_limits<T>::max()) {
-      continue;
-    }
-
-    max_abs_value = max(max_abs_value, abs(value));
-  }
-  auto r = vector<T>{};
-  transform(
-    in_begin,
-    in_end,
-    back_inserter(r),
-    [=](auto const value) {
-      if (value == numeric_limits<T>::max()) {
-        return value;
-      }
-      return value / max_abs_value;
-    });
-  return r;
-}
-
-
-template<typename T>
-void writeRgbImage(
-  std::string const& filename,
-  std::size_t width,
-  std::size_t height,
-  std::vector<T> const& pixel_data)
-{
-  using namespace std;
-
-  // Negative values in shades of blue, positive values in shades of red.
-  // Very large values as grey.
-  auto const pixel_from_value = [](T const x) {
-    if (x == numeric_limits<T>::max()) {
-      return array<uint8_t, 3>{{128, 128, 128}};
-    }
-    return x < T{0} ?
-      array<uint8_t, 3>{{
-        uint8_t{0},
-        uint8_t{0},
-        Clamp<uint8_t>(
-          T{0},
-          T(numeric_limits<uint8_t>::max()),
-          numeric_limits<uint8_t>::max() * fabs(x))}} :
-      array<uint8_t, 3>{{
-        Clamp<uint8_t>(
-          T{0},
-          T(numeric_limits<uint8_t>::max()),
-          numeric_limits<uint8_t>::max() * x),
-        uint8_t{0},
-        uint8_t{0}}};
-  };
-
-  auto const norm_pixel_data =
-    SignedNormalized<T>(begin(pixel_data), end(pixel_data));
-  thinks::ppm::writeRgbImage(
-    filename,
-    width,
-    height,
-    PixelsFromValues(
-      begin(norm_pixel_data),
-      end(norm_pixel_data),
-      pixel_from_value));
-}
-
-template<typename T>
-void writeGreyImage(
-  std::string const& filename,
-  std::size_t width,
-  std::size_t height,
-  std::vector<T> const& pixel_data)
-{
-  using namespace std;
-
-  // Negative values in shades of blue, positive values in shades of red.
-  // Very large values as grey.
-  auto const pixel_from_value = [](T const x) {
-    auto const intensity = Clamp<uint8_t>(
-      T{0},
-      T(numeric_limits<uint8_t>::max()),
-      numeric_limits<uint8_t>::max() * fabs(x));
-    return array<uint8_t, 3>{{intensity, intensity, intensity}};
-  };
-
-  auto const max_abs_normalized_pixel_data =
-    MaxAbsNormalized<T>(begin(pixel_data), end(pixel_data));
-  thinks::ppm::writeRgbImage(
-    filename,
-    width,
-    height,
-    PixelsFromValues(
-      begin(max_abs_normalized_pixel_data),
-      end(max_abs_normalized_pixel_data),
-      pixel_from_value));
-}
-
-#endif // TMP!!!
-
 
 //! Returns @a base ^ @a exponent as a compile-time constant.
 constexpr std::size_t static_pow(std::size_t base, std::size_t const exponent)
@@ -221,26 +40,6 @@ std::size_t LinearSize(std::array<std::size_t, N> const& a)
 {
   using namespace std;
   return accumulate(begin(a), end(a), size_t{1}, multiplies<size_t>());
-}
-
-
-//! Returns true if @a index is inside @a size, otherwise false.
-template<std::size_t N> inline
-bool Inside(
-  std::array<std::int32_t, N> const& index,
-  std::array<std::size_t, N> const& size)
-{
-  using namespace std;
-
-  for (auto i = size_t{0}; i < N; ++i) {
-    // Cast is safe since we check that index[i] is greater than or
-    // equal to zero first.
-    if (!(0 <= index[i] && static_cast<size_t>(index[i]) < size[i])) {
-      return false;
-    }
-  }
-
-  return true;
 }
 
 
@@ -333,8 +132,7 @@ std::pair<bool, std::string> FunctionThrows(F const func)
       ss << "incorrect exception type: '" << typeid(ex).name() << "' "
          << "(expected '" << typeid(E).name() << "')";
       reason = ss.str();
-
-      cerr << ex.what() << endl;
+      //cerr << ex.what() << endl;
     }
     else {
       reason = ex.what();
@@ -641,321 +439,6 @@ void HyperSphereBoundaryCells(
 }
 
 
-//! Returns a grid buffer where boundary distances have been set. Cells that
-//! are not on the boundary have the value std::numeric_limits<T>::max().
-template<typename T, std::size_t N>
-std::vector<T> InputBuffer(
-  std::array<std::size_t, N> const& grid_size,
-  std::vector<std::array<std::int32_t, N>> const& boundary_indices,
-  std::vector<T> const& boundary_distances)
-{
-  using namespace std;
-
-  if (boundary_indices.size() != boundary_distances.size()) {
-    throw runtime_error("boundary indices/distances size mismatch");
-  }
-
-  auto input_buffer =
-      vector<T>(LinearSize(grid_size), numeric_limits<T>::max());
-  auto input_grid = Grid<T, N>(grid_size, input_buffer.front());
-  for (auto i = size_t{0}; i < boundary_indices.size(); ++i) {
-    auto const boundary_index = boundary_indices[i];
-    if (!util::Inside(boundary_index, grid_size)) {
-      throw runtime_error("index outside grid");
-    }
-
-    input_grid.Cell(boundary_index) = boundary_distances[i];
-  }
-
-  return input_buffer;
-}
-
-
-//! Returns a vector of element-wise errors. If a value is larger than the
-//! corresponding ground truth a positive error is reported, if a value is
-//! smaller than its corresponding ground truth a negative value is reported.
-//! The unit of the errors is voxel units. For non-uniform grid spacing the
-//! smallest component is used.
-template<typename T, std::size_t N>
-std::vector<T> ErrorBuffer(
-  std::vector<T> const& value_buffer,
-  std::vector<T> const& ground_truth_buffer,
-  std::array<T, N> const& grid_spacing)
-{
-  using namespace std;
-
-  if (ground_truth_buffer.size() != value_buffer.size()) {
-    throw runtime_error("buffer size mismatch");
-  }
-
-  auto const min_grid_spacing = *min_element(begin(grid_spacing), end(grid_spacing));
-
-  auto r = vector<T>(value_buffer.size());
-  transform(
-    begin(value_buffer), end(value_buffer),
-    begin(ground_truth_buffer),
-    begin(r),
-    [=](auto const v, auto const gt) { return (v - gt) / min_grid_spacing; });
-  return r;
-}
-
-
-struct ErrorStats
-{
-  double min_abs_error;
-  double max_abs_error;
-  double avg_abs_error;
-  double std_dev_abs_error;
-};
-
-
-//! Returns basic error metrics from the (non-empty) list of scalar error
-//! values.
-template<typename T> inline
-ErrorStats ErrorStatistics(std::vector<T> const& errors)
-{
-  using namespace std;
-
-  static_assert(is_floating_point<T>::value, "value type must be floating point");
-
-  if (errors.empty()) {
-    throw runtime_error("empty error vector");
-  }
-
-  auto sum_abs_error = double{0};
-  auto min_abs_error = numeric_limits<double>::max();
-  auto max_abs_error = double{0};
-  for (auto const error : errors) {
-    auto const abs_error = static_cast<double>(fabs(error));
-    sum_abs_error += abs_error;
-    min_abs_error = min(min_abs_error, abs_error);
-    max_abs_error = max(max_abs_error, abs_error);
-  }
-  auto const avg_abs_error = sum_abs_error / errors.size();
-
-  auto error_variance = double{0};
-  for (auto const error : errors) {
-    auto const delta_error = fabs(error) - avg_abs_error;
-    error_variance += delta_error * delta_error;
-  }
-  error_variance /= errors.size();
-  auto error_std_dev = sqrt(error_variance);
-
-  return ErrorStats{min_abs_error, max_abs_error, avg_abs_error, error_std_dev};
-}
-
-
-template<typename T, std::size_t N>
-struct DistanceStats
-{
-  static const std::size_t kSize = N;
-
-  double min_abs_error;
-  double max_abs_error;
-  double avg_abs_error;
-  double std_dev_abs_error;
-
-  double duration_in_s;
-
-  std::array<std::size_t, N> grid_size;
-  std::vector<T> input_buffer;
-  std::vector<T> distance_buffer;
-  std::vector<T> distance_ground_truth_buffer;
-  std::vector<T> error_buffer;
-};
-
-
-template<typename T, std::size_t N,
-         typename DistanceFunction, typename DistanceModifier>
-DistanceStats<T, N> HyperSphereDistanceStats(
-  std::array<T, N> const sphere_center,
-  T const sphere_radius,
-  std::array<std::size_t, N> const grid_size,
-  std::array<T, N> const grid_spacing,
-  DistanceModifier const distance_modifier,
-  DistanceFunction const distance_function)
-{
-  using namespace std;
-
-  auto frozen_indices = vector<array<int32_t, N>>();
-  auto frozen_distances = vector<T>();
-  auto distance_ground_truth_buffer = vector<T>();
-
-  HyperSphereBoundaryCells<T, N>(
-    sphere_center,
-    sphere_radius,
-    grid_size,
-    grid_spacing,
-    distance_modifier,
-    &frozen_indices,
-    &frozen_distances,
-    &distance_ground_truth_buffer);
-
-  auto const start_time = chrono::system_clock::now();
-  auto distance_buffer =
-    distance_function(
-      frozen_indices,
-      frozen_distances);
-  auto const end_time = chrono::system_clock::now();
-
-  auto const input_buffer = InputBuffer(
-    grid_size,
-    frozen_indices,
-    frozen_distances);
-
-  auto const error_buffer = ErrorBuffer(
-    distance_buffer,
-    distance_ground_truth_buffer,
-    grid_spacing);
-
-  auto const error_stats = ErrorStatistics(error_buffer);
-
-  return DistanceStats<T, N>{
-    error_stats.min_abs_error,
-    error_stats.max_abs_error,
-    error_stats.avg_abs_error,
-    error_stats.std_dev_abs_error,
-    chrono::duration<double>(end_time - start_time).count(),
-    grid_size,
-    input_buffer,
-    distance_buffer,
-    distance_ground_truth_buffer,
-    error_buffer};
-}
-
-
-template<typename T, std::size_t N>
-std::array<T, N> Gradient(
-  std::array<std::int32_t, N> const& index,
-  Grid<T, N> const& grid,
-  std::array<T, N> const& grid_spacing)
-{
-  using namespace std;
-
-  static_assert(is_floating_point<T>::value,
-                "scalar type must be floating point");
-
-  array<T, N> grad;
-  auto const size = grid.size();
-
-  for (size_t i = 0; i < N; ++i) {
-    auto pos_index = index;
-    auto neg_index = index;
-    pos_index[i] += size_t{1};
-    neg_index[i] -= size_t{1};
-
-    auto const cell = grid.Cell(index);
-
-    // Use central difference if possible.
-    auto const pos_inside =
-      0 <= pos_index[i] && static_cast<size_t>(pos_index[i]) < size[i];
-    auto const neg_inside =
-      0 <= neg_index[i] && static_cast<size_t>(neg_index[i]) < size[i];
-    if (pos_inside && neg_inside) {
-      auto const pos_cell = grid.Cell(pos_index);
-      auto const neg_cell = grid.Cell(neg_index);
-      if (!(pos_cell > cell && neg_cell > cell)) {
-        grad[i] = (pos_cell - neg_cell) / (T{2} * grid_spacing[i]);
-      }
-      else {
-        grad[i] = (pos_cell - cell) / grid_spacing[i];
-      }
-    }
-    else if (pos_inside) {
-      auto const pos_cell = grid.Cell(pos_index);
-      grad[i] = (pos_cell - cell) / grid_spacing[i];
-    }
-    else if (neg_inside) {
-      auto const neg_cell = grid.Cell(neg_index);
-      grad[i] = (cell - neg_cell) / grid_spacing[i];
-    }
-    else {
-      throw runtime_error("invalid gradient");
-    }
-  }
-  return grad;
-}
-
-
-template<typename T, std::size_t N> inline
-std::vector<std::array<T, N>> DistanceGradients(
-  Grid<T, N> const& distance_grid,
-  std::array<T, N> const& grid_spacing)
-{
-  using namespace std;
-
-  auto grad_buffer = vector<array<T, N>>(LinearSize(distance_grid.size()));
-  auto grad_grid = Grid<array<T, N>, N>(distance_grid.size(), grad_buffer.front());
-
-  auto index_iter = IndexIterator<N>(grad_grid.size());
-  while (index_iter.has_next()) {
-    auto const index = index_iter.index();
-    grad_grid.Cell(index) = Gradient(index, distance_grid, grid_spacing);
-    index_iter.Next();
-  }
-
-  return grad_buffer;
-}
-
-
-//! Compute gradient magnitide errors on the form:
-//! error = grad_mag - 1
-template<typename T, std::size_t N>
-std::vector<T> GradientMagnitudeErrors(
-  Grid<T, N> const& grad_mag_grid,
-  std::vector<std::array<int32_t, N>> const& boundary_indices)
-{
-  using namespace std;
-
-  // Create a mask where 1 means that the cell is on the boundary and
-  // 0 means that the cell is not on the boundary.
-  auto boundary_buffer =
-    vector<uint8_t>(LinearSize(grad_mag_grid.size()), uint8_t{0});
-  auto boundary_grid =
-    Grid<uint8_t, N>(grad_mag_grid.size(), boundary_buffer.front());
-  for (auto const& boundary_index : boundary_indices) {
-    boundary_grid.Cell(boundary_index) = uint8_t{1};
-  }
-
-  auto grad_mag_error_buffer = vector<T>(LinearSize(grad_mag_grid.size()), T{0});
-  auto grad_mag_error_grid =
-    Grid<T, N>(grad_mag_grid.size(), grad_mag_error_buffer.front());
-
-  auto index_iter = IndexIterator<N>(grad_mag_error_grid.size());
-  while (index_iter.has_next()) {
-    auto const index = index_iter.index();
-    // Don't compute errors for boundary cells.
-    if (boundary_grid.Cell(index) == uint8_t{0}) {
-      grad_mag_error_grid.Cell(index) = grad_mag_grid.Cell(index) - T{1};
-    }
-    index_iter.Next();
-  }
-
-  return grad_mag_error_buffer;
-}
-
-
-template<typename T, std::size_t N>
-struct UnsignedDistanceAccuracyThresholds;
-
-template<>
-struct UnsignedDistanceAccuracyThresholds<float, 2>
-{
-  static constexpr double min_abs_error_threshold() { return double{0}; }
-  static constexpr double max_abs_error_threshold() { return double{1}; }
-  static constexpr double avg_abs_error_threshold() { return double{1}; }
-  static constexpr double std_dev_abs_error_threshold() { return double{1}; }
-};
-
-template<>
-struct UnsignedDistanceAccuracyThresholds<double, 2>
-{
-  static constexpr double min_abs_error_threshold() { return double{0}; }
-  static constexpr double max_abs_error_threshold() { return double{1}; }
-  static constexpr double avg_abs_error_threshold() { return double{1}; }
-  static constexpr double std_dev_abs_error_threshold() { return double{1}; }
-};
-
 // Numbers below inspired by the paper "ON THE IMPLEMENTATION OF FAST
 // MARCHING METHODS FOR 3D LATTICES" by J. Andreas Bærentzen.
 template<std::size_t N>
@@ -999,6 +482,60 @@ struct PointSourceAccuracyBounds<4>
 
 } // namespace util
 
+
+// Fixtures.
+
+template<typename T>
+class UniformSpeedEikonalSolverTest : public ::testing::Test {
+protected:
+  virtual ~UniformSpeedEikonalSolverTest() {}
+};
+
+
+template<typename T>
+class HighAccuracyUniformSpeedEikonalSolverTest : public ::testing::Test {
+protected:
+  virtual ~HighAccuracyUniformSpeedEikonalSolverTest() {}
+};
+
+
+template<typename T>
+class VaryingSpeedEikonalSolverTest : public ::testing::Test {
+protected:
+  virtual ~VaryingSpeedEikonalSolverTest() {}
+};
+
+
+template<typename T>
+class HighAccuracyVaryingSpeedEikonalSolverTest : public ::testing::Test {
+protected:
+  virtual ~HighAccuracyVaryingSpeedEikonalSolverTest() {}
+};
+
+
+template<typename T>
+class DistanceSolverTest : public ::testing::Test {
+protected:
+  virtual ~DistanceSolverTest() {}
+};
+
+
+template<typename T>
+class UnsignedDistanceTest : public ::testing::Test {
+protected:
+  virtual ~UnsignedDistanceTest() {}
+};
+
+
+template<typename T>
+class SignedDistanceTest : public ::testing::Test {
+protected:
+  virtual ~SignedDistanceTest() {}
+};
+
+
+// Associate types with fixtures.
+
 template<typename S, std::size_t N>
 struct ScalarDimensionPair
 {
@@ -1034,86 +571,13 @@ typedef ::testing::Types<
   ScalarDimensionPair<double, 3>,
   ScalarDimensionPair<double, 4>> SignedDistanceTypes;
 
-typedef ::testing::Types<
-  ScalarDimensionPair<float, 2>,
-  ScalarDimensionPair<double, 2>> AccuracyTypes;
-
-
-// Fixtures.
-
-template<typename T>
-class UniformSpeedEikonalSolverTest : public ::testing::Test {
-protected:
-  virtual ~UniformSpeedEikonalSolverTest() {}
-};
-
-
-template<typename T>
-class HighAccuracyUniformSpeedEikonalSolverTest : public ::testing::Test {
-protected:
-  virtual ~HighAccuracyUniformSpeedEikonalSolverTest() {}
-};
-
-
-template<typename T>
-class VaryingSpeedEikonalSolverTest : public ::testing::Test {
-protected:
-  virtual ~VaryingSpeedEikonalSolverTest() {}
-};
-
-
-template<typename T>
-class HighAccuracyVaryingSpeedEikonalSolverTest : public ::testing::Test {
-protected:
-  virtual ~HighAccuracyVaryingSpeedEikonalSolverTest() {}
-};
-
-
-template<typename T>
-class UnsignedDistanceTest : public ::testing::Test {
-protected:
-  virtual ~UnsignedDistanceTest() {}
-};
-
-
-template<typename T>
-class SignedDistanceTest : public ::testing::Test {
-protected:
-  virtual ~SignedDistanceTest() {}
-};
-
-
-template<typename T>
-class UnsignedDistanceAccuracyTest : public ::testing::Test {
-protected:
-  virtual ~UnsignedDistanceAccuracyTest() {}
-};
-
-
-template<typename T>
-class SignedDistanceAccuracyTest : public ::testing::Test {
-protected:
-  virtual ~SignedDistanceAccuracyTest() {}
-};
-
-
-template<typename T>
-class BridsonDistanceTest : public ::testing::Test {
-protected:
-  virtual ~BridsonDistanceTest() {}
-};
-
-
-// Associate types with fixtures.
-
 TYPED_TEST_CASE(UniformSpeedEikonalSolverTest, EikonalSolverTypes);
 TYPED_TEST_CASE(HighAccuracyUniformSpeedEikonalSolverTest, EikonalSolverTypes);
 TYPED_TEST_CASE(VaryingSpeedEikonalSolverTest, EikonalSolverTypes);
 TYPED_TEST_CASE(HighAccuracyVaryingSpeedEikonalSolverTest, EikonalSolverTypes);
+TYPED_TEST_CASE(DistanceSolverTest, EikonalSolverTypes);
 TYPED_TEST_CASE(UnsignedDistanceTest, UnsignedDistanceTypes);
 TYPED_TEST_CASE(SignedDistanceTest, SignedDistanceTypes);
-TYPED_TEST_CASE(UnsignedDistanceAccuracyTest, AccuracyTypes);
-TYPED_TEST_CASE(SignedDistanceAccuracyTest, AccuracyTypes);
 
 
 // UniformSpeedEikonalSolverTest fixture.
@@ -1675,6 +1139,49 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, IndexOutsideSpeedGridThrow
 }
 
 
+// DistanceSolveTest fixture.
+
+TYPED_TEST(DistanceSolverTest, InvalidGridSpacingThrows)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::DistanceSolver<ScalarType, kDimension> EikonalSolverType;
+
+  // Arrange.
+  auto const invalid_grid_spacing_elements = array<ScalarType, 4>{{
+    ScalarType{0},
+    ScalarType{-1},
+    numeric_limits<ScalarType>::quiet_NaN(),
+    ScalarType(1e-7)
+  }};
+
+  for (auto const invalid_grid_spacing_element : invalid_grid_spacing_elements)
+  {
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      auto const dx = invalid_grid_spacing_element; // Invalid i'th element.
+
+      auto expected_reason = stringstream();
+      expected_reason
+        << "invalid grid spacing: "
+        << util::ToString(util::FilledArray<kDimension>(dx));
+
+      // Act.
+      auto const ft = util::FunctionThrows<invalid_argument>(
+        [=]() {
+          auto const eikonal_solver = EikonalSolverType(dx);
+        });
+
+      // Assert.
+      ASSERT_TRUE(ft.first);
+      ASSERT_EQ(expected_reason.str(), ft.second);
+    }
+  }
+}
+
+
 // UnsignedDistance fixture.
 
 TYPED_TEST(UnsignedDistanceTest, ZeroElementInGridSizeThrows)
@@ -2004,7 +1511,7 @@ TYPED_TEST(UnsignedDistanceTest, EikonalSolverFailThrows)
 
   // Assert.
   ASSERT_TRUE(ft.first);
-  ASSERT_EQ("invalid distance", ft.second.substr(size_t{0}, 16));
+  ASSERT_EQ("invalid arrival time (distance)", ft.second.substr(size_t{0}, 31));
 }
 
 TYPED_TEST(UnsignedDistanceTest, DifferentUniformSpeed)
@@ -2123,19 +1630,6 @@ TYPED_TEST(UnsignedDistanceTest, VaryingSpeed)
     }
     distance_index_iter.Next();
   }
-
-#if 1 // TMP
-  if (kDimension == 2) {
-    auto ss = stringstream();
-    ss << "./UnsignedDistanceTest_VaryingSpeed_"
-       << typeid(ScalarType).name() << ".ppm";
-    util::writeRgbImage(
-      ss.str(),
-      grid_size[0],
-      grid_size[1],
-      unsigned_distance);
-  }
-#endif
 }
 
 TYPED_TEST(UnsignedDistanceTest, NonUniformGridSpacing)
@@ -2195,19 +1689,6 @@ TYPED_TEST(UnsignedDistanceTest, NonUniformGridSpacing)
 
     index_iter.Next();
   }
-
-#if 1 // TMP
-  if (kDimension == 2) {
-    auto ss = stringstream();
-    ss << "./UnsignedDistanceTest_NonUniformGridSpacing_"
-       << typeid(ScalarType).name() << ".ppm";
-    util::writeRgbImage(
-      ss.str(),
-      grid_size[0],
-      grid_size[1],
-      unsigned_distance);
-  }
-#endif
 }
 
 TYPED_TEST(UnsignedDistanceTest, BoxBoundary)
@@ -2257,16 +1738,6 @@ TYPED_TEST(UnsignedDistanceTest, BoxBoundary)
   for (auto const d : unsigned_distance) {
     ASSERT_GE(d, ScalarType{0});
   }
-
-#if 1 // TMP
-  if (kDimension == 2 && typeid(ScalarType).name() == "float") {
-    util::writeRgbImage(
-      "./UnsignedDistanceTest_BoxBoundary.ppm",
-      grid_size[0],
-      grid_size[1],
-      unsigned_distance);
-  }
-#endif
 }
 
 TYPED_TEST(UnsignedDistanceTest, Checkerboard)
@@ -2313,19 +1784,6 @@ TYPED_TEST(UnsignedDistanceTest, Checkerboard)
 
   // Assert.
   // This test exists to ensure that it is possible to run this input.
-
-#if 1 // TMP
-  if (kDimension == 2) {
-    auto ss = stringstream();
-    ss << "./UnsignedDistanceTest_Checkerboard_"
-       << typeid(ScalarType).name() << ".ppm";
-    util::writeRgbImage(
-      ss.str(),
-      grid_size[0],
-      grid_size[1],
-      unsigned_distance);
-  }
-#endif
 }
 
 TYPED_TEST(UnsignedDistanceTest, OverlappingCircles)
@@ -2391,19 +1849,7 @@ TYPED_TEST(UnsignedDistanceTest, OverlappingCircles)
 
   // Assert.
   // This test exists to ensure that it is possible to run this input.
-
-#if 1 // TMP
-  if (kDimension == 2) {
-    auto ss = stringstream();
-    ss << "./UnsignedDistanceTest_OverlappingCircles_"
-       << typeid(ScalarType).name() << ".ppm";
-    util::writeRgbImage(
-      ss.str(),
-      grid_size[0],
-      grid_size[1],
-      unsigned_distance);
-  }
-#endif
+  //ASSERT_TRUE(false); // Should this be valid??
 }
 
 TYPED_TEST(UnsignedDistanceTest, CircleInsideCircle)
@@ -2463,19 +1909,6 @@ TYPED_TEST(UnsignedDistanceTest, CircleInsideCircle)
 
   // Assert.
   // This test exists to ensure that it is possible to run this input.
-
-#if 1 // TMP
-  if (kDimension == 2) {
-    auto ss = stringstream();
-    ss << "./UnsignedDistanceTest_CircleInsideCircle_"
-       << typeid(ScalarType).name() << ".ppm";
-    util::writeRgbImage(
-      ss.str(),
-      grid_size[0],
-      grid_size[1],
-      unsigned_distance);
-  }
-#endif
 }
 
 TYPED_TEST(UnsignedDistanceTest, PointSourceHighAccuracy)
@@ -2552,17 +1985,6 @@ TYPED_TEST(UnsignedDistanceTest, PointSourceHighAccuracy)
   auto high_accuracy_distance_grid = util::Grid<ScalarType, kDimension>(
     grid_size, high_accuracy_unsigned_distance.front());
 
-#if 0 // TMP
-  auto dist_abs_error_buffer =
-    vector<ScalarType>(util::LinearSize(grid_size), ScalarType{0});
-  auto dist_abs_error_grid =
-    util::Grid<ScalarType, kDimension>(grid_size, dist_abs_error_buffer.front());
-  auto ha_dist_abs_error_buffer =
-    vector<ScalarType>(util::LinearSize(grid_size), ScalarType{0});
-  auto ha_dist_abs_error_grid = util::Grid<ScalarType, kDimension>(
-    grid_size, ha_dist_abs_error_buffer.front());
-#endif
-
   auto dist_abs_errors = vector<ScalarType>();
   auto ha_dist_abs_errors = vector<ScalarType>();
 
@@ -2586,11 +2008,6 @@ TYPED_TEST(UnsignedDistanceTest, PointSourceHighAccuracy)
       dist_abs_errors.push_back(dist_abs_error);
       ha_dist_abs_errors.push_back(ha_dist_abs_error);
     }
-
-#if 0 // TMP
-    dist_abs_error_grid.Cell(index) = dist_abs_error;
-    ha_dist_abs_error_grid.Cell(index) = ha_dist_abs_error;
-#endif
 
     index_iter.Next();
   }
@@ -2620,414 +2037,6 @@ TYPED_TEST(UnsignedDistanceTest, PointSourceHighAccuracy)
             ScalarType(Bounds::high_accuracy_max_abs_error()));
   ASSERT_LE(high_accuracy_avg_abs_error,
             ScalarType(Bounds::high_accuracy_avg_abs_error()));
-
-#if 0 // TMP
-  if (kDimension == 2) {
-    auto ss = stringstream();
-    ss << "./UnsignedDistanceTest_HighAccuracy_FirstOrder_"
-       << typeid(ScalarType).name() << ".ppm";
-    util::writeRgbImage(
-      ss.str(),
-      grid_size[0],
-      grid_size[1],
-      signed_distance);
-    auto ss2 = stringstream();
-    ss2 << "./UnsignedDistanceTest_HighAccuracy_FirstOrder_abs_error_"
-        << typeid(ScalarType).name() << ".ppm";
-    util::writeGreyImage(
-      ss2.str(),
-      grid_size[0],
-      grid_size[1],
-      dist_abs_error_buffer);
-
-    auto ss3 = stringstream();
-    ss3 << "./UnsignedDistanceTest_HighAccuracy_SecondOrder_"
-        << typeid(ScalarType).name() << ".ppm";
-    util::writeRgbImage(
-      ss3.str(),
-      grid_size[0],
-      grid_size[1],
-      high_accuracy_signed_distance);
-    auto ss4 = stringstream();
-    ss4 << "./UnsignedDistanceTest_HighAccuracy_SecondOrder_abs_error_"
-        << typeid(ScalarType).name() << ".ppm";
-    util::writeGreyImage(
-      ss4.str(),
-      grid_size[0],
-      grid_size[1],
-      ha_dist_abs_error_buffer);
-  }
-#endif
-}
-
-TEST(BridsonDistanceTest, TwoDim)
-{
-  using namespace std;
-
-  namespace fmm = thinks::fast_marching_method;
-  typedef fmm::BridsonDistanceEikonalSolver2D<double> EikonalSolverType;
-
-  // Arrange.
-  auto const grid_size = util::FilledArray<2>(size_t{41});
-  auto const dx = 1.0;
-
-  // Simple point boundary for regular fast marching.
-  auto boundary_indices = vector<array<int32_t, 2>>(
-    size_t{1}, util::FilledArray<2>(int32_t{20}));
-
-  auto boundary_distances = vector<double>(size_t{1}, 0.0);
-
-  // Act.
-  auto unsigned_distance = fmm::UnsignedDistance(
-    grid_size,
-    boundary_indices,
-    boundary_distances,
-    EikonalSolverType(dx));
-
-  // Compute errors.
-  auto distance_grid =
-    util::Grid<double, 2>(grid_size, unsigned_distance.front());
-
-  auto dist_abs_errors = vector<double>();
-
-  auto center_position = util::FilledArray<2>(0.0);
-  for (auto i = size_t{0}; i < 2; ++i) {
-    center_position[i] = (boundary_indices[0][i] + 0.5) * dx;
-  }
-
-  auto index_iter = util::IndexIterator<2>(grid_size);
-  while (index_iter.has_next()) {
-    auto const index = index_iter.index();
-    auto position = util::FilledArray<2>(0.0);
-    for (auto i = size_t{0}; i < 2; ++i) {
-      position[i] = (index[i] + 0.5) * dx;
-    }
-    auto delta = util::FilledArray<2>(0.0);
-    for (auto i = size_t{0}; i < 2; ++i) {
-      delta[i] = center_position[i] - position[i];
-    }
-    auto const gt_dist = util::Magnitude(delta);
-    auto const dist = distance_grid.Cell(index);
-    auto const dist_abs_error = abs(dist - gt_dist);
-    if (gt_dist <= 20.0) {
-      dist_abs_errors.push_back(dist_abs_error);
-    }
-
-#if 0 // TMP
-    dist_abs_error_grid.Cell(index) = dist_abs_error;
-    ha_dist_abs_error_grid.Cell(index) = ha_dist_abs_error;
-#endif
-
-    index_iter.Next();
-  }
-
-  auto max_abs_error = 0.0;
-  auto avg_abs_error = 0.0;
-  for (auto const& dist_abs_error : dist_abs_errors) {
-    max_abs_error = max(max_abs_error, dist_abs_error);
-    avg_abs_error += dist_abs_error;
-  }
-  avg_abs_error /= dist_abs_errors.size();
-
-  // Assert.
-  typedef util::PointSourceAccuracyBounds<2> Bounds;
-  //cerr << "max_abs_error: " << max_abs_error << endl;
-  //cerr << "avg_abs_error: " << avg_abs_error << endl;
-  ASSERT_LE(max_abs_error, Bounds::max_abs_error());
-  ASSERT_LE(avg_abs_error, Bounds::avg_abs_error());
-
-#if 1 // TMP
-  {
-    auto ss = stringstream();
-    ss << "./BridsonDistanceTest_2D_"
-       << typeid(double).name() << ".ppm";
-    util::writeRgbImage(
-      ss.str(),
-      grid_size[0],
-      grid_size[1],
-      unsigned_distance);
-  }
-#endif
-}
-
-// UnsignedDistanceAccuracy fixture.
-// TODO - different dx.
-
-TYPED_TEST(UnsignedDistanceAccuracyTest, UniformSpeedHyperSphereStats)
-{
-  using namespace std;
-
-  typedef TypeParam::ScalarType ScalarType;
-  static constexpr size_t kDimension = TypeParam::kDimension;
-  namespace fmm = thinks::fast_marching_method;
-  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
-
-  // Arrange.
-  auto const grid_size = util::FilledArray<kDimension>(size_t{100});
-  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType(0.01));
-  auto const uniform_speed = ScalarType{1};
-
-  auto const sphere_center = util::FilledArray<kDimension>(ScalarType(0.5));
-  auto const sphere_radius = ScalarType(0.25);
-
-  auto const dist_stats =
-    util::HyperSphereDistanceStats<ScalarType, kDimension>(
-      sphere_center,
-      sphere_radius,
-      grid_size,
-      grid_spacing,
-      [](ScalarType const x) { return fabs(x); },
-      [=](auto const boundary_indices,
-          auto const boundary_distances) {
-        return thinks::fast_marching_method::UnsignedDistance(
-          grid_size,
-          boundary_indices,
-          boundary_distances,
-          EikonalSolverType(grid_spacing, uniform_speed));
-      });
-
-  // Assert.
-  typedef util::UnsignedDistanceAccuracyThresholds<ScalarType, kDimension>
-    Thresholds;
-  ASSERT_EQ(dist_stats.min_abs_error, Thresholds::min_abs_error_threshold());
-  ASSERT_LT(dist_stats.max_abs_error, Thresholds::max_abs_error_threshold());
-  ASSERT_LT(dist_stats.avg_abs_error, Thresholds::avg_abs_error_threshold());
-  ASSERT_LT(dist_stats.std_dev_abs_error, Thresholds::std_dev_abs_error_threshold());
-  cerr << dist_stats << endl;
-}
-
-TYPED_TEST(UnsignedDistanceAccuracyTest, HighAccuracyUniformSpeedHyperSphereStats)
-{
-  using namespace std;
-
-  typedef TypeParam::ScalarType ScalarType;
-  static constexpr size_t kDimension = TypeParam::kDimension;
-  namespace fmm = thinks::fast_marching_method;
-  typedef fmm::HighAccuracyUniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
-
-  auto const grid_size = util::FilledArray<kDimension>(size_t{100});
-  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType(0.01));
-  auto const uniform_speed = ScalarType{1};
-
-  auto const sphere_center = util::FilledArray<kDimension>(ScalarType(0.5));
-  auto const sphere_radius = ScalarType(0.25);
-
-  auto const distance_stats =
-    util::HyperSphereDistanceStats<ScalarType, kDimension>(
-      sphere_center,
-      sphere_radius,
-      grid_size,
-      grid_spacing,
-      [](ScalarType const x) { return fabs(x); },
-      [=](auto const frozen_indices,
-          auto const frozen_distances) {
-        return thinks::fast_marching_method::UnsignedDistance(
-          grid_size,
-          frozen_indices,
-          frozen_distances,
-          EikonalSolverType(grid_spacing, uniform_speed));
-      });
-
-  typedef util::UnsignedDistanceAccuracyThresholds<ScalarType, kDimension> Thresholds;
-  ASSERT_EQ(distance_stats.min_abs_error, Thresholds::min_abs_error_threshold());
-  ASSERT_LT(distance_stats.max_abs_error, Thresholds::max_abs_error_threshold());
-  ASSERT_LT(distance_stats.avg_abs_error, Thresholds::avg_abs_error_threshold());
-  ASSERT_LT(distance_stats.std_dev_abs_error, Thresholds::std_dev_abs_error_threshold());
-  //cerr << "HIGH ACCURACY" << endl;
-  //cerr << distance_stats << endl;
-}
-
-TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_HighAccuracyVaryingSpeed)
-{
-  ASSERT_TRUE(false);
-}
-
-TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_DistanceAccuracyOnHyperSphere)
-{
-  using namespace std;
-
-  typedef TypeParam::ScalarType ScalarType;
-  static constexpr size_t kDimension = TypeParam::kDimension;
-  namespace fmm = thinks::fast_marching_method;
-  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension> EikonalSolverType;
-
-  auto const grid_size = util::FilledArray<kDimension>(size_t{20});
-  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType(0.5));
-  auto const speed = ScalarType{1};
-
-  auto const center = util::FilledArray<kDimension>(ScalarType{5});
-  auto const radius = ScalarType{3};
-  auto boundary_indices = vector<array<int32_t, kDimension>>();
-  auto boundary_distances = vector<ScalarType>();
-  auto ground_truth = vector<ScalarType>();
-  util::HyperSphereBoundaryCells(
-    center, radius,
-    grid_size, grid_spacing,
-    [](ScalarType const d) { return fabs(d); },
-    &boundary_indices, &boundary_distances,
-    &ground_truth);
-
-  auto const unsigned_distance = fmm::UnsignedDistance(
-    grid_size,
-    boundary_indices,
-    boundary_distances,
-    EikonalSolverType(grid_spacing, speed));
-
-  // TMP!!
-  if (kDimension == 2) {
-    // Negative values in shades of blue, positive values in shades of red.
-    // Very large values as grey.
-    auto const pixel_from_value = [](ScalarType const x) {
-      if (x == numeric_limits<ScalarType>::max()) {
-        return array<uint8_t, 3>{{128, 128, 128}};
-      }
-      return x < ScalarType(0) ?
-        array<uint8_t, 3>{{
-          uint8_t(0),
-          uint8_t(0),
-          util::Clamp<uint8_t>(
-            ScalarType(0),
-            ScalarType(numeric_limits<uint8_t>::max()),
-            numeric_limits<uint8_t>::max() * fabs(x))}} :
-        array<uint8_t, 3>{{
-          util::Clamp<uint8_t>(
-            ScalarType(0),
-            ScalarType(numeric_limits<uint8_t>::max()),
-            numeric_limits<uint8_t>::max() * x),
-          uint8_t(0),
-          uint8_t(0)}};
-    };
-
-    /*
-    auto gt_values = vector<ScalarType>(
-      grid_size[0] * grid_size[1], numeric_limits<ScalarType>::max());
-    auto gt_grid = util::Grid<ScalarType, kDimension>(grid_size, gt_values.front());
-    for (auto i = size_t{0}; i < frozen_indices.size(); ++i) {
-      gt_grid.Cell(frozen_indices[i]) = frozen_distances[i];
-    }
-    */
-    auto const gt_norm_values =
-      util::SignedNormalized<ScalarType>(begin(ground_truth), end(ground_truth));
-    auto ss_gt = stringstream();
-    ss_gt << "gt_" << typeid(ScalarType).name() << ".ppm";
-    thinks::ppm::writeRgbImage(
-      ss_gt.str(),
-      grid_size[0],
-      grid_size[1],
-      util::PixelsFromValues(
-        begin(gt_norm_values),
-        end(gt_norm_values),
-        pixel_from_value));
-
-    auto const usd_norm_values =
-      util::SignedNormalized<ScalarType>(begin(unsigned_distance), end(unsigned_distance));
-    auto ss_usd = stringstream();
-    ss_usd << "unsigned_distance_" << typeid(ScalarType).name() << ".ppm";
-    thinks::ppm::writeRgbImage(
-      ss_usd.str(),
-      grid_size[0],
-      grid_size[1],
-      util::PixelsFromValues(
-        begin(usd_norm_values),
-        end(usd_norm_values),
-        pixel_from_value));
-  }
-
-
-  for (auto i = size_t{0}; i < unsigned_distance.size(); ++i) {
-    if (kDimension == 2) {
-      //cerr << "[" << i << "]: " << unsigned_distance[i] << " | " << ground_truth[i] << endl;
-    }
-    ASSERT_LE(fabs(unsigned_distance[i] - ground_truth[i]), 1e-3);
-  }
-}
-
-TYPED_TEST(UnsignedDistanceAccuracyTest, GradientLength)
-{
-  using namespace std;
-
-  typedef TypeParam::ScalarType ScalarType;
-  static constexpr size_t kDimension = TypeParam::kDimension;
-  namespace fmm = thinks::fast_marching_method;
-  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
-
-  // Arrange.
-  auto const grid_size = util::FilledArray<kDimension>(size_t{100});
-  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType(0.01));
-  auto const uniform_speed = ScalarType{1};
-
-  auto const hyper_sphere_center =
-    util::FilledArray<kDimension>(ScalarType(0.5));
-  auto const hyper_sphere_radius = ScalarType(0.25);
-
-  auto boundary_indices = vector<array<int32_t, kDimension>>();
-  auto boundary_distances = vector<ScalarType>();
-  util::HyperSphereBoundaryCells(
-    hyper_sphere_center,
-    hyper_sphere_radius,
-    grid_size,
-    grid_spacing,
-    [](ScalarType const x) { return fabs(x); },
-    &boundary_indices,
-    &boundary_distances);
-
-#if 1
-  auto const input_buffer =
-    util::InputBuffer(grid_size, boundary_indices, boundary_distances);
-  auto ss_input = stringstream();
-  ss_input << "./grad_mag_input_" << typeid(ScalarType).name() << ".ppm";
-  util::writeRgbImage(
-    ss_input.str(),
-    grid_size[0],
-    grid_size[1],
-    input_buffer);
-#endif
-
-  auto distance_buffer =
-    fmm::UnsignedDistance(
-      grid_size,
-      boundary_indices,
-      boundary_distances,
-      EikonalSolverType(grid_spacing, uniform_speed));
-  auto const distance_grid = util::Grid<ScalarType, kDimension>(
-    grid_size, distance_buffer.front());
-
-  auto const grad_buffer = util::DistanceGradients(distance_grid, grid_spacing);
-  auto grad_mag_buffer = vector<ScalarType>(grad_buffer.size());
-  for (auto i = size_t{0}; i < grad_buffer.size(); ++i) {
-    grad_mag_buffer[i] = util::Magnitude(grad_buffer[i]);
-  }
-  auto const grad_mag_grid =
-    util::Grid<ScalarType, kDimension>(grid_size, grad_mag_buffer.front());
-
-  auto const grad_mag_error_buffer =
-    util::GradientMagnitudeErrors(
-      grad_mag_grid,
-      boundary_indices);
-#if 1
-  auto ss_error = stringstream();
-  ss_error << "./grad_mag_error_" << typeid(ScalarType).name() << ".ppm";
-  util::writeRgbImage(
-    ss_error.str(),
-    grid_size[0],
-    grid_size[1],
-    grad_mag_error_buffer);
-#endif
-
-  auto const error_stats = util::ErrorStatistics(grad_mag_error_buffer);
-  //cerr << "min: " << error_stats.min_abs_error << endl;
-  //cerr << "max: " << error_stats.max_abs_error << endl;
-  //cerr << "avg: " << error_stats.avg_abs_error << endl;
-
-  //ASSERT_TRUE(false);
-}
-
-TYPED_TEST(UnsignedDistanceAccuracyTest, DISABLED_HighAccuracyGradientLength)
-{
-  ASSERT_TRUE(false);
 }
 
 
@@ -3405,21 +2414,6 @@ TYPED_TEST(SignedDistanceTest, DifferentUniformSpeed)
     auto const d2 = signed_distance2[i];
     ASSERT_LE(fabs(speed1 * d1 - speed2 * d2), ScalarType(1e-3));
   }
-
-#if 1 // TMP
-  if (kDimension == 2 && typeid(ScalarType).name() == "float") {
-    util::writeRgbImage(
-      "./SignedDistanceTest_DifferentUniformSpeed_speed1.ppm",
-      grid_size[0],
-      grid_size[1],
-      signed_distance1);
-    util::writeRgbImage(
-      "./SignedDistanceTest_DifferentUniformSpeed_speed2.ppm",
-      grid_size[0],
-      grid_size[1],
-      signed_distance2);
-  }
-#endif
 }
 
 TYPED_TEST(SignedDistanceTest, BoxBoundaryHasOnlyInside)
@@ -3470,16 +2464,6 @@ TYPED_TEST(SignedDistanceTest, BoxBoundaryHasOnlyInside)
   for (auto const d : signed_distance) {
     ASSERT_LE(d, ScalarType{0});
   }
-
-#if 1 // TMP
-  if (kDimension == 2 && typeid(ScalarType).name() == "float") {
-    util::writeRgbImage(
-      "./SignedDistanceTest_BoxBoundaryHasOnlyInside.ppm",
-      grid_size[0],
-      grid_size[1],
-      signed_distance);
-  }
-#endif
 }
 
 TYPED_TEST(SignedDistanceTest, BoxBoundaryWithOutsideCorner)
@@ -3538,16 +2522,6 @@ TYPED_TEST(SignedDistanceTest, BoxBoundaryWithOutsideCorner)
   // in the corner.
   ASSERT_LT(distance_grid.Cell(mid_cell), ScalarType{0});
   ASSERT_GT(distance_grid.Cell(corner_cell), ScalarType{0});
-
-#if 1 // TMP
-  if (kDimension == 2 && typeid(ScalarType).name() == "float") {
-    util::writeRgbImage(
-      "./SignedDistanceTest_BoxBoundaryWithOutsideCorner.ppm",
-      grid_size[0],
-      grid_size[1],
-      signed_distance);
-  }
-#endif
 }
 
 TYPED_TEST(SignedDistanceTest, Checkerboard)
@@ -3615,19 +2589,6 @@ TYPED_TEST(SignedDistanceTest, Checkerboard)
 
     distance_iter.Next();
   }
-
-#if 1 // TMP
-  if (kDimension == 2) {
-    auto ss = stringstream();
-    ss << "./SignedDistanceTest_Checkerboard_"
-       << typeid(ScalarType).name() << ".ppm";
-    util::writeRgbImage(
-      ss.str(),
-      grid_size[0],
-      grid_size[1],
-      signed_distance);
-  }
-#endif
 }
 
 TYPED_TEST(SignedDistanceTest, OverlappingCircles)
@@ -3706,25 +2667,11 @@ TYPED_TEST(SignedDistanceTest, OverlappingCircles)
 
   auto x_begin = min(sphere_center_index1[0], sphere_center_index2[0]);
   auto x_end = max(sphere_center_index1[0], sphere_center_index2[0]);
-  cerr << x_begin << " " << x_end << endl;
   for (auto x = x_begin; x <= x_end; ++x) {
     auto index = sphere_center_index1; // Get non-x components.
     index[0] = x; // Set x from loop.
     ASSERT_LE(distance_grid.Cell(index), ScalarType{0});
   }
-
-#if 1 // TMP
-  if (kDimension == 2) {
-    auto ss = stringstream();
-    ss << "./SignedDistanceTest_OverlappingCircles_"
-       << typeid(ScalarType).name() << ".ppm";
-    util::writeRgbImage(
-      ss.str(),
-      grid_size[0],
-      grid_size[1],
-      signed_distance);
-  }
-#endif
 }
 
 TYPED_TEST(SignedDistanceTest, CircleInsideCircleThrows)
@@ -3862,17 +2809,6 @@ TYPED_TEST(SignedDistanceTest, PointSourceHighAccuracy)
   auto high_accuracy_distance_grid = util::Grid<ScalarType, kDimension>(
     grid_size, high_accuracy_signed_distance.front());
 
-#if 0 // TMP
-  auto dist_abs_error_buffer =
-    vector<ScalarType>(util::LinearSize(grid_size), ScalarType{0});
-  auto dist_abs_error_grid =
-    util::Grid<ScalarType, kDimension>(grid_size, dist_abs_error_buffer.front());
-  auto ha_dist_abs_error_buffer =
-    vector<ScalarType>(util::LinearSize(grid_size), ScalarType{0});
-  auto ha_dist_abs_error_grid = util::Grid<ScalarType, kDimension>(
-    grid_size, ha_dist_abs_error_buffer.front());
-#endif
-
   auto dist_abs_errors = vector<ScalarType>();
   auto ha_dist_abs_errors = vector<ScalarType>();
 
@@ -3930,63 +2866,6 @@ TYPED_TEST(SignedDistanceTest, PointSourceHighAccuracy)
             ScalarType(Bounds::high_accuracy_max_abs_error()));
   ASSERT_LE(high_accuracy_avg_abs_error,
             ScalarType(Bounds::high_accuracy_avg_abs_error()));
-
-#if 0 // TMP
-  if (kDimension == 2) {
-    auto ss = stringstream();
-    ss << "./SignedDistanceTest_HighAccuracy_FirstOrder_"
-       << typeid(ScalarType).name() << ".ppm";
-    util::writeRgbImage(
-      ss.str(),
-      grid_size[0],
-      grid_size[1],
-      signed_distance);
-    auto ss2 = stringstream();
-    ss2 << "./SignedDistanceTest_HighAccuracy_FirstOrder_abs_error_"
-        << typeid(ScalarType).name() << ".ppm";
-    util::writeGreyImage(
-      ss2.str(),
-      grid_size[0],
-      grid_size[1],
-      dist_abs_error_buffer);
-
-    auto ss3 = stringstream();
-    ss3 << "./SignedDistanceTest_HighAccuracy_SecondOrder_"
-        << typeid(ScalarType).name() << ".ppm";
-    util::writeRgbImage(
-      ss3.str(),
-      grid_size[0],
-      grid_size[1],
-      high_accuracy_signed_distance);
-    auto ss4 = stringstream();
-    ss4 << "./SignedDistanceTest_HighAccuracy_SecondOrder_abs_error_"
-        << typeid(ScalarType).name() << ".ppm";
-    util::writeGreyImage(
-      ss4.str(),
-      grid_size[0],
-      grid_size[1],
-      ha_dist_abs_error_buffer);
-  }
-#endif
 }
-
-// SignedDistanceAccuracy fixture.
-// TODO
 
 } // namespace
-
-namespace std {
-
-template<typename T, size_t N>
-ostream& operator<<(ostream& os, util::DistanceStats<T, N> const& dist_stats)
-{
-  os << "Distance value stats <" << typeid(T).name() << ", " << N << ">:" << endl
-    << "min abs error: " << dist_stats.min_abs_error << endl
-    << "max abs error: " << dist_stats.max_abs_error << endl
-    << "avg abs error: " << dist_stats.avg_abs_error << endl
-    << "std_dev abs error: " << dist_stats.std_dev_abs_error << endl
-    << "duration: " << dist_stats.duration_in_s << " [s]" << endl;
-  return os;
-}
-
-} // namespace std

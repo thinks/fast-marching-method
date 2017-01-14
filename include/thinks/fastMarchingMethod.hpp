@@ -83,6 +83,8 @@ bool Inside(
 {
   using namespace std;
 
+  static_assert(N > 0, "invalid dimensionality");
+
   for (auto i = size_t{0}; i < N; ++i) {
     // Cast is safe since we check that index[i] is greater than or
     // equal to zero first.
@@ -113,19 +115,42 @@ std::string ToString(std::array<T, N> const& a)
 }
 
 
+//! Returns an array where every element is set to @a value.
+template<typename T, std::size_t N>
+std::array<T, N> FilledArray(T const value)
+{
+  using namespace std;
+
+  auto a = array<T, N>();
+  fill(begin(a), end(a), value);
+  return a;
+}
+
+
+//! Returns true if @a dx is valid, otherwise false.
+template<typename T>
+bool ValidGridSpacingElement(T const dx)
+{
+  using namespace std;
+
+  static_assert(is_floating_point<T>::value,
+                "grid spacing element type must be floating point");
+
+  // Fail when dx is NaN.
+  return dx >= T(1e-6);
+}
+
+
 //! Returns true if @a grid_spacing is valid, otherwise false.
 template<typename T, std::size_t N>
 bool ValidGridSpacing(std::array<T, N> const& grid_spacing)
 {
   using namespace std;
 
-  static_assert(is_floating_point<T>::value,
-                "grid spacing type must be floating point");
-
   // All elements must be larger than or equal to a minimum value.
   // Fails if any element is NaN.
-  return none_of(begin(grid_spacing), end(grid_spacing),
-                 [](auto const dx) { return !(dx >= T(1e-6)); });
+  return all_of(begin(grid_spacing), end(grid_spacing),
+                [](auto const dx) { return ValidGridSpacingElement(dx); });
 }
 
 
@@ -279,7 +304,7 @@ void ThrowIfInvalidArrivalTime(
   // Fail when d is NaN.
   if (!(arrival_time >= T{0})) {
     auto ss = stringstream();
-    ss << "invalid distance (arrival time)" << arrival_time
+    ss << "invalid arrival time (distance)" << arrival_time
        << " at index " << ToString(index);
     throw runtime_error(ss.str());
   }
@@ -1640,19 +1665,40 @@ T HighAccuracySolveEikonal(
 }
 
 
-template<typename T>
-T BridsonEikonalDistance2D(
-    std::array<std::int32_t, 2> const& index,
-    Grid<T, 2> const& distance_grid,
+//!
+//!
+//! Implementation follows pseudo-code given in "Fluid Simulation for
+//! Computer Graphics" by Robert Bridson.
+//!
+//! Preconditions:
+//! - @a dx must be greater than zero.
+//! - @a index is inside @a distance_grid.
+//! - The cell at @a index must not be frozen in @a distance_grid.
+//! - There must be at least one cell in @a distance_grid that is a
+//!   frozen face-neighbor of @a index.
+//! - Cells in @a distance_grid that are not frozen must have the value
+//!   numeric_limits<T>::max().
+//!
+//! Note: Currently supports only square cells.
+template<typename T, std::size_t N>
+T SolveDistance(
+    std::array<std::int32_t, N> const& index,
+    Grid<T, N> const& distance_grid,
     T const dx)
 {
   using namespace std;
 
-  auto phi = array<T, 2>{{numeric_limits<T>::max(), numeric_limits<T>::max()}};
+  static_assert(1 <= N && N <= 3, "invalid dimensionality");
+
+  assert(Inside(index, distance_grid.size()) && "Precondition");
+  assert(!Frozen(distance_grid.Cell(index)) && "Precondition");
+
+  auto phi = array<T, N>();
+  fill(begin(phi), end(phi), numeric_limits<T>::max());
   auto phi_count = size_t{0};
 
   // Find the smallest frozen neighbor(s) (if any) in each dimension.
-  for (auto i = size_t{0}; i < 2; ++i) {
+  for (auto i = size_t{0}; i < N; ++i) {
     auto neighbor_min_distance = numeric_limits<T>::max();
     assert(!Frozen(neighbor_min_distance));
 
@@ -1679,78 +1725,19 @@ T BridsonEikonalDistance2D(
       phi[phi_count++] = neighbor_min_distance;
     }
   }
-  assert(phi_count > 0);
+  assert(phi_count > 0 && "Precondition");
 
-  // Sort ascending.
-  if (phi[1] < phi[0]) { swap(phi[0], phi[1]); }
-
-  auto distance = phi[0] + dx;
-  if (phi_count == 2 && distance > phi[1]) {
-    distance = T(0.5) * (phi[0] + phi[1] +
-      sqrt(T(2) * Squared(dx) - Squared(phi[1] - phi[0])));
-  }
-
-  // Arrival time is distance here since we have assumed that speed is one.
-  ThrowIfInvalidArrivalTime(distance, index);
-  return distance;
-}
-
-
-template<typename T>
-T BridsonEikonalDistance3D(
-    std::array<std::int32_t, 3> const& index,
-    Grid<T, 3> const& distance_grid,
-    T const dx)
-{
-  using namespace std;
-
-  auto phi = array<T, 3>{{
-    numeric_limits<T>::max(),
-    numeric_limits<T>::max(),
-    numeric_limits<T>::max()
-  }};
-  auto phi_count = size_t{0};
-
-  // Find the smallest frozen neighbor(s) (if any) in each dimension.
-  for (auto i = size_t{0}; i < N; ++i) {
-    auto neighbor_min_distance = numeric_limits<T>::max();
-
-    // -1
-    auto neighbor_index = index;
-    neighbor_index[i] -= 1;
-    if (Inside(neighbor_index, distance_grid.size())) {
-      auto const neighbor_distance = distance_grid.Cell(neighbor_index);
-      if (neighbor_distance < neighbor_min_distance) {
-        neighbor_min_distance = neighbor_distance;
-      }
-    }
-
-    // -1 + 2 = +1
-    neighbor_index[i] += 2;
-    if (Inside(neighbor_index, distance_grid.size())) {
-      auto const neighbor_distance = distance_grid.Cell(neighbor_index);
-      if (neighbor_distance < neighbor_min_distance) {
-        neighbor_min_distance = neighbor_distance;
-      }
-    }
-
-    if (neighbor_min_distance < numeric_limits<T>::max()) {
-      phi[phi_count++] = neighbor_min_distance;
-    }
-  }
-  assert(phi_count > 0);
-
-  // Sort ascending.
-  if (phi[0] > phi[1]) { swap(phi[0], phi[1]); }
-  if (phi[1] > phi[2]) { swap(phi[1], phi[2]); }
-  if (phi[0] > phi[1]) { swap(phi[0], phi[1]); }
+  // Sort ascending using a sorting network approach.
+  if (N >= 2 && phi[0] > phi[1]) { swap(phi[0], phi[1]); }
+  if (N == 3 && phi[1] > phi[2]) { swap(phi[1], phi[2]); }
+  if (N == 3 && phi[0] > phi[1]) { swap(phi[0], phi[1]); }
 
   auto distance = phi[0] + dx;
-  if (phi_count > 1 && distance > phi[1]) {
+  if (N >= 2 && phi_count > 1 && distance > phi[1]) {
     distance = T(0.5) * (phi[0] + phi[1] +
       sqrt(T(2) * Squared(dx) - Squared(phi[1] - phi[0])));
-    if (phi_count == 3 && distance > phi[2]) {
-      auto const phi_sum = phi[0] + phi[1] +phi[2];
+    if (N == 3 && phi_count == 3 && distance > phi[2]) {
+      auto const phi_sum = phi[0] + phi[1] + phi[2];
       auto phi_sum_squared = Squared(phi[0]) + Squared(phi[1]) + Squared(phi[2]);
       distance = (T(1) / T(3)) * (phi_sum + sqrt(max(
         T(0),
@@ -1758,6 +1745,7 @@ T BridsonEikonalDistance3D(
     }
   }
 
+  // Arrival time is distance here since we have assumed that speed is one.
   ThrowIfInvalidArrivalTime(distance, index);
   return distance;
 }
@@ -1808,7 +1796,7 @@ protected:
   //! - Non-zero
   //! - Positive
   //! - Not NaN
-  T speed() const
+  T uniform_speed() const
   {
     return uniform_speed_;
   }
@@ -1943,9 +1931,9 @@ std::vector<T> SignedDistance(
 } // namespace detail
 
 
-//! Holds parameters related to the grid and provides methods for solving
-//! the eikonal equation for a single grid cell at a time using
-//! the current distance grid.
+//! Provides methods for solving the eikonal equation for a single grid cell
+//! at a time using the current distance grid. Assumes a uniform speed for
+//! the entire grid.
 template<typename T, std::size_t N>
 class UniformSpeedEikonalSolver :
   public detail::UniformSpeedEikonalSolverBase<T, N>
@@ -1953,8 +1941,8 @@ class UniformSpeedEikonalSolver :
 public:
   explicit UniformSpeedEikonalSolver(
     std::array<T, N> const& grid_spacing,
-    T const speed = T{1})
-    : detail::UniformSpeedEikonalSolverBase<T, N>(grid_spacing, speed)
+    T const uniform_speed = T{1})
+    : detail::UniformSpeedEikonalSolverBase<T, N>(grid_spacing, uniform_speed)
   {}
 
   //! Returns the distance for grid cell at @a index given the current
@@ -1966,70 +1954,16 @@ public:
     return detail::SolveEikonal(
       index,
       distance_grid,
-      speed(),
+      uniform_speed(),
       grid_spacing());
   }
 };
 
 
-template<typename T>
-class BridsonDistanceEikonalSolver3D
-{
-public:
-  typedef T ScalarType;
-  static std::size_t const kDimension = 3;
-
-  explicit BridsonDistanceEikonalSolver3D(T const dx)
-    : dx_(dx)
-  {
-    // TODO: check valid dx!
-  }
-
-  //! Returns the distance for grid cell at @a index given the current
-  //! distances (@a distance_grid) of other cells.
-  T Solve(
-    std::array<std::int32_t, 3> const& index,
-    detail::Grid<T, 3> const& distance_grid) const
-  {
-    return detail::BridsonEikonalDistance3D(
-      index,
-      distance_grid,
-      dx_);
-  }
-
-private:
-  T const dx_;
-};
-
-template<typename T>
-class BridsonDistanceEikonalSolver2D
-{
-public:
-  typedef T ScalarType;
-  static std::size_t const kDimension = 2;
-
-  explicit BridsonDistanceEikonalSolver2D(T const dx)
-    : dx_(dx)
-  {
-    // TODO: check valid dx!
-  }
-
-  //! Returns the distance for grid cell at @a index given the current
-  //! distances (@a distance_grid) of other cells.
-  T Solve(
-    std::array<std::int32_t, 2> const& index,
-    detail::Grid<T, 2> const& distance_grid) const
-  {
-    return detail::BridsonEikonalDistance2D(
-      index,
-      distance_grid,
-      dx_);
-  }
-
-private:
-  T const dx_;
-};
-
+//! Provides methods for solving the eikonal equation for a single grid cell
+//! at a time using the current distance grid. Assumes a uniform speed for
+//! the entire grid. When possible uses second order derivates to achieve
+//! better accuracy.
 template <typename T, std::size_t N>
 class HighAccuracyUniformSpeedEikonalSolver :
   public detail::UniformSpeedEikonalSolverBase<T, N>
@@ -2037,8 +1971,8 @@ class HighAccuracyUniformSpeedEikonalSolver :
 public:
   explicit HighAccuracyUniformSpeedEikonalSolver(
     std::array<T, N> const& grid_spacing,
-    T const speed = T{1})
-    : detail::UniformSpeedEikonalSolverBase<T, N>(grid_spacing, speed)
+    T const uniform_speed = T{1})
+    : detail::UniformSpeedEikonalSolverBase<T, N>(grid_spacing, uniform_speed)
   {}
 
   //! Returns the distance for grid cell at @a index given the current
@@ -2050,12 +1984,15 @@ public:
     return detail::HighAccuracySolveEikonal(
       index,
       distance_grid,
-      speed(),
+      uniform_speed(),
       grid_spacing());
   }
 };
 
 
+//! Provides methods for solving the eikonal equation for a single grid cell
+//! at a time using the current distance grid. A speed grid must be provided
+//! and that grid must cover the arrival time grid.
 template <typename T, std::size_t N>
 class VaryingSpeedEikonalSolver :
   public detail::VaryingSpeedEikonalSolverBase<T, N>
@@ -2084,7 +2021,10 @@ public:
 };
 
 
-//!
+//! Provides methods for solving the eikonal equation for a single grid cell
+//! at a time using the current distance grid. A speed grid must be provided
+//! and that grid must cover the arrival time grid. When possible uses second
+//! order derivates to achieve better accuracy.
 template <typename T, std::size_t N>
 class HighAccuracyVaryingSpeedEikonalSolver :
   public detail::VaryingSpeedEikonalSolverBase<T, N>
@@ -2110,6 +2050,42 @@ public:
       Speed(index),
       grid_spacing());
   }
+};
+
+
+//! Provides methods for solving the eikonal equation for a single grid cell
+//! at a time using the current distance grid. The speed is assumed to be
+//! one for the entire grid, meaning that arrival time can be interpreted
+//! as distance.
+//!
+//! Note: Currently only supports uniform grid spacing.
+template<typename T, std::size_t N>
+class DistanceSolver
+{
+public:
+  typedef T ScalarType;
+  static std::size_t const kDimension = N;
+
+  explicit DistanceSolver(T const dx)
+    : dx_(dx)
+  {
+    detail::ThrowIfInvalidGridSpacing(detail::FilledArray<T, N>(dx_));
+  }
+
+  //! Returns the distance for grid cell at @a index given the current
+  //! distances (@a distance_grid) of other cells.
+  T Solve(
+    std::array<std::int32_t, N> const& index,
+    detail::Grid<T, N> const& distance_grid) const
+  {
+    return detail::SolveDistance(
+      index,
+      distance_grid,
+      dx_);
+  }
+
+private:
+  T const dx_;
 };
 
 
