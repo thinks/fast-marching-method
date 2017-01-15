@@ -24,9 +24,14 @@ int main(int argc, char* argv[])
     //"SignedDistanceTest/2*HighAccuracy" ":"
 #endif
 
-#if 1
+#if 0
     "UnsignedDistanceTest*" ":"
 #endif
+
+#if 1
+    "SignedDistanceTest*" ":"
+#endif
+
 
 #if 0
     "UniformSpeedEikonalSolverTest*" ":"

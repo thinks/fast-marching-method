@@ -2367,7 +2367,7 @@ TYPED_TEST(SignedDistanceTest, EikonalSolverFailThrows)
 
   // Assert.
   ASSERT_TRUE(ft.first);
-  ASSERT_EQ("negative discriminant", ft.second);
+  ASSERT_EQ("invalid arrival time (distance)", ft.second.substr(size_t{0}, 31));
 }
 
 TYPED_TEST(SignedDistanceTest, DifferentUniformSpeed)

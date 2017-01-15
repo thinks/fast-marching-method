@@ -304,7 +304,7 @@ void ThrowIfInvalidArrivalTime(
   // Fail when d is NaN.
   if (!(arrival_time >= T{0})) {
     auto ss = stringstream();
-    ss << "invalid arrival time (distance)" << arrival_time
+    ss << "invalid arrival time (distance) " << arrival_time
        << " at index " << ToString(index);
     throw runtime_error(ss.str());
   }
