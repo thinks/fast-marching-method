@@ -33,14 +33,13 @@ ENDIF()
 
 INCLUDE_DIRECTORIES(
   ${gtest_SOURCE_DIR}
-  ${gtest_SOURCE_DIR}/include
-  ../include
-  include)
-#  ../../ppm-io/include)
+  ${gtest_SOURCE_DIR}/include)
 
 ADD_EXECUTABLE(fast-marching-method-test
   main.cpp
-  testFastMarchingMethod.cpp)
+  eikonal_solvers_test.cpp
+  signed_arrival_time_test.cpp
+  unsigned_arrival_time_test.cpp)
 
 TARGET_LINK_LIBRARIES(fast-marching-method-test gtest gtest_main)
 

@@ -1,3 +1,23 @@
+// Copyright 2017 Tommy Hinks
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+// DEALINGS IN THE SOFTWARE.
+
 #ifndef THINKS_FASTMARCHINGMETHOD_HPP_INCLUDED
 #define THINKS_FASTMARCHINGMETHOD_HPP_INCLUDED
 
@@ -262,15 +282,15 @@ void ThrowIfBoundaryIndexOutsideGrid(
 
 
 //! Throws an std::invalid_argument exception if the flag @a valid is false.
-//! @a distance is used to construct the exception message.
+//! @a time is used to construct the exception message.
 template<typename T>
-void ThrowIfInvalidBoundaryDistance(bool const valid, T const distance)
+void ThrowIfInvalidBoundaryTime(bool const valid, T const time)
 {
   using namespace std;
 
   if (!valid) {
     auto ss = stringstream();
-    ss << "invalid boundary distance: " << distance;
+    ss << "invalid boundary time: " << time;
     throw invalid_argument(ss.str());
   }
 }
@@ -288,6 +308,24 @@ void ThrowIfDuplicateBoundaryIndex(
   if (duplicate) {
     auto ss = stringstream();
     ss << "duplicate boundary index: " << ToString(index);
+    throw invalid_argument(ss.str());
+  }
+}
+
+
+//! Throws an std::invalid_argument if the size of @a boundary_indices is
+//! not equal to the size of @a boundary_times.
+template<typename T, std::size_t N>
+void ThrowIfBoundaryIndicesTimesSizeMismatch(
+  std::vector<std::array<std::int32_t, N>> const& boundary_indices,
+  std::vector<T> const& boundary_times)
+{
+  using namespace std;
+
+  if (boundary_indices.size() != boundary_times.size()) {
+    auto ss = stringstream();
+    ss << "boundary indices[" << boundary_indices.size() << "] / "
+       << "boundary times[" << boundary_times.size() << "] size mismatch";
     throw invalid_argument(ss.str());
   }
 }
@@ -330,13 +368,23 @@ void ThrowIfSpeedIndexOutsideGrid(
 }
 
 
-//! Throws an std::invalid_argument exception if the flag @a empty is false.
-inline void ThrowIfEmptyNarrowBand(bool const empty)
+//! Throws an std::invalid_argument exception if the number of
+//! @a boundary_indices is equal to the number of grid cells (given
+//! by @a grid_size). Note that we are not checking for duplicates in
+//! @a boundary_indices here, we are assuming unique indices. However,
+//! duplicate indices are checked elsewhere and will give rise to a separate
+//! error.
+template<std::size_t N>
+void ThrowIfFullGridBoundaryIndices(
+  std::vector<std::array<std::int32_t, N>> const& boundary_indices,
+  std::array<std::size_t, N> const& grid_size)
 {
   using namespace std;
 
-  if (empty) {
-    throw invalid_argument("empty narrow band");
+  if (boundary_indices.size() == LinearSize(grid_size)) {
+    auto ss = stringstream();
+    ss << "full grid boundary";
+    throw invalid_argument(ss.str());
   }
 }
 
@@ -581,19 +629,11 @@ public:
   }
 
 private:
-  // Place smaller distances at the back of the underlying container.
-  struct HeapComparison_
-  {
-    bool operator()(ValueType const& lhs, ValueType const& rhs)
-    {
-      return lhs.first > rhs.first;
-    }
-  };
-
+  // Place smaller values at the top of the heap.
   typedef std::priority_queue<
     ValueType,
     std::vector<ValueType>,
-    HeapComparison_> MinHeap_;
+    std::greater<ValueType>> MinHeap_;
 
   MinHeap_ min_heap_;
 };
@@ -1039,14 +1079,16 @@ NarrowBandDilationBandCells(
 //! returned list may contain duplicates (this is not the case for the inside
 //! indices).
 //!
+//! All returned indices are guaranteed to be inside @a grid_size.
+//!
 //! Preconditions:
-//! - Every element in @a boundary_indices is inside @a distance_grid_size.
+//! - Every element in @a boundary_indices is inside @a grid_size.
 template<std::size_t N>
 std::pair<std::vector<std::array<std::int32_t, N>>,
           std::vector<std::array<std::int32_t, N>>>
-SignedNarrowBandIndices(
+OutsideInsideNarrowBandIndices(
   std::vector<std::array<std::int32_t, N>> const& boundary_indices,
-  std::array<std::size_t, N> const& distance_grid_size)
+  std::array<std::size_t, N> const& grid_size)
 {
   using namespace std;
 
@@ -1060,7 +1102,7 @@ SignedNarrowBandIndices(
   auto const vtx_neighbor_offsets = VertexNeighborOffsets<N>();
   auto const connected_components = ConnectedComponents(
     boundary_indices,
-    distance_grid_size,
+    grid_size,
     begin(vtx_neighbor_offsets),
     end(vtx_neighbor_offsets));
   assert(!connected_components.empty());
@@ -1069,9 +1111,9 @@ SignedNarrowBandIndices(
   // - boundary cells = 1
   // - non-boundary cells = 0
   auto boundary_mask_buffer =
-    vector<uint8_t>(LinearSize(distance_grid_size), uint8_t{0});
+    vector<uint8_t>(LinearSize(grid_size), uint8_t{0});
   auto boundary_mask_grid =
-    Grid<uint8_t, N>(distance_grid_size, boundary_mask_buffer);
+    Grid<uint8_t, N>(grid_size, boundary_mask_buffer);
   for (auto const& boundary_index : boundary_indices) {
     assert(Inside(boundary_index, boundary_mask_grid.size()) && "Precondition");
     boundary_mask_grid.Cell(boundary_index) = uint8_t{1};
@@ -1081,12 +1123,12 @@ SignedNarrowBandIndices(
   // Dilation bands must be computed per connected component since each
   // component has a separate outer dilation band. If we were to compute
   // dilation bands for all boundary indices at once we would then need to
-  // do work to figure out if these were outer or inner dilation bands.
+  // do extra work to figure out if these were outer or inner dilation bands.
   auto const face_neighbor_offsets = FaceNeighborOffsets<N>();
   for (auto const& connected_component : connected_components) {
     auto const dilation_bands = DilationBands(
       connected_component,
-      distance_grid_size,
+      grid_size,
       begin(vtx_neighbor_offsets),
       end(vtx_neighbor_offsets),
       begin(face_neighbor_offsets),
@@ -1112,7 +1154,7 @@ SignedNarrowBandIndices(
         end(outer_narrow_band_indices));
     }
     else /* if (dilation_bands.size() == 2) */ {
-      // We have more than one dilation bands: one outer and possibly several
+      // We have more than one dilation band: one outer and one or more
       // inner. The outer dilation band has the largest bounding box.
       // Note that when we have several dilation bands none of them can be
       // empty. The reasoning is that an empty dilation band requires the
@@ -1132,13 +1174,15 @@ SignedNarrowBandIndices(
       }
 
       // Sort dilation bands by descending volume. The outer dilation band
-      // is then the first element.
+      // is then the first element. Note that the outer dilation band area
+      // should be strictly larger than the largest inner dilation band area.
       sort(
         begin(dilation_band_areas),
         end(dilation_band_areas),
         [](auto const& lhs, auto const& rhs) {
           return lhs.second > rhs.second;
         });
+      assert(dilation_band_areas[0] > dilation_band_areas[1]);
 
       // Outer dilation bands of several connected components may overlap.
       // We are fine with adding an index multiple times to the outside
@@ -1156,10 +1200,10 @@ SignedNarrowBandIndices(
                begin(outer_narrow_band_indices),
                end(outer_narrow_band_indices),
                [=](auto const& distance_grid_index) {
-                 return !Inside(distance_grid_index, distance_grid_size);
+                 return !Inside(distance_grid_index, grid_size);
                }));
       // Note that the outer narrow band is empty when the whole border of the
-      // distance grid is frozen.
+      // grid is frozen.
       outside_narrow_band_indices.insert(
         end(outside_narrow_band_indices),
         begin(outer_narrow_band_indices),
@@ -1179,7 +1223,7 @@ SignedNarrowBandIndices(
                  begin(inner_narrow_band_indices),
                  end(inner_narrow_band_indices),
                  [=](auto const& distance_grid_index) {
-                   return !Inside(distance_grid_index, distance_grid_size);
+                   return !Inside(distance_grid_index, grid_size);
                  }));
         inside_narrow_band_indices.insert(
           end(inside_narrow_band_indices),
@@ -1211,110 +1255,58 @@ bool Frozen(T const d)
 }
 
 
-//! Set boundary distances on @a distance_grid. Distances are multiplied by
+//! Set boundary times on @a time_grid. Times are multiplied by
 //! @a multiplier (typically 1 or -1).
 //!
-//! Throws std::invalid_argument if:
-//! - Not the same number of @a indices and @a distances, or
-//! - @a indices (and @a distances) are empty, or
-//! - Any index is outside the @a distance_grid, or
-//! - Any duplicate in @a indices, or
-//! - Any value in @a distances does not pass the @a distance_predicate test.
-template <typename T, std::size_t N, typename D>
-void SetBoundaryCondition(
-  std::vector<std::array<std::int32_t, N>> const& indices,
-  std::vector<T> const& distances,
-  T const multiplier,
-  D const distance_predicate,
-  Grid<T, N>* const distance_grid)
-{
-  using namespace std;
-
-  assert(distance_grid != nullptr);
-
-  ThrowIfEmptyBoundaryIndices(indices);
-
-  if (indices.size() != distances.size()) {
-    throw invalid_argument("boundary indices/distances size mismatch");
-  }
-
-  auto const distance_grid_size = distance_grid->size();
-  for (auto i = size_t{0}; i < indices.size(); ++i) {
-    auto const index = indices[i];
-    auto const distance = multiplier * distances[i];
-
-    ThrowIfBoundaryIndexOutsideGrid(index, distance_grid_size);
-    ThrowIfInvalidBoundaryDistance(distance_predicate(distance), distance);
-
-    auto& distance_cell = distance_grid->Cell(index);
-    ThrowIfDuplicateBoundaryIndex(Frozen(distance_cell), index);
-    distance_cell = distance;
-  }
-}
-
-
-//! Returns a narrow band store containing estimated distances for the
-//! face-neighbors of @a boundary_indices.
+//! Preconditions:
+//! - Sizes of @a boundary_indices and @a boundary_times are equal.
 //!
-//! Precondition:
-//! - Boundary condition distance have been set in @a distance_grid.
-template<typename T, std::size_t N, typename E>
-std::unique_ptr<NarrowBandStore<T, N>>
-InitialUnsignedNarrowBand(
+//! Throws std::invalid_argument if:
+//! - The @a check_duplicate_indices is true and there is one or more
+//!   duplicate in @a indices.
+//! - Every element in @a boundary_indices must be inside @a time_grid.
+template <typename T, std::size_t N>
+void SetBoundaryCondition(
   std::vector<std::array<std::int32_t, N>> const& boundary_indices,
-  Grid<T, N> const& distance_grid,
-  E const& eikonal_solver)
+  std::vector<T> const& boundary_times,
+  T const multiplier,
+  bool const check_duplicate_indices,
+  Grid<T, N>* const time_grid)
 {
   using namespace std;
 
-  static_assert(N > 0, "dimensionality cannot be zero");
-  static_assert(N == E::kDimension, "mismatching eikonal solver dimension");
+  assert(time_grid != nullptr);
+  assert(boundary_indices.size() == boundary_times.size() && "Precondition");
 
-  assert(!boundary_indices.empty());
+  for (auto i = size_t{0}; i < boundary_indices.size(); ++i) {
+    auto const index = boundary_indices[i];
+    auto const time = multiplier * boundary_times[i];
+    assert(Inside(index, time_grid->size()) && "Precondition");
 
-  auto narrow_band =
-    unique_ptr<NarrowBandStore<T, N>>(new NarrowBandStore<T, N>());
-
-  // Find non-frozen face neighbors of boundary cells, which then become
-  // the initial narrow band.
-  auto const kNeighborOffsets = array<int32_t, 2>{{-1, 1}};
-  for (auto const& boundary_index : boundary_indices) {
-    assert(Inside(boundary_index, distance_grid.size()));
-    assert(Frozen(distance_grid.Cell(boundary_index)));
-
-    for (auto i = size_t{0}; i < N; ++i) {
-      for (auto const neighbor_offset : kNeighborOffsets) {
-        auto neighbor_index = boundary_index;
-        neighbor_index[i] += neighbor_offset;
-        if (Inside(neighbor_index, distance_grid.size()) &&
-            !Frozen(distance_grid.Cell(neighbor_index))) {
-          // Found non-frozen face neighbor inside the distance grid
-          // of a boundary index.
-          narrow_band->Push({
-            eikonal_solver.Solve(neighbor_index, distance_grid),
-            neighbor_index});
-        }
-      }
+    auto& time_cell = time_grid->Cell(index);
+    if (check_duplicate_indices) {
+      ThrowIfDuplicateBoundaryIndex(Frozen(time_cell), index);
     }
+    time_cell = time;
+    assert(Frozen(time_cell));
   }
-  return narrow_band;
 }
 
 
-//! Returns a non-empty narrow band store containing estimated distances for
-//! the cells in @a narrow_band_indices. Note that @a narrow_band_indices
-//! may contain duplicates.
+//! Returns a (non-null) non-empty narrow band store containing estimated
+//! distances for the cells in @a narrow_band_indices. Note that
+//! @a narrow_band_indices may contain duplicates.
 //!
 //! Preconditions:
-//! - Boundary condition distances have been set in @a distance_grid.
+//! - Boundary condition distances have been set in @a time_grid.
 //! - List of narrow band indices is not empty.
-//! - Narrow band indices are inside @a distance_grid.
-//! - Narrow band indices are not frozen in @a distance_grid.
+//! - Narrow band indices are inside @a time_grid.
+//! - Narrow band indices are not frozen in @a time_grid.
 template<typename T, std::size_t N, typename E>
 std::unique_ptr<NarrowBandStore<T, N>>
 InitializedNarrowBand(
   std::vector<std::array<std::int32_t, N>> const& narrow_band_indices,
-  Grid<T, N> const& distance_grid,
+  Grid<T, N> const& time_grid,
   E const& eikonal_solver)
 {
   using namespace std;
@@ -1324,25 +1316,26 @@ InitializedNarrowBand(
   auto narrow_band =
     unique_ptr<NarrowBandStore<T, N>>(new NarrowBandStore<T, N>());
   for (auto const& narrow_band_index : narrow_band_indices) {
-    assert(Inside(narrow_band_index, distance_grid.size()) && "Precondition");
-    assert(!Frozen(distance_grid.Cell(narrow_band_index)) && "Precondition");
+    assert(Inside(narrow_band_index, time_grid.size()) && "Precondition");
+    assert(!Frozen(time_grid.Cell(narrow_band_index)) && "Precondition");
     narrow_band->Push({
-      eikonal_solver.Solve(narrow_band_index, distance_grid),
+      eikonal_solver.Solve(narrow_band_index, time_grid),
       narrow_band_index});
   }
   assert(!narrow_band->empty());
+
   return narrow_band;
 }
 
 
-//! Compute distances using the @a eikonal_solver for the face-neighbors of
-//! the cell @a index. The distances are not written to the @a distance_grid,
+//! Compute arrival times using the @a eikonal_solver for the face-neighbors of
+//! the cell at @a index. The arrival times are not written to the @a time_grid,
 //! but are instead stored in the @a narrow_band.
 template <typename T, std::size_t N, typename E>
 void UpdateNeighbors(
   std::array<std::int32_t, N> const& index,
   E const& eikonal_solver,
-  Grid<T, N>* const distance_grid,
+  Grid<T, N>* const time_grid,
   NarrowBandStore<T, N>* const narrow_band)
 {
   using namespace std;
@@ -1350,10 +1343,10 @@ void UpdateNeighbors(
   static_assert(N > 0, "dimensionality cannot be zero");
   static_assert(N == E::kDimension, "mismatching eikonal solver dimension");
 
-  assert(distance_grid != nullptr);
+  assert(time_grid != nullptr);
   assert(narrow_band != nullptr);
-  assert(Inside(index, distance_grid->size()));
-  assert(Frozen(distance_grid->Cell(index)));
+  assert(Inside(index, time_grid->size()));
+  assert(Frozen(time_grid->Cell(index)));
 
   // Update the narrow band. Check face-neighbors in all dimensions.
   auto const kNeighborOffsets = array<int32_t, 2>{{-1, 1}};
@@ -1362,16 +1355,16 @@ void UpdateNeighbors(
       auto neighbor_index = index;
       neighbor_index[i] += neighbor_offset;
 
-      if (Inside(neighbor_index, distance_grid->size())) {
+      if (Inside(neighbor_index, time_grid->size())) {
         // If the neighbor is not frozen compute a distance for it.
         // Note that we don't check if there is an entry for this index
         // in the narrow band already. If we happen to insert multiple
         // distances for the same index the smallest one will be frozen first
         // when marching and the larger distances will be ignored.
-        auto& distance_cell = distance_grid->Cell(neighbor_index);
+        auto& distance_cell = time_grid->Cell(neighbor_index);
         if (!Frozen(distance_cell)) {
           narrow_band->Push({
-            eikonal_solver.Solve(neighbor_index, *distance_grid),
+            eikonal_solver.Solve(neighbor_index, *time_grid),
             neighbor_index});
         }
       }
@@ -1390,37 +1383,148 @@ template <typename T, std::size_t N, typename E>
 void MarchNarrowBand(
   E const& eikonal_solver,
   NarrowBandStore<T, N>* const narrow_band,
-  Grid<T, N>* const distance_grid)
+  Grid<T, N>* const time_grid)
 {
   using namespace std;
 
-  assert(distance_grid != nullptr);
+  assert(time_grid != nullptr);
   assert(narrow_band != nullptr);
   assert(!narrow_band->empty() && "Precondition");
 
   while (!narrow_band->empty()) {
-    // Take smallest distance from the narrow band and freeze it, i.e.
-    // write it to the distance grid.
+    // Take smallest time from the narrow band and freeze it, i.e.
+    // write it to the time grid.
     auto const narrow_band_cell = narrow_band->Pop();
-    auto const distance = narrow_band_cell.first;
+    auto const time = narrow_band_cell.first;
     auto const index = narrow_band_cell.second;
 
-    assert(Inside(index, distance_grid->size()));
-    auto& distance_cell = distance_grid->Cell(index);
+    assert(Inside(index, time_grid->size()));
+    auto& time_cell = time_grid->Cell(index);
 
-    // Since we allow multiple distances for the same cell index in the
-    // narrow band it could be that the distance for this grid cell has
-    // already been frozen. In that case just ignore subsequent values from
-    // the narrow band for that grid cell and move on.
-    if (!Frozen(distance_cell)) {
-      distance_cell = distance;
-      assert(Frozen(distance_cell));
+    // Since we allow multiple values for the same cell index in the
+    // narrow band it could happen that this grid cell has already been
+    // frozen. In that case just ignore subsequent values from the narrow
+    // band for that grid cell and move on.
+    if (!Frozen(time_cell)) {
+      time_cell = time;
+      assert(Frozen(time_cell));
 
       // Update distances for non-frozen face-neighbors of the newly
       // frozen cell.
-      UpdateNeighbors(index, eikonal_solver, distance_grid, narrow_band);
+      UpdateNeighbors(index, eikonal_solver, time_grid, narrow_band);
     }
   }
+}
+
+
+//! DOCS
+//!
+//!
+//! Throws std::invalid_argument if:
+//! - Not the same number of @a indices and @a distances, or
+//! - @a indices (and @a distances) are empty, or
+//! - Any index is outside the @a distance_grid, or
+//! - Any duplicate in @a indices, or
+//! - Any value in @a distances does not pass the @a distance_predicate test.
+template<typename T, std::size_t N, typename EikonalSolverType, typename P>
+std::vector<T> ArrivalTime(
+  std::array<std::size_t, N> const& grid_size,
+  std::vector<std::array<std::int32_t, N>> const& boundary_indices,
+  std::vector<T> const& boundary_times,
+  EikonalSolverType const& eikonal_solver,
+  P const boundary_time_predicate,
+  bool const negative_inside)
+{
+  using namespace std;
+
+  typedef T TimeType;
+
+  static_assert(N > 0, "dimensionality cannot be zero");
+  static_assert(N == EikonalSolverType::kDimension,
+                "mismatching eikonal solver dimension");
+
+  // Check input.
+  ThrowIfZeroElementInSize(grid_size);
+  ThrowIfEmptyBoundaryIndices(boundary_indices);
+  ThrowIfFullGridBoundaryIndices(boundary_indices, grid_size);
+  ThrowIfBoundaryIndicesTimesSizeMismatch(boundary_indices, boundary_times);
+  for_each(
+    begin(boundary_indices),
+    end(boundary_indices),
+    [=](auto const& boundary_index) {
+      ThrowIfBoundaryIndexOutsideGrid(boundary_index, grid_size);
+  });
+  for_each(
+    begin(boundary_times),
+    end(boundary_times),
+    [=](auto const& boundary_time) {
+      ThrowIfInvalidBoundaryTime(
+        boundary_time_predicate(boundary_time),
+        boundary_time);
+    });
+
+  auto narrow_band_indices = OutsideInsideNarrowBandIndices(
+    boundary_indices,
+    grid_size);
+  auto const& outside_narrow_band_indices = narrow_band_indices.first;
+  auto const& inside_narrow_band_indices = narrow_band_indices.second;
+
+  auto time_buffer = vector<TimeType>(
+    LinearSize(grid_size), numeric_limits<TimeType>::max());
+  assert(none_of(begin(time_buffer), end(time_buffer),
+                 [](TimeType const t) { return Frozen(t); }));
+  auto time_grid = Grid<TimeType, N>(grid_size, time_buffer);
+
+  if (!inside_narrow_band_indices.empty()) {
+    // Set boundaries for marching inside. Always check for duplicate indices.
+    auto const check_duplicate_indices = true;
+    SetBoundaryCondition(
+      boundary_indices,
+      boundary_times,
+      TimeType{-1}, // Multiplier, negate boundary times for inside.
+      check_duplicate_indices,
+      &time_grid);
+
+    // Initialize inside narrow band with negated boundary times.
+    auto inside_narrow_band = InitializedNarrowBand(
+      inside_narrow_band_indices,
+      time_grid,
+      eikonal_solver);
+    MarchNarrowBand(eikonal_solver, inside_narrow_band.get(), &time_grid);
+
+    if (negative_inside) {
+      // Negate all the inside times. Essentially, negate everything
+      // computed so far. Note that this also affects the boundary cells.
+      for_each(
+        begin(time_buffer),
+        end(time_buffer),
+        [](auto& t) { t = Frozen(t) ? t * TimeType{-1} : t; });
+    }
+  }
+
+  if (!outside_narrow_band_indices.empty()) {
+    // Set boundaries for marching outside. Only check for duplicate indices
+    // if this was not done already, i.e. if we marched an inside narrow band.
+    auto const check_duplicate_indices = inside_narrow_band_indices.empty();
+    SetBoundaryCondition(
+      boundary_indices,
+      boundary_times,
+      TimeType{1}, // Multiplier, original boundary distances for outside.
+      check_duplicate_indices,
+      &time_grid);
+
+    // Initialize outside narrow band with original boundary times.
+    auto outside_narrow_band = InitializedNarrowBand(
+      outside_narrow_band_indices,
+      time_grid,
+      eikonal_solver);
+    MarchNarrowBand(eikonal_solver, outside_narrow_band.get(), &time_grid);
+  }
+
+  assert(all_of(begin(time_buffer), end(time_buffer),
+                [](TimeType const t) { return Frozen(t); }));
+
+  return time_buffer;
 }
 
 
@@ -1679,7 +1783,8 @@ T HighAccuracySolveEikonal(
 //! - Cells in @a distance_grid that are not frozen must have the value
 //!   numeric_limits<T>::max().
 //!
-//! Note: Currently supports only square cells.
+//! Note: Currently supports only uniformly spaced (square) cells.
+//! Note: Currently supports only 1D, 2D, and 3D.
 template<typename T, std::size_t N>
 T SolveDistance(
     std::array<std::int32_t, N> const& index,
@@ -1840,93 +1945,6 @@ protected:
 private:
   ConstGrid<T, N> const speed_grid_;
 };
-
-
-//!
-//!
-//!
-template<typename T, std::size_t N, typename EikonalSolverType>
-std::vector<T> SignedDistance(
-  std::array<std::size_t, N> const& grid_size,
-  std::vector<std::array<std::int32_t, N>> const& boundary_indices,
-  std::vector<T> const& boundary_distances,
-  std::vector<std::array<std::int32_t, N>> const& inside_narrow_band_indices,
-  std::vector<std::array<std::int32_t, N>> const& outside_narrow_band_indices,
-  EikonalSolverType const& eikonal_solver)
-{
-  using namespace std;
-
-  typedef T DistanceType;
-
-  static_assert(N > 0, "dimensionality cannot be zero");
-  static_assert(N == EikonalSolverType::kDimension,
-                "mismatching eikonal solver dimension");
-
-  assert(!(inside_narrow_band_indices.empty() &&
-           outside_narrow_band_indices.empty()));
-
-  auto distance_buffer = vector<DistanceType>(
-    LinearSize(grid_size), numeric_limits<DistanceType>::max());
-  auto distance_grid = Grid<DistanceType, N>(grid_size, distance_buffer);
-  auto boundary_distance_predicate = [](auto const d) {
-    return !isnan(d) && Frozen(d);
-  };
-
-  assert(none_of(begin(distance_buffer), end(distance_buffer),
-                 [](DistanceType const d) { return Frozen(d); }));
-
-  if (!inside_narrow_band_indices.empty()) {
-    // Set boundaries for marching inside (negative distance).
-    SetBoundaryCondition(
-      boundary_indices,
-      boundary_distances,
-      DistanceType{-1}, // Multiplier, negate boundary distances.
-      boundary_distance_predicate,
-      &distance_grid);
-
-    // Initialize inside narrow band with negated boundary distances.
-    auto inside_narrow_band = InitializedNarrowBand(
-      inside_narrow_band_indices,
-      distance_grid,
-      eikonal_solver);
-    ThrowIfEmptyNarrowBand(inside_narrow_band->empty());
-    MarchNarrowBand(eikonal_solver, inside_narrow_band.get(), &distance_grid);
-
-    // Negate all the inside distance values and set the boundary cells to have
-    // their actual values. Essentially, negate everything computed so far.
-    for_each(
-      begin(distance_buffer),
-      end(distance_buffer),
-      [](auto& d) {
-        d = Frozen(d) ? d * DistanceType{-1} : d;
-      });
-  }
-  else {
-    // Set boundaries for marching outside (positive distance)
-    SetBoundaryCondition(
-      boundary_indices,
-      boundary_distances,
-      DistanceType{1}, // Multiplier
-      boundary_distance_predicate,
-      &distance_grid);
-  }
-
-  if (!outside_narrow_band_indices.empty()) {
-    // Initialize outside narrow band with "non-negated" distances.
-    auto outside_narrow_band = InitializedNarrowBand(
-      outside_narrow_band_indices,
-      distance_grid,
-      eikonal_solver);
-    ThrowIfEmptyNarrowBand(outside_narrow_band->empty());
-    MarchNarrowBand(eikonal_solver, outside_narrow_band.get(), &distance_grid);
-  }
-
-  assert(all_of(begin(distance_buffer), end(distance_buffer),
-                [](DistanceType const d) { return Frozen(d); }));
-
-  return distance_buffer;
-
-}
 
 } // namespace detail
 
@@ -2089,45 +2107,44 @@ private:
 };
 
 
+//! Compute the signed distance on a grid.
+//!
+//! Input:
+//!   grid_size          - Number of grid cells in each dimension.
+//!   boundary_indices   - Integer coordinates of cells with provided distances.
+//!   boundary_distances - Signed distances assigned to boundary cells.
+//!
+//! Preconditions:
+//!   - grid_size may not have a zero element.
+//!   - dx must have all positive elements.
+//!   - speed?
+//!   - frozen_indices, frozen_distances and normals must have the same size.
+//!   - frozen_indices must all be within size.
+//!
 //! TODO - example usage!
 template<typename T, std::size_t N, typename EikonalSolverType>
-std::vector<T> UnsignedDistance(
+std::vector<T> UnsignedArrivalTime(
   std::array<std::size_t, N> const& grid_size,
   std::vector<std::array<std::int32_t, N>> const& boundary_indices,
-  std::vector<T> const& boundary_distances,
+  std::vector<T> const& boundary_times,
   EikonalSolverType const& eikonal_solver)
 {
   using namespace std;
   using namespace detail;
 
-  typedef T DistanceType;
+  typedef T TimeType;
 
-  auto distance_buffer = vector<DistanceType>(
-    LinearSize(grid_size), numeric_limits<DistanceType>::max());
-  auto distance_grid = Grid<DistanceType, N>(grid_size, distance_buffer);
-  auto boundary_distance_predicate = [](auto const d) {
-    return !isnan(d) && Frozen(d) && d >= T{0};
+  auto const boundary_time_predicate = [](auto const t) {
+    return !isnan(t) && Frozen(t) && t >= TimeType{0};
   };
-
-  assert(none_of(begin(distance_buffer), end(distance_buffer),
-                 [](DistanceType const d) { return Frozen(d); }));
-
-  SetBoundaryCondition(
+  auto constexpr negative_inside = false;
+  return ArrivalTime(
+    grid_size,
     boundary_indices,
-    boundary_distances,
-    DistanceType{1}, // Distance multiplier.
-    boundary_distance_predicate,
-    &distance_grid);
-
-  auto narrow_band = InitialUnsignedNarrowBand(
-    boundary_indices, distance_grid, eikonal_solver);
-  ThrowIfEmptyNarrowBand(narrow_band->empty());
-  MarchNarrowBand(eikonal_solver, narrow_band.get(), &distance_grid);
-
-  assert(all_of(begin(distance_buffer), end(distance_buffer),
-                [](DistanceType const d) { return Frozen(d); }));
-
-  return distance_buffer;
+    boundary_times,
+    eikonal_solver,
+    boundary_time_predicate,
+    negative_inside);
 }
 
 
@@ -2147,12 +2164,30 @@ std::vector<T> UnsignedDistance(
 //!
 //! TODO - example usage!
 template<typename T, std::size_t N, typename EikonalSolverType>
-std::vector<T> SignedDistance(
+std::vector<T> SignedArrivalTime(
   std::array<std::size_t, N> const& grid_size,
   std::vector<std::array<std::int32_t, N>> const& boundary_indices,
   std::vector<T> const& boundary_distances,
   EikonalSolverType const& eikonal_solver)
 {
+  using namespace std;
+  using namespace detail;
+
+  typedef T TimeType;
+
+  auto const boundary_time_predicate = [](auto const t) {
+    return !isnan(t) && Frozen(t);
+  };
+  auto constexpr negative_inside = true;
+  return ArrivalTime(
+    grid_size,
+    boundary_indices,
+    boundary_times,
+    eikonal_solver,
+    boundary_time_predicate,
+    negative_inside);
+#if 0
+
   detail::ThrowIfZeroElementInSize(grid_size);
   detail::ThrowIfEmptyBoundaryIndices(boundary_indices);
   std::for_each(
@@ -2162,8 +2197,7 @@ std::vector<T> SignedDistance(
       detail::ThrowIfBoundaryIndexOutsideGrid(boundary_index, grid_size);
   });
 
-
-  auto narrow_band_indices = detail::SignedNarrowBandIndices(
+  auto narrow_band_indices = detail::OutsideInsideNarrowBandIndices(
     boundary_indices,
     grid_size);
   auto outside_narrow_band_indices = narrow_band_indices.first;
@@ -2176,6 +2210,7 @@ std::vector<T> SignedDistance(
     inside_narrow_band_indices,
     outside_narrow_band_indices,
     eikonal_solver);
+#endif
 }
 
 } // namespace fast_marching_method
