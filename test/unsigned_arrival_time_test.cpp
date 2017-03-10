@@ -64,6 +64,7 @@ typedef ::testing::Types<
 TYPED_TEST_CASE(UnsignedArrivalTimeTest, UnsignedArrivalTimeTypes);
 TYPED_TEST_CASE(UnsignedArrivalTimeAccuracyTest, AccuracyTypes);
 
+
 // UnsignedArrivalTime fixture.
 
 TYPED_TEST(UnsignedArrivalTimeTest, ZeroElementInGridSizeThrows)
