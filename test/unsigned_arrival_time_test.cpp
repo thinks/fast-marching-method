@@ -397,6 +397,69 @@ TYPED_TEST(UnsignedArrivalTimeTest, EikonalSolverFailThrows)
   ASSERT_EQ("invalid arrival time (distance)", ft.second.substr(size_t{0}, 31));
 }
 
+TYPED_TEST(UnsignedArrivalTimeTest, ContainedComponentThrows)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr size_t kDimension = TypeParam::kDimension;
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  // Arrange.
+  auto const grid_size = util::FilledArray<kDimension>(size_t{50});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType(0.02));
+  auto const uniform_speed = ScalarType{1};
+
+  auto const sphere_center1 = util::FilledArray<kDimension>(ScalarType{0.5});
+  auto const sphere_radius1 = ScalarType(0.25);
+  auto const sphere_center2 = util::FilledArray<kDimension>(ScalarType{0.5});
+  auto const sphere_radius2 = ScalarType(0.45);
+
+  auto sphere_boundary_indices1 = vector<array<int32_t, kDimension>>();
+  auto sphere_boundary_distances1 = vector<ScalarType>();
+  util::HyperSphereBoundaryCells(
+    sphere_center1,
+    sphere_radius1,
+    grid_size,
+    grid_spacing,
+    [](ScalarType const d) { return fabs(d); },
+    &sphere_boundary_indices1,
+    &sphere_boundary_distances1);
+  auto sphere_boundary_indices2 = vector<array<int32_t, kDimension>>();
+  auto sphere_boundary_distances2 = vector<ScalarType>();
+  util::HyperSphereBoundaryCells(
+    sphere_center2,
+    sphere_radius2,
+    grid_size,
+    grid_spacing,
+    [](ScalarType const d) { return fabs(d); },
+    &sphere_boundary_indices2,
+    &sphere_boundary_distances2);
+
+  auto boundary_indices = sphere_boundary_indices1;
+  auto boundary_distances = sphere_boundary_distances1;
+  for (auto i = size_t{0}; i < sphere_boundary_indices2.size(); ++i) {
+    boundary_indices.push_back(sphere_boundary_indices2[i]);
+    boundary_distances.push_back(sphere_boundary_distances2[i]);
+  }
+
+  // Act.
+  auto const ft = util::FunctionThrows<invalid_argument>(
+    [=]() {
+      auto const unsigned_distance = fmm::UnsignedArrivalTime(
+        grid_size,
+        boundary_indices,
+        boundary_distances,
+        EikonalSolverType(grid_spacing, uniform_speed));
+    });
+
+  // Assert.
+  ASSERT_TRUE(ft.first);
+  ASSERT_EQ("contained component", ft.second);
+}
+
 TYPED_TEST(UnsignedArrivalTimeTest, DifferentUniformSpeed)
 {
   using namespace std;
@@ -670,7 +733,7 @@ TYPED_TEST(UnsignedArrivalTimeTest, Checkerboard)
   // This test exists to ensure that it is possible to run this input.
 }
 
-TYPED_TEST(UnsignedArrivalTimeTest, OverlappingCircles)
+TYPED_TEST(UnsignedArrivalTimeTest, OverlappingBoxes)
 {
   using namespace std;
 
@@ -680,52 +743,51 @@ TYPED_TEST(UnsignedArrivalTimeTest, OverlappingCircles)
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
     EikonalSolverType;
 
+  if (kDimension == 1) {
+    return;
+  }
+
   // Arrange.
   auto const grid_size = util::FilledArray<kDimension>(size_t{50});
   auto const grid_spacing = util::FilledArray<kDimension>(ScalarType(0.02));
   auto const uniform_speed = ScalarType{1};
 
-  auto sphere_center1 = util::FilledArray<kDimension>(ScalarType{0.5});
-  sphere_center1[0] = ScalarType(0.4);
-  auto const sphere_radius1 = ScalarType{0.25};
-  auto sphere_center2 = util::FilledArray<kDimension>(ScalarType{0.5});
-  sphere_center2[0] = ScalarType(0.6);
-  auto const sphere_radius2 = ScalarType{0.25};
+  auto box_corner1 = util::FilledArray<kDimension>(int32_t{5});
+  auto box_size1 = util::FilledArray<kDimension>(size_t{20});
+  auto box_corner2 = util::FilledArray<kDimension>(int32_t{15});
+  auto box_size2 = util::FilledArray<kDimension>(size_t{20});
 
-  auto sphere_boundary_indices1 = vector<array<int32_t, kDimension>>();
-  auto sphere_boundary_distances1 = vector<ScalarType>();
-  util::HyperSphereBoundaryCells(
-    sphere_center1,
-    sphere_radius1,
+  auto box_boundary_indices1 = vector<array<int32_t, kDimension>>();
+  auto box_boundary_times1 = vector<ScalarType>();
+  util::BoxBoundaryCells(
+    box_corner1,
+    box_size1,
     grid_size,
-    grid_spacing,
-    [](ScalarType const d) { return fabs(d); },
-    &sphere_boundary_indices1,
-    &sphere_boundary_distances1);
-  auto sphere_boundary_indices2 = vector<array<int32_t, kDimension>>();
-  auto sphere_boundary_distances2 = vector<ScalarType>();
-  util::HyperSphereBoundaryCells(
-    sphere_center2,
-    sphere_radius2,
+    &box_boundary_indices1,
+    &box_boundary_times1);
+  auto box_boundary_indices2 = vector<array<int32_t, kDimension>>();
+  auto box_boundary_times2 = vector<ScalarType>();
+  util::BoxBoundaryCells(
+    box_corner2,
+    box_size2,
     grid_size,
-    grid_spacing,
-    [](ScalarType const d) { return fabs(d); },
-    &sphere_boundary_indices2,
-    &sphere_boundary_distances2);
+    &box_boundary_indices2,
+    &box_boundary_times2);
 
-  auto boundary_indices = sphere_boundary_indices1;
-  auto boundary_distances = sphere_boundary_distances1;
-  for (auto i = size_t{0}; i < sphere_boundary_indices2.size(); ++i) {
-    auto const index = sphere_boundary_indices2[i];
+  // Merge and remove duplicate indices.
+  auto boundary_indices = box_boundary_indices1;
+  auto boundary_distances = box_boundary_times1;
+  for (auto i = size_t{0}; i < box_boundary_indices2.size(); ++i) {
+    auto const index = box_boundary_indices2[i];
     if (find(begin(boundary_indices), end(boundary_indices), index) ==
         end(boundary_indices)) {
       boundary_indices.push_back(index);
-      boundary_distances.push_back(sphere_boundary_distances2[i]);
+      boundary_distances.push_back(box_boundary_times2[i]);
     }
   }
 
   // Act.
-  auto const unsigned_distance = fmm::UnsignedArrivalTime(
+  auto const unsigned_time = fmm::UnsignedArrivalTime(
     grid_size,
     boundary_indices,
     boundary_distances,
@@ -734,65 +796,6 @@ TYPED_TEST(UnsignedArrivalTimeTest, OverlappingCircles)
   // Assert.
   // This test exists to ensure that it is possible to run this input.
   //ASSERT_TRUE(false); // Should this be valid??
-}
-
-TYPED_TEST(UnsignedArrivalTimeTest, CircleInsideCircle)
-{
-  using namespace std;
-
-  typedef TypeParam::ScalarType ScalarType;
-  static constexpr size_t kDimension = TypeParam::kDimension;
-  namespace fmm = thinks::fast_marching_method;
-  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
-
-  // Arrange.
-  auto const grid_size = util::FilledArray<kDimension>(size_t{50});
-  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType(0.02));
-  auto const uniform_speed = ScalarType{1};
-
-  auto const sphere_center1 = util::FilledArray<kDimension>(ScalarType{0.5});
-  auto const sphere_radius1 = ScalarType(0.25);
-  auto const sphere_center2 = util::FilledArray<kDimension>(ScalarType{0.5});
-  auto const sphere_radius2 = ScalarType(0.45);
-
-  auto sphere_boundary_indices1 = vector<array<int32_t, kDimension>>();
-  auto sphere_boundary_distances1 = vector<ScalarType>();
-  util::HyperSphereBoundaryCells(
-    sphere_center1,
-    sphere_radius1,
-    grid_size,
-    grid_spacing,
-    [](ScalarType const d) { return fabs(d); },
-    &sphere_boundary_indices1,
-    &sphere_boundary_distances1);
-  auto sphere_boundary_indices2 = vector<array<int32_t, kDimension>>();
-  auto sphere_boundary_distances2 = vector<ScalarType>();
-  util::HyperSphereBoundaryCells(
-    sphere_center2,
-    sphere_radius2,
-    grid_size,
-    grid_spacing,
-    [](ScalarType const d) { return fabs(d); },
-    &sphere_boundary_indices2,
-    &sphere_boundary_distances2);
-
-  auto boundary_indices = sphere_boundary_indices1;
-  auto boundary_distances = sphere_boundary_distances1;
-  for (auto i = size_t{0}; i < sphere_boundary_indices2.size(); ++i) {
-    boundary_indices.push_back(sphere_boundary_indices2[i]);
-    boundary_distances.push_back(sphere_boundary_distances2[i]);
-  }
-
-  // Act.
-  auto const unsigned_distance = fmm::UnsignedArrivalTime(
-    grid_size,
-    boundary_indices,
-    boundary_distances,
-    EikonalSolverType(grid_spacing, uniform_speed));
-
-  // Assert.
-  // This test exists to ensure that it is possible to run this input.
 }
 
 TYPED_TEST(UnsignedArrivalTimeAccuracyTest, PointSourceAccuracy)

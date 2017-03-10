@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
 #endif
 
 #if 1
-    "UnsignedArrivalTimeTest*" ":"
+    "UnsignedArrivalTimeTest/1*" ":"
 #endif
 
 #if 0
@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
 #endif
 
 
-#if 1
+#if 0
     "UniformSpeedEikonalSolverTest*" ":"
     "HighAccuracyUniformSpeedEikonalSolverTest*" ":"
     "VaryingSpeedEikonalSolverTest*" ":"
@@ -62,7 +62,7 @@ int main(int argc, char* argv[])
 #endif
 
 #if 0
-    "UnsignedDistanceTest/*EikonalSolverFailThrows" ":"
+    "*OverlappingCircles" ":"
 #endif
 
 #if 0
@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
     "BridsonDistanceTest*" ":"
 #endif
 
-#if 1
+#if 0
     //"UnsignedDistanceTest/0*VaryingSpeed" ":"
     //"UnsignedDistanceTest/1*VaryingSpeed" ":"
     //"UnsignedDistanceTest/2*VaryingSpeed" ":"

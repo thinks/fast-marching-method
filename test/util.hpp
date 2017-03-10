@@ -29,6 +29,7 @@
 #include <sstream>
 #include <string>
 #include <utility>
+#include <vector>
 
 
 namespace util {
@@ -447,7 +448,7 @@ std::array<std::array<T, N>, static_pow(2, N)> CellCorners(
 
 
 //! DOCS
-template<typename T, std::size_t N, typename D> inline
+template<typename T, std::size_t N, typename D>
 void HyperSphereBoundaryCells(
   std::array<T, N> const& center,
   T const radius,
@@ -501,6 +502,51 @@ void HyperSphereBoundaryCells(
 
     index_iter.Next();
   }
+}
+
+
+//! DOCS
+template<typename T, std::size_t N>
+void BoxBoundaryCells(
+  std::array<std::int32_t, N> const& box_corner,
+  std::array<std::size_t, N> const& box_size,
+  std::array<std::size_t, N> const& grid_size,
+  std::vector<std::array<std::int32_t, N>>* boundary_indices,
+  std::vector<T>* boundary_distances)
+{
+  using namespace std;
+
+  auto box_min = box_corner;
+  auto box_max = box_corner;
+  for (auto i = size_t{0}; i < N; ++i) {
+    box_max[i] += box_size[i];
+  }
+
+  auto inside =
+    [](auto const& index, auto const& box_min, auto const& box_max) {
+      for (auto i = size_t{0}; i < N; ++i) {
+        if (!(box_min[i] <= index[i] && index[i] <= box_max[i])) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+  auto index_iter = util::IndexIterator<N>(grid_size);
+  while (index_iter.has_next()) {
+    auto const index = index_iter.index();
+    if (inside(index, box_min, box_max)) {
+      for (auto i = size_t{0}; i < N; ++i) {
+        if (index[i] == box_min[i] || index[i] == box_max[i]) {
+          boundary_indices->push_back(index);
+          break;
+        }
+      }
+    }
+    index_iter.Next();
+  }
+
+  *boundary_distances = vector<T>(boundary_indices->size(), T{0});
 }
 
 } // namespace util

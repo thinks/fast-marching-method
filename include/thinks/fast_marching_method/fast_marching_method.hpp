@@ -694,6 +694,36 @@ std::size_t HyperVolume(
 }
 
 
+//! Returns true if @a inner_bbox is contained by @a outer_bbox.
+//!
+//! Preconditions:
+//! - The hyper-volume of @a outer_bbox is larger than the hyper-volume of
+//!   @a inner_bbox.
+//! - The pairs representing bounds in each dimension store the lower bound
+//!   as the first element and the higher bound as the second element.
+template<std::size_t N>
+bool Contains(
+  std::array<std::pair<std::int32_t, std::int32_t>, N> const& outer_bbox,
+  std::array<std::pair<std::int32_t, std::int32_t>, N> const& inner_bbox)
+{
+  using namespace std;
+
+  assert(HyperVolume(outer_bbox) >= HyperVolume(inner_bbox) && "Precondition");
+
+  auto contains = true;
+  for (auto i = size_t{0}; i < N; ++i) {
+    assert(outer_bbox[i].first <= outer_bbox[i].second && "Precondition");
+    assert(inner_bbox[i].first <= inner_bbox[i].second && "Precondition");
+    if (!(outer_bbox[i].first < inner_bbox[i].first &&
+          inner_bbox[i].second < outer_bbox[i].second)) {
+      contains = false;
+      break;
+    }
+  }
+  return contains;
+}
+
+
 //! Returns @a base ^ @a exponent as a compile-time constant.
 //! Note: Not checking for integer overflow here!
 constexpr std::size_t
@@ -1107,6 +1137,48 @@ OutsideInsideNarrowBandIndices(
     end(vtx_neighbor_offsets));
   assert(!connected_components.empty());
 
+  // Check if any connected component is contained by another.
+  auto const connected_components_size = connected_components.size();
+  if (connected_components_size > 1) {
+    auto cc_bbox = vector<pair<array<pair<int32_t, int32_t>, N>, size_t>>();
+    for (auto const& connected_component : connected_components) {
+      auto const bbox = BoundingBox(connected_component);
+      cc_bbox.push_back({
+        bbox,
+        HyperVolume(bbox)});
+    }
+    // Sort by descending area (hyper volume).
+    sort(
+      begin(cc_bbox),
+      end(cc_bbox),
+      [](auto const& lhs, auto const& rhs) {
+        return lhs.second > rhs.second;
+      });
+    // A smaller bounding box cannot contain a larger one.
+    for (auto i = size_t{0}; i < connected_components_size; ++i) {
+      auto const& outer_bbox = cc_bbox[i].first;
+
+      // A bounding box that is "flat" in one or more dimensions cannot
+      // contain another bounding box.
+      auto has_inside = true;
+      for (auto k = size_t{0}; k < N; ++k) {
+        if (outer_bbox[k].first == outer_bbox[k].second) {
+          has_inside = false;
+          break;
+        }
+      }
+
+      if (has_inside) {
+        for (auto j = i + 1; j < connected_components_size; ++j) {
+          auto const& inner_bbox = cc_bbox[j].first;
+          if (Contains(outer_bbox, inner_bbox)) {
+            throw invalid_argument("contained component");
+          }
+        }
+      }
+    }
+  }
+
   // Create a mask where:
   // - boundary cells = 1
   // - non-boundary cells = 0
@@ -1153,7 +1225,7 @@ OutsideInsideNarrowBandIndices(
         begin(outer_narrow_band_indices),
         end(outer_narrow_band_indices));
     }
-    else /* if (dilation_bands.size() == 2) */ {
+    else {
       // We have more than one dilation band: one outer and one or more
       // inner. The outer dilation band has the largest bounding box.
       // Note that when we have several dilation bands none of them can be
@@ -1175,21 +1247,22 @@ OutsideInsideNarrowBandIndices(
 
       // Sort dilation bands by descending volume. The outer dilation band
       // is then the first element. Note that the outer dilation band area
-      // should be strictly larger than the largest inner dilation band area.
+      // should be strictly larger than the largest inner dilation band area
+      // (except in 1D).
       sort(
         begin(dilation_band_areas),
         end(dilation_band_areas),
         [](auto const& lhs, auto const& rhs) {
           return lhs.second > rhs.second;
         });
-      assert(dilation_band_areas[0] > dilation_band_areas[1]);
+      assert(N == 1 ||
+             dilation_band_areas[0].second > dilation_band_areas[1].second);
 
       // Outer dilation bands of several connected components may overlap.
       // We are fine with adding an index multiple times to the outside
       // narrow band. The smallest distance will be used first and the rest
       // will be ignored. Worst-case we estimate distances for cells that
       // are not impactful.
-      {
       auto const& outer_dilation_band_indices =
         dilation_bands[dilation_band_areas[0].first];
       assert(!outer_dilation_band_indices.empty());
@@ -1208,7 +1281,6 @@ OutsideInsideNarrowBandIndices(
         end(outside_narrow_band_indices),
         begin(outer_narrow_band_indices),
         end(outer_narrow_band_indices));
-      }
 
       // Inner dilation bands cannot overlap.
       for (auto k = size_t{1}; k < dilation_band_areas.size(); ++k) {
@@ -1316,6 +1388,7 @@ InitializedNarrowBand(
   auto narrow_band =
     unique_ptr<NarrowBandStore<T, N>>(new NarrowBandStore<T, N>());
   for (auto const& narrow_band_index : narrow_band_indices) {
+    //cerr << ToString(narrow_band_index) << endl;
     assert(Inside(narrow_band_index, time_grid.size()) && "Precondition");
     assert(!Frozen(time_grid.Cell(narrow_band_index)) && "Precondition");
     narrow_band->Push({
