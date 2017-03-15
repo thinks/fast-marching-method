@@ -399,12 +399,12 @@ TYPED_TEST(UnsignedArrivalTimeTest, ContainedComponentThrows)
     EikonalSolverType;
 
   // Arrange.
-  auto const grid_size = util::FilledArray<kDimension>(size_t{50});
-  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType(0.02));
+  auto const grid_size = util::FilledArray<kDimension>(size_t{20});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType(0.05));
   auto const uniform_speed = ScalarType{1};
 
   auto const sphere_center1 = util::FilledArray<kDimension>(ScalarType{0.5});
-  auto const sphere_radius1 = ScalarType(0.25);
+  auto const sphere_radius1 = ScalarType(0.2);
   auto const sphere_center2 = util::FilledArray<kDimension>(ScalarType{0.5});
   auto const sphere_radius2 = ScalarType(0.45);
 
@@ -508,11 +508,11 @@ TYPED_TEST(UnsignedArrivalTimeTest, VaryingSpeed)
     EikonalSolverType;
 
   // Arrange.
-  auto const grid_size = util::FilledArray<kDimension>(size_t{41});
+  auto const grid_size = util::FilledArray<kDimension>(size_t{11});
   auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
 
   auto boundary_indices = vector<array<int32_t, kDimension>>();
-  boundary_indices.push_back(util::FilledArray<kDimension>(int32_t{20}));
+  boundary_indices.push_back(util::FilledArray<kDimension>(int32_t{5}));
 
   auto boundary_times = vector<ScalarType>();
   boundary_times.push_back(ScalarType{0});
