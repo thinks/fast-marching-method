@@ -578,7 +578,7 @@ TYPED_TEST(SignedArrivalTimeTest, NonUniformGridSpacing)
     EikonalSolverType;
 
   // Arrange.
-  auto const grid_size = util::FilledArray<kDimension>(size_t{31});
+  auto const grid_size = util::FilledArray<kDimension>(size_t{11});
   auto grid_spacing = util::FilledArray<kDimension>(ScalarType{0});
   for (auto i = size_t{0}; i < kDimension; ++i) {
     grid_spacing[i] = ScalarType{1} / (i + 1);
@@ -586,7 +586,7 @@ TYPED_TEST(SignedArrivalTimeTest, NonUniformGridSpacing)
   auto const uniform_speed = ScalarType(1);
 
   auto boundary_indices = vector<array<int32_t, kDimension>>(
-    size_t{1}, util::FilledArray<kDimension>(int32_t{15}));
+    size_t{1}, util::FilledArray<kDimension>(int32_t{5}));
   auto boundary_times = vector<ScalarType>(size_t{1}, ScalarType{0});
 
   // Act.
@@ -617,8 +617,8 @@ TYPED_TEST(SignedArrivalTimeTest, NonUniformGridSpacing)
     }
     auto const gt = util::Magnitude(delta);
 
-    auto const time_abs = fabs(time_grid.Cell(index)); // TODO: For 1D!
-    auto const time_abs_error = fabs(time_abs - gt);
+    auto const time = time_grid.Cell(index);
+    auto const time_abs_error = fabs(time - gt);
 
     typedef util::PointSourceAccuracyBounds<kDimension> Bounds;
     ASSERT_LE(time_abs_error, ScalarType(Bounds::max_abs_error()));
@@ -687,15 +687,21 @@ TYPED_TEST(SignedArrivalTimeTest, Checkerboard)
   auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
 
   auto const is_even = [](auto const i) { return i % 2 == 0; };
+  auto const is_boundary = [=](auto const index) {
+    return all_of(begin(index), end(index), is_even) ||
+           none_of(begin(index), end(index), is_even);
+  };
+
   auto boundary_indices = vector<array<int32_t, kDimension>>();
-  auto index_iter = util::IndexIterator<kDimension>(grid_size);
-  while (index_iter.has_next()) {
-    auto const index = index_iter.index();
-    if (all_of(begin(index), end(index), is_even) ||
-        none_of(begin(index), end(index), is_even)) {
-       boundary_indices.push_back(index);
+  {
+    auto index_iter = util::IndexIterator<kDimension>(grid_size);
+    while (index_iter.has_next()) {
+      auto const index = index_iter.index();
+      if (is_boundary(index)) {
+         boundary_indices.push_back(index);
+      }
+      index_iter.Next();
     }
-    index_iter.Next();
   }
 
   auto boundary_times = vector<ScalarType>(
@@ -717,9 +723,7 @@ TYPED_TEST(SignedArrivalTimeTest, Checkerboard)
     auto index_iter = util::IndexIterator<kDimension>(grid_size);
     while (index_iter.has_next()) {
       auto const index = index_iter.index();
-      auto const is_boundary = all_of(begin(index), end(index), is_even) ||
-                               none_of(begin(index), end(index), is_even);
-      if (!is_boundary) {
+      if (!is_boundary(index)) {
         auto is_edge = false;
         for (auto i = size_t{0}; i < kDimension; ++i) {
           if (index[i] == 0 || index[i] == grid_size[i] - 1) {
@@ -741,6 +745,221 @@ TYPED_TEST(SignedArrivalTimeTest, Checkerboard)
   }
 }
 
+TYPED_TEST(SignedArrivalTimeTest, OverlappingBoxes)
+{
+  using namespace std;
 
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr auto kDimension = TypeParam::kDimension;
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+
+  // Arrange.
+  auto const grid_size = util::FilledArray<kDimension>(size_t{16});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+  auto const uniform_speed = ScalarType{1};
+
+  auto box_corner1 = util::FilledArray<kDimension>(int32_t{1});
+  auto box_size1 = util::FilledArray<kDimension>(size_t{10});
+  auto box_corner2 = util::FilledArray<kDimension>(int32_t{5});
+  auto box_size2 = util::FilledArray<kDimension>(size_t{10});
+
+  auto box_boundary_indices1 = vector<array<int32_t, kDimension>>();
+  auto box_boundary_times1 = vector<ScalarType>();
+  util::BoxBoundaryCells(
+    box_corner1,
+    box_size1,
+    grid_size,
+    &box_boundary_indices1,
+    &box_boundary_times1);
+  auto box_boundary_indices2 = vector<array<int32_t, kDimension>>();
+  auto box_boundary_times2 = vector<ScalarType>();
+  util::BoxBoundaryCells(
+    box_corner2,
+    box_size2,
+    grid_size,
+    &box_boundary_indices2,
+    &box_boundary_times2);
+
+  // Merge and remove duplicate indices.
+  auto boundary_indices = box_boundary_indices1;
+  auto boundary_distances = box_boundary_times1;
+  for (auto i = size_t{0}; i < box_boundary_indices2.size(); ++i) {
+    auto const index = box_boundary_indices2[i];
+    if (find(begin(boundary_indices), end(boundary_indices), index) ==
+        end(boundary_indices)) {
+      boundary_indices.push_back(index);
+      boundary_distances.push_back(box_boundary_times2[i]);
+    }
+  }
+
+  // Act.
+  auto signed_times = fmm::SignedArrivalTime(
+    grid_size,
+    boundary_indices,
+    boundary_distances,
+    EikonalSolverType(grid_spacing, uniform_speed));
+
+  // Assert.
+  auto time_grid = util::Grid<ScalarType, kDimension>(
+    grid_size, signed_times.front());
+  auto const time0 = time_grid.Cell(util::FilledArray<kDimension>(int32_t{0}));
+  auto const time2 = time_grid.Cell(util::FilledArray<kDimension>(int32_t{2}));
+  auto const time6 = time_grid.Cell(util::FilledArray<kDimension>(int32_t{6}));
+  auto const time14 = time_grid.Cell(util::FilledArray<kDimension>(int32_t{14}));
+  ASSERT_GT(time0, ScalarType{0});
+  ASSERT_LT(time2, ScalarType{0});
+  ASSERT_LT(time6, ScalarType{0});
+  ASSERT_LT(time14, ScalarType{0});
+}
+
+TYPED_TEST(SignedArrivalTimeAccuracyTest, PointSourceAccuracy)
+{
+  using namespace std;
+
+  typedef TypeParam::ScalarType ScalarType;
+  static constexpr auto kDimension = TypeParam::kDimension;
+  namespace fmm = thinks::fast_marching_method;
+  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+    EikonalSolverType;
+  typedef fmm::DistanceSolver<ScalarType, kDimension>
+    DistanceSolverType;
+  typedef fmm::HighAccuracyUniformSpeedEikonalSolver<ScalarType, kDimension>
+    HighAccuracyEikonalSolverType;
+
+  // Arrange.
+  auto const grid_size = util::FilledArray<kDimension>(size_t{41});
+  auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
+  auto const uniform_speed = ScalarType(1);
+
+  // Simple point boundary for regular fast marching.
+  auto boundary_indices = vector<array<int32_t, kDimension>>(
+    size_t{1}, util::FilledArray<kDimension>(int32_t{20}));
+  auto boundary_times = vector<ScalarType>(size_t{1}, ScalarType{0});
+
+  auto center_position = util::FilledArray<kDimension>(ScalarType(0));
+  for (auto i = size_t{0}; i < kDimension; ++i) {
+    center_position[i] =
+      (boundary_indices[0][i] + ScalarType(0.5)) * grid_spacing[i];
+  }
+
+  // Compute exact distances in vertex neighborhood for high accuracy
+  // fast marching.
+  auto ha_boundary_indices = vector<array<int32_t, kDimension>>();
+  ha_boundary_indices.push_back(
+    util::FilledArray<kDimension>(int32_t{20})); // Center.
+  auto const vtx_neighbor_offsets = util::VertexNeighborOffsets<kDimension>();
+  for (auto const& vtx_neighbor_offset : vtx_neighbor_offsets) {
+    auto index = boundary_indices[0];
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      index[i] += vtx_neighbor_offset[i];
+    }
+    ha_boundary_indices.push_back(index);
+  }
+  auto ha_boundary_times = vector<ScalarType>();
+  ha_boundary_times.push_back(ScalarType{0}); // Center.
+  for (auto j = size_t{1}; j < ha_boundary_indices.size(); ++j) {
+    auto const& index = ha_boundary_indices[j];
+    auto position = util::FilledArray<kDimension>(ScalarType(0));
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      position[i] = (index[i] + ScalarType(0.5)) * grid_spacing[i];
+    }
+    auto delta = util::FilledArray<kDimension>(ScalarType(0));
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      delta[i] = center_position[i] - position[i];
+    }
+    ha_boundary_times.push_back(util::Magnitude(delta));
+  }
+
+  // Act.
+  auto signed_time = fmm::SignedArrivalTime(
+    grid_size,
+    boundary_indices,
+    boundary_times,
+    EikonalSolverType(grid_spacing, uniform_speed));
+  auto signed_distance = fmm::SignedArrivalTime(
+    grid_size,
+    boundary_indices,
+    boundary_times,
+    DistanceSolverType(grid_spacing[0]));
+  auto ha_signed_time = fmm::SignedArrivalTime(
+    grid_size,
+    ha_boundary_indices,
+    ha_boundary_times,
+    HighAccuracyEikonalSolverType(grid_spacing, uniform_speed));
+
+  // Compute errors.
+  auto time_grid = util::Grid<ScalarType, kDimension>(
+    grid_size, signed_time.front());
+  auto distance_grid = util::Grid<ScalarType, kDimension>(
+    grid_size, signed_distance.front());
+  auto ha_time_grid = util::Grid<ScalarType, kDimension>(
+    grid_size, ha_signed_time.front());
+
+  auto time_abs_errors = vector<ScalarType>();
+  auto distance_abs_errors = vector<ScalarType>();
+  auto ha_time_abs_errors = vector<ScalarType>();
+
+  auto index_iter = util::IndexIterator<kDimension>(grid_size);
+  while (index_iter.has_next()) {
+    auto const index = index_iter.index();
+    auto position = util::FilledArray<kDimension>(ScalarType(0));
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      position[i] = (index[i] + ScalarType(0.5)) * grid_spacing[i];
+    }
+    auto delta = util::FilledArray<kDimension>(ScalarType(0));
+    for (auto i = size_t{0}; i < kDimension; ++i) {
+      delta[i] = center_position[i] - position[i];
+    }
+    auto const gt = util::Magnitude(delta);
+
+    auto const time = time_grid.Cell(index);
+    auto const distance = distance_grid.Cell(index);
+    auto const ha_time = ha_time_grid.Cell(index);
+    auto const time_abs_error = abs(time - gt);
+    auto const distance_abs_error = abs(distance - gt);
+    auto const ha_time_abs_error = abs(ha_time - gt);
+    if (gt <= ScalarType{20}) {
+      time_abs_errors.push_back(time_abs_error);
+      distance_abs_errors.push_back(distance_abs_error);
+      ha_time_abs_errors.push_back(ha_time_abs_error);
+    }
+    index_iter.Next();
+  }
+
+  auto time_max_abs_error = ScalarType{0};
+  auto time_avg_abs_error = ScalarType{0};
+  for (auto const& time_abs_error : time_abs_errors) {
+    time_max_abs_error = max(time_max_abs_error, time_abs_error);
+    time_avg_abs_error += time_abs_error;
+  }
+  time_avg_abs_error /= time_abs_errors.size();
+
+  auto distance_max_abs_error = ScalarType{0};
+  auto distance_avg_abs_error = ScalarType{0};
+  for (auto const& distance_abs_error : distance_abs_errors) {
+    distance_max_abs_error = max(distance_max_abs_error, distance_abs_error);
+    distance_avg_abs_error += distance_abs_error;
+  }
+  distance_avg_abs_error /= distance_abs_errors.size();
+
+  auto ha_time_max_abs_error = ScalarType{0};
+  auto ha_time_avg_abs_error = ScalarType{0};
+  for (auto const& ha_dist_abs_error : ha_time_abs_errors) {
+    ha_time_max_abs_error = max(ha_time_max_abs_error, ha_dist_abs_error);
+    ha_time_avg_abs_error += ha_dist_abs_error;
+  }
+  ha_time_avg_abs_error /= ha_time_abs_errors.size();
+
+  // Assert.
+  typedef util::PointSourceAccuracyBounds<kDimension> Bounds;
+  ASSERT_LE(time_max_abs_error, ScalarType(Bounds::max_abs_error()));
+  ASSERT_LE(time_avg_abs_error, ScalarType(Bounds::avg_abs_error()));
+  ASSERT_LE(distance_max_abs_error, ScalarType(Bounds::max_abs_error()));
+  ASSERT_LE(distance_avg_abs_error, ScalarType(Bounds::avg_abs_error()));
+  ASSERT_LE(ha_time_max_abs_error, ScalarType(Bounds::high_accuracy_max_abs_error()));
+  ASSERT_LE(ha_time_avg_abs_error, ScalarType(Bounds::high_accuracy_avg_abs_error()));
+}
 
 } // namespace
