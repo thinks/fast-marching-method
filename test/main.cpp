@@ -45,11 +45,12 @@ int main(int argc, char* argv[])
 #endif
 
 #if 1
-    "UnsignedArrivalTimeTest/1*" ":"
+    "UnsignedArrivalTimeTest*" ":"
+    "SignedArrivalTimeTest*" ":"
 #endif
 
 #if 0
-    "SignedDistanceTest*" ":"
+    "SignedArrivalTimeTest/0.Checkerboard" ":"
 #endif
 
 

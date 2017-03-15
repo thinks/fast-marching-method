@@ -66,11 +66,9 @@ protected:
 // Associate types with fixtures.
 
 typedef ::testing::Types<
-  util::ScalarDimensionPair<float, 1>,
   util::ScalarDimensionPair<float, 2>,
   util::ScalarDimensionPair<float, 3>,
   util::ScalarDimensionPair<float, 4>,
-  util::ScalarDimensionPair<double, 1>,
   util::ScalarDimensionPair<double, 2>,
   util::ScalarDimensionPair<double, 3>,
   util::ScalarDimensionPair<double, 4>> EikonalSolverTypes;

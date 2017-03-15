@@ -1388,7 +1388,6 @@ InitializedNarrowBand(
   auto narrow_band =
     unique_ptr<NarrowBandStore<T, N>>(new NarrowBandStore<T, N>());
   for (auto const& narrow_band_index : narrow_band_indices) {
-    //cerr << ToString(narrow_band_index) << endl;
     assert(Inside(narrow_band_index, time_grid.size()) && "Precondition");
     assert(!Frozen(time_grid.Cell(narrow_band_index)) && "Precondition");
     narrow_band->Push({
@@ -1512,7 +1511,7 @@ std::vector<T> ArrivalTime(
 
   typedef T TimeType;
 
-  static_assert(N > 0, "dimensionality cannot be zero");
+  static_assert(N >= 2, "dimensions must be >= 2");
   static_assert(N == EikonalSolverType::kDimension,
                 "mismatching eikonal solver dimension");
 
@@ -2240,7 +2239,7 @@ template<typename T, std::size_t N, typename EikonalSolverType>
 std::vector<T> SignedArrivalTime(
   std::array<std::size_t, N> const& grid_size,
   std::vector<std::array<std::int32_t, N>> const& boundary_indices,
-  std::vector<T> const& boundary_distances,
+  std::vector<T> const& boundary_times,
   EikonalSolverType const& eikonal_solver)
 {
   using namespace std;
