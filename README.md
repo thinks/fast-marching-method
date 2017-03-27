@@ -1,5 +1,15 @@
 # The Fast Marching Method
-The *Fast Marching Method* (FMM) is a method for computing distance fields. The FMM was introduced to the level set community by Sethian in 1996. An in-depth theoretical discussion of the mathematical foundations of the method is beyond the scope of this note, those interested in such details are referred to the vast body of literature on the subject. This repository contains an implementation of the FMM in arbitrary dimensions, although typical usage is most likely limited to 2D and 3D. The code is designed to be simple to incorporate into existing projects and robustness has been prioritized over speed. A number of tests have been performed and the results are given in both visual and numeric versions below. 
+The *Fast Marching Method* (FMM), in its simplest form, can be used to compute the arrival times at grid points for a monotonously expanding interface. One application of this method is to compute distance fields, where the closest distance to an interface is required at every cell in a grid. This repository contains an implementation of the FMM in arbitrary dimensions, although typical usage is limited to 2D and 3D. The code is designed to be simple to incorporate into existing projects and robustness has been prioritized over speed. This note is divided into two major sections. First, we provide examples on how to use the code, along with other practical details such as running the accompanying tests. Thereafter, we described the technical choices that were made in the implementation with references to relevant literature.
+
+## Usage
+
+## Implementation
+
+### References
+[Sethian96] J.A. Sethian A fast marching level set method for monotonically advancing fronts. *Proceeding of the National Academy of                 Sciences of the USA - Paper Edition*. 93(4):1591-1595, 1996
+
+
+The  (FMM) is a method for computing distance fields. The FMM was introduced to the level set community by Sethian in 1996. An in-depth theoretical discussion of the mathematical foundations of the method is beyond the scope of this note, those interested in such details are referred to the vast body of literature on the subject. This repository contains an implementation of the FMM in arbitrary dimensions, although typical usage is most likely limited to 2D and 3D. The code is designed to be simple to incorporate into existing projects and robustness has been prioritized over speed. A number of tests have been performed and the results are given in both visual and numeric versions below. 
 
 The basic idea of the FMM is that distance is propagated from known values to more distant locations. Computations are done on a grid providing simple topology for computing gradients. Fast marching methods have also been adapted to more general manifold structures but such methods are not implemented in this repository. Grid cells are classified to be in one of three states: (1) *frozen*; (2) *narrow band*; or *far*. In this context, *frozen* means that the distance value in that cell has its final value. A list of frozen cells is provided as input to the FMM functions. The distances in these cells are the boundary conditions from which the rest of the grid is solved. As a first step, the *face neighbors* (4-connected in 2D) of all frozen cells are marked as *narrow band* (if they are not already *frozen*!) and tentative distances are estimated for those cells. Since distance information should propagate outwards from frozen cells, the *narrow band* cell with the smallest distance is then marked as *frozen* and its neighbors (if not already *frozen*!) are added to the list of *narrow band* cells. Finding the *narrow band* cell with the smallest distance can be time consuming, so a min-heap is used to store information about the *narrow band* cells. This allows *log(N)* access to the cell with the smallest distance value, where *N* is the number of cells currently in the *narrow band*. The method continues until all cells have been frozen, at which point no further updates are possible.
 
@@ -62,4 +72,6 @@ $ D:/fmm-build/fast-marching-method-test.exe
 * Higher order spatial gradients.
 * Non-uniform speed function.
 * Specialize Eikonal solver for 2d/3d.
+
+## References
 
