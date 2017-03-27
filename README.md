@@ -7,7 +7,7 @@ This section describes how to use the FMM methods provided in this repository. F
 ### Methods
 
 ### Tests
-
+In order to run the tests you need to have [CMake](https://cmake.org/) installed. The tests are implemented in the [Google Test](https://github.com/google/googletest) framework, which is included as part of this repository. 
 
 Running the tests is simple. In a terminal do the following:
 
