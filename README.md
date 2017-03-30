@@ -1,10 +1,13 @@
 # The Fast Marching Method
-The *Fast Marching Method* (FMM), in its simplest form, can be used to compute the arrival times at grid points for a monotonously expanding interface. One application of this method is to compute distance fields, where the closest distance to an interface is required at every cell in a grid. This repository contains an implementation of the FMM in arbitrary dimensions, although typical usage is limited to 2D and 3D. The code is designed to be simple to incorporate into existing projects and robustness has been prioritized over speed. This note is divided into two major sections. First, we provide examples on how to use the code, along with other practical details such as running the accompanying tests. Thereafter, we described the technical choices that were made in the implementation with references to relevant literature.
+The *Fast Marching Method* (FMM), in its simplest form, can be used to compute the arrival times at grid points for a monotonously expanding interface. One application of this method is to compute distance fields, where the closest distance to an interface is computed at every cell in a grid. This repository contains an implementation of the FMM in arbitrary dimensions (actually two or more), although typical usage is limited to 2D and 3D. The code is designed to be simple to incorporate into existing projects, and robustness has been prioritized over speed optimizations. This note is divided into two major sections. First, we provide examples on how to use the code, along with other practical details such as running the accompanying tests. Thereafter, we described the technical choices that were made in the implementation with references to relevant literature.
 
 ## Usage
-This section describes how to use the FMM methods provided in this repository. First, we provide some examples on how to call these methods, together with some discussion related to valid inputs. Thereafter, we give instructions on how to run the accompanying tests. Note that there are also a lot of examples within the test code itself, which can be found in the [test folder](https://github.com/thinks/fast-marching-method/tree/master/test). 
+This section describes how to use the FMM functions provided in this repository. First, we provide some examples on how to call these methods, together with some discussion related to valid inputs. Thereafter, we give instructions on how to run the accompanying tests. Note that there are also a lot of examples within the test code itself, which can be found in the [test folder](https://github.com/thinks/fast-marching-method/tree/master/test). 
 
 ### Methods
+The single header file (which is all that needs to be included) contains only two "public" functions. The other functions are in a detail `namespace` and should not be called. The two functions are:
+* SignedArrivalTime
+* UnsignedArrivalTime
 
 ### Tests
 In order to run the tests you need to have [CMake](https://cmake.org/) installed. The tests are implemented in the [Google Test](https://github.com/google/googletest) framework, which is included as part of this repository. 
@@ -58,9 +61,8 @@ Besides the FMM implmentation, a some tests are provided in this repository in t
 google coding guidelines
 
 ### Future Work
-* Higher order spatial gradients.
-* Non-uniform speed function.
-* Specialize Eikonal solver for 2d/3d.
+* Termination criteria for narrow band marching.
+
 
 
 ### References
