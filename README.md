@@ -13,7 +13,11 @@ The single [header file](https://github.com/thinks/fast-marching-method/blob/mas
 * `SignedArrivalTime`
 * `UnsignedArrivalTime`
 
-They both compute arrival times, but in the first case arrival times for cells inside a connected component will be negated. The interfaces of these two functions are very similar, and one could also argue the same for the output. There are, however, some subtle differences in how they should be called. An example will illustrate the difference.
+They both compute arrival times, but in the first case arrival times for cells inside a connected component will be negated. The interfaces of these two functions are very similar, and one could also argue the same for the output. 
+
+![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/input.png "Signed vs unsigned")
+
+There are, however, some subtle differences in how they should be called. An example will illustrate the difference.
 
 ### Tests
 In order to run the tests you need to have [CMake](https://cmake.org/) installed. The tests are implemented in the [Google Test](https://github.com/google/googletest) framework, which is included as part of this repository. 
