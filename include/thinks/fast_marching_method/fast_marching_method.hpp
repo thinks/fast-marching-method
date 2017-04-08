@@ -2022,7 +2022,7 @@ private:
 
 
 //! Provides methods for solving the eikonal equation for a single grid cell
-//! at a time using the current distance grid. Assumes a uniform speed for
+//! at a time using the current distance grid. Uses a uniform speed for
 //! the entire grid.
 template<typename T, std::size_t N>
 class UniformSpeedEikonalSolver :
@@ -2051,7 +2051,7 @@ public:
 
 
 //! Provides methods for solving the eikonal equation for a single grid cell
-//! at a time using the current distance grid. Assumes a uniform speed for
+//! at a time using the current distance grid. Uses a uniform speed for
 //! the entire grid. When possible uses second order derivates to achieve
 //! better accuracy.
 template <typename T, std::size_t N>
@@ -2188,9 +2188,7 @@ private:
 //!
 //! Preconditions:
 //!   - grid_size may not have a zero element.
-//!   - dx must have all positive elements.
-//!   - speed?
-//!   - frozen_indices, frozen_distances and normals must have the same size.
+//!   - frozen_indices, frozen_distances must have the same size.
 //!   - frozen_indices must all be within size.
 //!
 //! TODO - example usage!
