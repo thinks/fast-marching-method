@@ -17,9 +17,16 @@ They both compute arrival times, but in the first case arrival times for cells i
 
 ![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/input.png "Signed vs unsigned")
 
-In the figure above, the green circle (_left_) is given as input to the two methods. Positive arrival times (or distances depending on interpretation) are shown in red, negative arrival times are shown in blue. In the case of `UnsignedArrivalTime` (_middle_) all arrival times are positive, regardless of being inside or outside the circle. For the `SignedArrivalTime` function (_right_), locations inside the circle have negative distances. Note that the magnitudes of the arrival times are identical for both functions, the only difference is the sign for locations inside the circle.
+In the figure above, the green circle (_left_) is given as input to the two methods. Positive arrival times (or distances depending on interpretation) are shown in red, negative arrival times are shown in blue. In the case of `UnsignedArrivalTime` (_middle_) all arrival times are positive, regardless of being inside or outside the circle. For the `SignedArrivalTime` function (_right_), locations inside the circle have negative distances. Note that the magnitudes of the arrival times are identical for both functions, the only difference is the sign for locations inside the circle. Next, we give an example showing the code used to generate the images discussed in this paragraph.
 
+First of all, the input to the FMM functions is given as grid cells with known distances (or arrival times depending on interpretation). From this boundary condition distances at other grid cells are computed.  
+
+From a more technical point of view, the code required to generate the arrival times for locations 
 There are, however, some subtle differences in how they should be called. An example will illustrate the difference.
+
+### Input Validation
+
+### Speed Function
 
 ### Tests
 In order to run the tests you need to have [CMake](https://cmake.org/) installed. The tests are implemented in the [Google Test](https://github.com/google/googletest) framework, which is included as part of this repository. 
