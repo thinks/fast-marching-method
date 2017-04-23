@@ -53,7 +53,7 @@ First, we define our input, the cell coordinates for which we have known distanc
 
 ![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/fmm_readme_input_values.png "Code example")
 
-Cells with known distances are shaded darker grey in the left image. Additionally, the values may be interpreted as radii that intersect the input shape. We note that negative distance are given for cells that are inside the circle. In the next section we discuss the use of Eikonal solvers, which allow easy customization of the algorithm while re-using the basic ideas.
+Cells with known distances are shaded darker grey in the left image. Known input values may be interpreted as radii that intersect the input shape. We note that negative distances are given for cell where the center is inside the circle. In the next section we discuss the use of Eikonal solvers, which allow easy customization of the algorithm while re-using the basic ideas.
 
 ### Eikonal Solvers
 
