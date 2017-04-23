@@ -30,12 +30,12 @@ auto circle_boundary_indices = vector<array<int32_t, 2>>{
   {{8, 12}}, {{9, 12}}, {{10, 12}},
 };
 auto circle_boundary_distances = vector<float>{
-    0.0417385f, 0.0164635f, 0.0029808f, 0.0029808f, 0.0164635f, 0.0417385f,
-    0.0293592f, -0.0111773f, -0.0111773f, 0.0293592f, 0.0417385f, -0.0111773f,
-    -0.0111773f, 0.0417385f, 0.0164635f, 0.0164635f, 0.0029808f, 0.0029808f,
-    0.0029808f, 0.0029808f, 0.0164635f, 0.0164635f, 0.0417385f, -0.0111773f,
-    -0.0111773f, 0.0417385f, 0.0293592f, -0.0111773f, -0.0111773f, 0.0293592f,
-    0.0417385f, 0.0164635f, 0.0029808f, 0.0029808f, 0.0164635f, 0.0417385f
+  0.0417385f, 0.0164635f, 0.0029808f, 0.0029808f, 0.0164635f, 0.0417385f,
+  0.0293592f, -0.0111773f, -0.0111773f, 0.0293592f, 0.0417385f, -0.0111773f,
+  -0.0111773f, 0.0417385f, 0.0164635f, 0.0164635f, 0.0029808f, 0.0029808f,
+  0.0029808f, 0.0029808f, 0.0164635f, 0.0164635f, 0.0417385f, -0.0111773f,
+  -0.0111773f, 0.0417385f, 0.0293592f, -0.0111773f, -0.0111773f, 0.0293592f,
+  0.0417385f, 0.0164635f, 0.0029808f, 0.0029808f, 0.0164635f, 0.0417385f
 };
 
 auto grid_size = array<size_t, 2>{{16, 16}};
@@ -56,13 +56,16 @@ First, we define our input, the cell coordinates for which we have known distanc
 Cells with known distances are shaded darker grey in the left image. Known input values may be interpreted as radii that intersect the input shape. We note that negative distances are given for cell where the center is inside the circle. In the next section we discuss the use of Eikonal solvers, which allow easy customization of the algorithm while re-using the basic ideas.
 
 ### Eikonal Solvers
-The basic idea of the FMM algorithm is to propagate given information at known locations to other locations in a numerically reasonable way. 
+The basic idea of the FMM algorithm is to propagate given information at known locations to other locations in a numerically reasonable way. Now, the way that the FMM algorithm handles this is by assuming that information close to known locations is more reliable than information further away, which is why it is said to be a propagating method. Even though the propagation scheme remains the same there is still flexibility when it comes to the details of how to compute information at new locations. This is what Eikonal solvers are used for in the implementation in this repository. 
 
-Eikonal solvers:
+Up to this point we have assumed the speed of the propagating interface to be uniformly one, which is convenient since it allows us to intuitively interpret arrival times as distance. However, the FMM allows arbitrary (positive) speeds and does not require the speed to be the same for each cell. Also, since propagating information requires partial derivates it is possible to achieve better accuracy using higher order discretization schemes when computing these. This leads to the following four types of basic Eikonal solvers:
 * `UniformSpeedEikonalSolver`
 * `HighAccuracyUniformSpeedEikonalSolver`
 * `VaryingSpeedEikonalSolver`
 * `HighAccuracyVaryingSpeedEikonalSolver`
+These four types are provided in the same [header file](https://github.com/thinks/fast-marching-method/blob/master/include/thinks/fast_marching_method/fast_marching_method.hpp) as the rest of the code. It is of course possible to extend these further with user-defined solvers. Example usages of the different solver types are shown in the image below.
+
+![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/fmm_readme_eikonal_solvers.png "Eikonal solvers")
 
 
 ### Input Validation
