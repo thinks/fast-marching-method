@@ -56,7 +56,7 @@ First, we define our input, the cell coordinates for which we have known distanc
 Cells with known distances are shaded darker grey in the left image. Known input values may be interpreted as radii that intersect the input shape. We note that negative distances are given for cell where the center is inside the circle. In the next section we discuss the use of Eikonal solvers, which allow easy customization of the algorithm while re-using the basic ideas.
 
 ### Eikonal Solvers
-
+The basic idea of the FMM algorithm is to propagate given information at known locations to other locations in a numerically reasonable way. 
 
 Eikonal solvers:
 * `UniformSpeedEikonalSolver`
@@ -123,7 +123,7 @@ references for further reading
 
 ### Future Work
 * Termination criteria for narrow band marching.
-
+* Comparison with fast sweeping method and vector distance.
 
 
 ### References
@@ -131,6 +131,11 @@ references for further reading
 
 **[2]** J. Rickett and S. Fomel. Short note: A second-order fast marching eikonal solver. *Technical Report, Stanford Exploration Project*, 2000.
 
+**[3]** J.A. Baerentzen. On the implementation of fast marching methods for 3D lattices. *Technical Report. IMM-TR-2001-13*, 2001.
+
+**[4]** M.W. Jones, J.A. Baerentzen, and M. Sramek. 3D Distance Fields: A Survey of Techniques and Applications. *IEEE Transactions on Visualization and Computer Graphics*, 12(4):581-599, July/August 2006.
+
+Bridson book
 
 
 
