@@ -1,5 +1,5 @@
 # The Fast Marching Method
-The *Fast Marching Method* (FMM), in its simplest form, can be used to compute the arrival times at grid points for a monotonously expanding interface. One application of this method is to compute distance fields, where the closest distance to an interface is computed at every cell in a grid. This repository contains an implementation of the FMM in arbitrary dimensions (actually two or more), although typical usage is limited to 2D and 3D. The code is designed to be simple to incorporate into existing projects, and robustness has been prioritized over speed optimizations. All code in this repository is released under the [MIT license](https://en.wikipedia.org/wiki/MIT_License). If you have any comments or suggestions please feel free to make a pull request.
+The *Fast Marching Method* (FMM), in its simplest form, can be used to compute the arrival times at grid cells for a monotonously expanding interface. One application of this method is to compute distance fields, where the closest distance to an interface is computed at every cell in a grid. This repository contains an implementation of the FMM in arbitrary dimensions (actually two or more), although typical usage is limited to 2D and 3D. The code is designed to be simple to incorporate into existing projects, and robustness has been prioritized over speed optimizations. All code in this repository is released under the [MIT license](https://en.wikipedia.org/wiki/MIT_License). If you have any comments or suggestions please feel free to make a pull request.
 
 This note is divided into two major sections. First, we provide examples on how to use the code, along with other practical details such as running the accompanying tests. Thereafter, we described the technical choices that were made in the implementation with references to relevant literature.
 
@@ -78,6 +78,7 @@ This section describes the implementation of the FMM implementation from a more 
 
 
 google coding guidelines
+
 references for further reading
 
 ### Future Work
@@ -86,9 +87,9 @@ references for further reading
 
 
 ### References
-[Sethian96] J.A. Sethian A fast marching level set method for monotonically advancing fronts. *Proceeding of the National Academy of Sciences of the USA - Paper Edition*. 93(4):1591-1595, 1996
+[1] J.A. Sethian. A fast marching level set method for monotonically advancing fronts. *Proceeding of the National Academy of Sciences of the USA - Paper Edition*, 93(4):1591-1595, 1996.
 
-
+[2] J. Rickett and S. Fomel. Short note: A second-order fast marching eikonal solver. *Technical Report, Stanford Exploration Project*, 2000.
 
 
 
