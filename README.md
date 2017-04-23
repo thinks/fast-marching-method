@@ -9,15 +9,11 @@ This section describes how to use the FMM functions provided in this repository.
 The FMM implementation in this repository is contained in a single [header file](https://github.com/thinks/fast-marching-method/blob/master/include/thinks/fast_marching_method/fast_marching_method.hpp). This makes it very easy to add as a dependency to existing projects. Further, the code has no external dependencies other than the standard C++ libraries. All interfaces use standard types, such as `std::array` and `std::vector`. The code contains a fairly large number of `assert` statements, making it easier to debug when the `NDEBUG` preprocessor variable is not defined. However, the code runs very slowly in debug mode so data set sizes may need to be adjusted accordingly.
 
 ### Methods
-The single [header file](https://github.com/thinks/fast-marching-method/blob/master/include/thinks/fast_marching_method/fast_marching_method.hpp) (which is all that needs to be included) contains only two "public" functions. The other functions are in a detail `namespace` and should not be called. The two functions are:
-* `SignedArrivalTime`
-* `UnsignedArrivalTime`
+Most of the functions in the single [header file](https://github.com/thinks/fast-marching-method/blob/master/include/thinks/fast_marching_method/fast_marching_method.hpp) (which is all that needs to be included) are in a detail `namespace` and should not be called directly. For users, there is a single entry point provided by the `ArrivalTime` function. As the name suggests this function computes arrival times at grid cells. A conceptual example illustrates what is meant by this.
 
-They both compute arrival times, but in the first case arrival times for cells inside a connected component will be negated. The interfaces of these two functions are very similar, and one could also argue the same for the output. 
+![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/input_figure.png "Conceptual example")
 
-![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/input.png "Signed vs unsigned")
-
-In the figure above, the green circle (_left_) is given as input to the two methods. Positive arrival times (or distances depending on interpretation) are shown in red, negative arrival times are shown in blue. In the case of `UnsignedArrivalTime` (_middle_) all arrival times are positive, regardless of being inside or outside the circle. For the `SignedArrivalTime` function (_right_), locations inside the circle have negative distances. Note that the magnitudes of the arrival times are identical for both functions, the only difference is the sign for locations inside the circle. Next, we give an example showing the code used to generate the images discussed in this paragraph.
+In the figure above, the green circle (_left_) is given as input. Positive arrival times (or distances depending on interpretation) are shown in red, negative arrival times are shown in blue. Note that locations inside the circle have negative distances. Next, we give an example showing the code used to generate the images discussed in this paragraph.
 
 First of all, the input to the FMM functions is given as grid cells with known distances (or arrival times depending on interpretation). From this boundary condition distances at other grid cells are computed.  
 
