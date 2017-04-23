@@ -54,9 +54,16 @@ auto const arrival_times = fmm::SignedArrivalTime(
 
 From a more technical point of view, the code required to generate the arrival times for locations 
 
+### Eikonal Solvers
+Eikonal solvers:
+* `UniformSpeedEikonalSolver`
+* `HighAccuracyUniformSpeedEikonalSolver`
+* `VaryingSpeedEikonalSolver`
+* `HighAccuracyVaryingSpeedEikonalSolver`
+
+
 ### Input Validation
 
-### Speed Function
 
 ### Tests
 In order to run the tests you need to have [CMake](https://cmake.org/) installed. The tests are implemented in the [Google Test](https://github.com/google/googletest) framework, which is included as part of this repository. 
