@@ -13,12 +13,18 @@ Most of the functions in the single [header file](https://github.com/thinks/fast
 
 ![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/input_figure.png "Conceptual example")
 
-In the figure above, the green circle (_left_) is given as input. Positive arrival times (or distances depending on interpretation) are shown in red, negative arrival times are shown in blue. Note that locations inside the circle have negative distances. Next, we give an example showing the code used to generate the images discussed in this paragraph.
+In the figure above, the green circle (_left_) was used as input to compute arrival times on a grid (_right_). Positive arrival times (or distances depending on interpretation) are shown in red, negative arrival times are shown in blue. Note that locations inside the circle have negative distances. Next, we give an example showing the code used to generate the images discussed in this paragraph.
 
-First of all, the input to the FMM functions is given as grid cells with known distances (or arrival times depending on interpretation). From this boundary condition distances at other grid cells are computed.  
+The input to the `ArrivalTime` is given as grid cells with known distances (or arrival times depending on interpretation). The following code snippet computes a low resolution version of the image shown above.
+
+```cpp
+  auto grid_size = util::FilledArray<kDimension>(size_t{16});
+  auto grid_spacing = util::FilledArray<kDimension>(ScalarType(1.f/16));
+  auto uniform_speed = ScalarType{1};
+
+```
 
 From a more technical point of view, the code required to generate the arrival times for locations 
-There are, however, some subtle differences in how they should be called. An example will illustrate the difference.
 
 ### Input Validation
 
