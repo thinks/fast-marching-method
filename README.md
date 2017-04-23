@@ -18,10 +18,35 @@ In the figure above, the green circle (_left_) was used as input to compute arri
 The input to the `ArrivalTime` is given as grid cells with known distances (or arrival times depending on interpretation). The following code snippet computes a low resolution version of the image shown above.
 
 ```cpp
-  auto grid_size = util::FilledArray<kDimension>(size_t{16});
-  auto grid_spacing = util::FilledArray<kDimension>(ScalarType(1.f/16));
-  auto uniform_speed = ScalarType{1};
+using namespace std;
+namespace fmm = thinks::fast_marching_method;
 
+auto circle_boundary_indices = vector<array<int32_t, 2>>{
+  {{5, 3}}, {{6, 3}}, {{7, 3}}, {{8, 3}}, {{9, 3}}, {{10, 3}}, {{4, 4}},
+  {{5, 4}}, {{10, 4}}, {{11, 4}}, {{3, 5}}, {{4, 5}}, {{11, 5}}, {{12, 5}},
+  {{3, 6}}, {{12, 6}}, {{3, 7}}, {{12, 7}}, {{3, 8}}, {{12, 8}}, {{3, 9}},
+  {{12, 9}}, {{3, 10}}, {{4, 10}}, {{11, 10}}, {{12, 10}}, {{4, 11}},
+  {{5, 11}}, {{10, 11}}, {{11, 11}}, {{5, 12}}, {{6, 12}}, {{7, 12}},
+  {{8, 12}}, {{9, 12}}, {{10, 12}},
+};
+auto circle_boundary_times = vector<float>{
+    0.0417385f, 0.0164635f, 0.0029808f, 0.0029808f, 0.0164635f, 0.0417385f,
+    0.0293592f, -0.0111773f, -0.0111773f, 0.0293592f, 0.0417385f, -0.0111773f,
+    -0.0111773f, 0.0417385f, 0.0164635f, 0.0164635f, 0.0029808f, 0.0029808f,
+    0.0029808f, 0.0029808f, 0.0164635f, 0.0164635f, 0.0417385f, -0.0111773f,
+    -0.0111773f, 0.0417385f, 0.0293592f, -0.0111773f, -0.0111773f, 0.0293592f,
+    0.0417385f, 0.0164635f, 0.0029808f, 0.0029808f, 0.0164635f, 0.0417385f
+};
+
+auto grid_size = array<size_t, 2>{{16, 16}};
+auto grid_spacing = array<float, 2>{{1.f/16, 1.f/16}};
+auto uniform_speed = 1.f;
+
+auto const arrival_times = fmm::SignedArrivalTime(
+  grid_size,
+  sphere_boundary_indices,
+  sphere_boundary_times,
+  fmm::UniformSpeedEikonalSolver<float, 2>(grid_spacing, uniform_speed));
 ```
 
 From a more technical point of view, the code required to generate the arrival times for locations 
