@@ -49,6 +49,9 @@ auto const arrival_times = fmm::SignedArrivalTime(
   fmm::UniformSpeedEikonalSolver<float, 2>(grid_spacing, uniform_speed));
 ```
 
+![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/input_values.png "Code example")
+
+
 From a more technical point of view, the code required to generate the arrival times for locations 
 
 ### Input Validation
