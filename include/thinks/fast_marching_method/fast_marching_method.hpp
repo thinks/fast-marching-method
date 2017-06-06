@@ -2188,47 +2188,6 @@ private:
 //!
 //! Preconditions:
 //!   - grid_size may not have a zero element.
-//!   - frozen_indices, frozen_distances must have the same size.
-//!   - frozen_indices must all be within size.
-//!
-//! TODO - example usage!
-template<typename T, std::size_t N, typename EikonalSolverType>
-std::vector<T> UnsignedArrivalTime(
-  std::array<std::size_t, N> const& grid_size,
-  std::vector<std::array<std::int32_t, N>> const& boundary_indices,
-  std::vector<T> const& boundary_times,
-  EikonalSolverType const& eikonal_solver)
-{
-  using namespace std;
-  using namespace detail;
-
-  typedef T TimeType;
-
-  auto const boundary_time_predicate = [](auto const t) {
-    return !isnan(t) && Frozen(t) && t >= TimeType{0};
-  };
-  auto constexpr negative_inside = false;
-  return ArrivalTime(
-    grid_size,
-    boundary_indices,
-    boundary_times,
-    eikonal_solver,
-    boundary_time_predicate,
-    negative_inside);
-}
-
-
-//! Compute the signed distance on a grid.
-//!
-//! Input:
-//!   grid_size          - Number of grid cells in each dimension.
-//!   boundary_indices   - Integer coordinates of cells with provided distances.
-//!   boundary_distances - Signed distances assigned to boundary cells.
-//!
-//! Preconditions:
-//!   - grid_size may not have a zero element.
-//!   - dx must have all positive elements.
-//!   - speed?
 //!   - frozen_indices, frozen_distances and normals must have the same size.
 //!   - frozen_indices must all be within size.
 //!
