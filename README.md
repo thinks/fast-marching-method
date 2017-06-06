@@ -1,21 +1,21 @@
 # The Fast Marching Method
-The *Fast Marching Method* (FMM), in its simplest form, can be used to compute the arrival times at grid cells for a monotonously expanding interface. One application of this method is to set the speed of the interface to one, which enables computation of distance fields, where the closest distance to the interface is assigned to every cell in a grid. This repository contains an implementation of the FMM in arbitrary dimensions (actually two or more), although typical usage is limited to 2D and 3D. The code is designed to be simple to incorporate into existing projects, and robustness has been prioritized over speed optimizations. All code in this repository is released under the [MIT license](https://en.wikipedia.org/wiki/MIT_License). If you have any comments or suggestions please feel free to make a pull request.
+The *Fast Marching Method* (FMM), in its simplest form, can be used to compute the arrival times at grid cells for a monotonously expanding interface. One application of this method is to set the speed of the interface to one which enables computation of distance fields, where the closest distance to the interface is assigned to every cell in a grid. This repository contains an implementation of the FMM in arbitrary dimensions (actually two or more), although typical usage is limited to 2D and 3D. The code is designed to be simple to incorporate into existing projects, and robustness has been prioritized over speed optimizations. All code in this repository is released under the [MIT license](https://en.wikipedia.org/wiki/MIT_License). If you have any comments or suggestions please feel free to make a pull request.
 
 This note is divided into two major sections. First, we provide examples on how to use the code along with other practical details such as running the accompanying tests. Thereafter, we described the technical choices that were made in the implementation with references to relevant literature.
 
 ## Usage
-This section describes how to use the FMM implementation provided in this repository. First, we provide some examples on how to call these methods, together with some discussion related to valid inputs. Thereafter, we give instructions on how to run the accompanying tests. Note that there are also a lot of examples within the test code itself, that can be found in the [test folder](https://github.com/thinks/fast-marching-method/tree/master/test). 
+This section describes how to use the FMM implementation presented in this repository. First, we provide some examples on how to call these methods, together with some discussion related to valid inputs. Thereafter, we give instructions on how to run the accompanying tests. Note that there are also a lot of examples within the test code itself, which can be found in the [test folder](https://github.com/thinks/fast-marching-method/tree/master/test). 
 
 The FMM implementation in this repository is contained in a single [header file](https://github.com/thinks/fast-marching-method/blob/master/include/thinks/fast_marching_method/fast_marching_method.hpp). This makes it very easy to add as a dependency to existing projects. Further, the code has no external dependencies other than the standard C++ libraries. All interfaces use standard types, such as `std::array` and `std::vector`. The code contains a fairly large number of `assert` statements, making it easier to debug when the `NDEBUG` preprocessor variable is not defined. However, the code runs very slowly in debug mode so data set sizes may need to be adjusted accordingly.
 
 ### Methods
-Most of the functions in the single [header file](https://github.com/thinks/fast-marching-method/blob/master/include/thinks/fast_marching_method/fast_marching_method.hpp) (which is all that needs to be included) are in `namespace detail` and should not be called directly. Instead, the is a single entry point provided by the `ArrivalTime` function should be used. As the name suggests this function computes arrival times at grid cells. A conceptual example illustrates what is meant by this.
+Most of the functions in the single [header file](https://github.com/thinks/fast-marching-method/blob/master/include/thinks/fast_marching_method/fast_marching_method.hpp) (which is all that needs to be included) are in `namespace detail` and should not be called directly. Instead, there is a single entry point provided by the `ArrivalTime` function. As the name suggests this function computes arrival times at grid cells. A conceptual example illustrates what is meant by this.
 
 ![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/fmm_readme_concept.png "Conceptual example")
 
-In the figure above, the green circle (_left_) was used as input to compute arrival times on a grid (_right_). Locations outside the circle have positive arrival times (or distances depending on interpretation), here shown in red. Similarly, locations inside the circle have negative arrival times, here shown in blue. The intensity of the colors gives the distance to the interface (i.e. circle boundary). This is why cells close to the interface appear black, since the red or blue component is small. Next, we give an example demonstrating how to write code to generate an image similar to the one shown above.
+In the figure above, the green circle (_left_) was used as input to compute arrival times on a grid (_right_). Locations outside the circle have positive arrival times (or distances depending on interpretation), here shown in red. Similarly, locations inside the circle have negative arrival times, here shown in blue. The intensity gives the distance to the interface (i.e. circle boundary). This is why cells close to the interface appear black, since the red or blue component is small there. Next, we give an example demonstrating how to write code to generate an image similar to the one shown above.
 
-The input to the `ArrivalTime` is given as grid cells with known distances (or arrival times depending on interpretation). The following code snippet computes a low resolution version of the image shown above.
+The input to the `ArrivalTime` function is given as grid cells with known distances (or arrival times depending on interpretation). The following code snippet computes a low resolution version of the image shown above.
 
 ```cpp
 using namespace std;
@@ -30,12 +30,12 @@ auto circle_boundary_indices = vector<array<int32_t, 2>>{
   {{8, 12}}, {{9, 12}}, {{10, 12}},
 };
 auto circle_boundary_distances = vector<float>{
-    0.0417385f, 0.0164635f, 0.0029808f, 0.0029808f, 0.0164635f, 0.0417385f,
-    0.0293592f, -0.0111773f, -0.0111773f, 0.0293592f, 0.0417385f, -0.0111773f,
-    -0.0111773f, 0.0417385f, 0.0164635f, 0.0164635f, 0.0029808f, 0.0029808f,
-    0.0029808f, 0.0029808f, 0.0164635f, 0.0164635f, 0.0417385f, -0.0111773f,
-    -0.0111773f, 0.0417385f, 0.0293592f, -0.0111773f, -0.0111773f, 0.0293592f,
-    0.0417385f, 0.0164635f, 0.0029808f, 0.0029808f, 0.0164635f, 0.0417385f
+  0.0417385f, 0.0164635f, 0.0029808f, 0.0029808f, 0.0164635f, 0.0417385f,
+  0.0293592f, -0.0111773f, -0.0111773f, 0.0293592f, 0.0417385f, -0.0111773f,
+  -0.0111773f, 0.0417385f, 0.0164635f, 0.0164635f, 0.0029808f, 0.0029808f,
+  0.0029808f, 0.0029808f, 0.0164635f, 0.0164635f, 0.0417385f, -0.0111773f,
+  -0.0111773f, 0.0417385f, 0.0293592f, -0.0111773f, -0.0111773f, 0.0293592f,
+  0.0417385f, 0.0164635f, 0.0029808f, 0.0029808f, 0.0164635f, 0.0417385f
 };
 
 auto grid_size = array<size_t, 2>{{16, 16}};
@@ -49,20 +49,24 @@ auto arrival_times = fmm::SignedArrivalTime(
   fmm::UniformSpeedEikonalSolver<float, 2>(grid_spacing, uniform_speed));
 ```
 
-First, we define our input, the cell coordinates for which we have known distances. These are stored in two separate lists, one for the coordinates of the cells (`circle_boundary_indices`) and one for the corresponding distances (`circle_boundary_distances`). Normally, these values would of course not be hard-coded like this, but rather generated by some function. Thereafter, we specify the size (`grid_size`) and dimensions (`grid_spacing`) of the grid. Here the grid dimensions are set so that the domain is [0, 1] in each dimension. In order to be able to interpret the arrival times as euclidean distance, a uniform speed of one is set for the entire grid (`uniform_speed`). The speed is passed to an Eikonal solver, which will de discussed in further detail in the following section. The resulting image is shown below.
+First, we define our input, the cell coordinates for which we have known distances. These are stored in two separate lists, one for the coordinates of the cells (`circle_boundary_indices`) and one for the corresponding distances (`circle_boundary_distances`). Normally, these values would of course not be hard-coded, but rather generated by some function. Thereafter, we specify the size (`grid_size`) and dimensions (`grid_spacing`) of the grid. Here the grid dimensions are set so that the domain is [0, 1] in each dimension. In order to be able to interpret the arrival times as euclidean distance, a uniform speed of one is set for the entire grid (`uniform_speed`). The speed is passed to an Eikonal solver that determines the method used to propagate distances. Eikonal solvers will de discussed in further detail in the following section. The resulting image is shown below.
 
 ![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/fmm_readme_input_values.png "Code example")
 
-Cells with known distances are shaded darker grey in the left image. Additionally, the values may be interpreted as radii that intersect the input shape. We note that negative distance are given for cells that are inside the circle. In the next section we discuss the use of Eikonal solvers, which allow easy customization of the algorithm while re-using the basic ideas.
+Boundary condition cells with known distances are shaded darker grey in the left image. Known input values may be interpreted as radii that intersect the input shape. We note that negative distances are used when the cell center is inside the circle. In the next section we discuss the use of Eikonal solvers, which allow easy customization of the algorithm while re-using the basic ideas.
 
 ### Eikonal Solvers
+The basic idea of the FMM algorithm is to propagate given information at known locations to other locations in a numerically reasonable way. Now, the way that the FMM algorithm handles this is by assuming that information close to known locations is more reliable than information further away, which is why it is said to be a propagating method. Even though the basic propagation scheme remains the same there is still flexibility when it comes to the details of how to compute information at new locations. This is what Eikonal solvers are used for in this implementation. 
 
-
-Eikonal solvers:
+Up to this point we have assumed the speed of the propagating interface to be uniformly one, which is convenient since it allows us to intuitively interpret arrival times as distance. However, the FMM allows arbitrary positive speeds and does not require the speed to be the same for each cell. Also, since propagating information requires partial derivates it is possible to achieve better accuracy using higher order discretization schemes when computing these. This leads to the following four types of basic Eikonal solvers:
 * `UniformSpeedEikonalSolver`
 * `HighAccuracyUniformSpeedEikonalSolver`
 * `VaryingSpeedEikonalSolver`
 * `HighAccuracyVaryingSpeedEikonalSolver`
+
+These four types are provided in the same [header file](https://github.com/thinks/fast-marching-method/blob/master/include/thinks/fast_marching_method/fast_marching_method.hpp) as the rest of the code. It is of course possible to extend these further with user-defined solvers. Example usages of the different solver types are shown in the image below.
+
+![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/fmm_readme_eikonal_solvers.png "Eikonal solvers")
 
 
 ### Input Validation
@@ -110,7 +114,7 @@ $ D:/fmm-build/fast-marching-method-test.exe
 ```
 
 ## Implementation
-This section describes the implementation of the FMM implementation from a more technical perspective. 
+This section describes the FMM implementation from a more technical perspective. 
 
 ### Code Design
 
@@ -123,7 +127,7 @@ references for further reading
 
 ### Future Work
 * Termination criteria for narrow band marching.
-
+* Comparison with fast sweeping method and vector distance transforms [Ref: VCVDT].
 
 
 ### References
@@ -131,6 +135,11 @@ references for further reading
 
 **[2]** J. Rickett and S. Fomel. Short note: A second-order fast marching eikonal solver. *Technical Report, Stanford Exploration Project*, 2000.
 
+**[3]** J.A. Baerentzen. On the implementation of fast marching methods for 3D lattices. *Technical Report. IMM-TR-2001-13*, 2001.
+
+**[4]** M.W. Jones, J.A. Baerentzen, and M. Sramek. 3D Distance Fields: A Survey of Techniques and Applications. *IEEE Transactions on Visualization and Computer Graphics*, 12(4):581-599, July/August 2006.
+
+Bridson book
 
 
 

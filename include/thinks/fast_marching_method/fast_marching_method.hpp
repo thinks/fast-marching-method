@@ -59,6 +59,7 @@ std::size_t LinearSize(std::array<std::size_t, N> const& size)
 
 
 //! Returns x * x.
+//! Note: Not checking for overflow!
 template<typename T> constexpr
 T Squared(T const x)
 {
@@ -67,6 +68,7 @@ T Squared(T const x)
 
 
 //! Returns 1 / (x * x).
+//! Type T must be floating point.
 template<typename T> constexpr
 T InverseSquared(T const x)
 {
