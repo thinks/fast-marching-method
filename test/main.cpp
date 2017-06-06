@@ -90,5 +90,6 @@ int main(int argc, char* argv[])
 #endif
       ;
 #endif
+
   return RUN_ALL_TESTS();
 }
