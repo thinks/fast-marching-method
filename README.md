@@ -63,6 +63,7 @@ Up to this point we have assumed the speed of the propagating interface to be un
 * `HighAccuracyUniformSpeedEikonalSolver`
 * `VaryingSpeedEikonalSolver`
 * `HighAccuracyVaryingSpeedEikonalSolver`
+
 These four types are provided in the same [header file](https://github.com/thinks/fast-marching-method/blob/master/include/thinks/fast_marching_method/fast_marching_method.hpp) as the rest of the code. It is of course possible to extend these further with user-defined solvers. Example usages of the different solver types are shown in the image below.
 
 ![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/fmm_readme_eikonal_solvers.png "Eikonal solvers")
@@ -113,7 +114,7 @@ $ D:/fmm-build/fast-marching-method-test.exe
 ```
 
 ## Implementation
-This section describes the implementation of the FMM implementation from a more technical perspective. 
+This section describes the FMM implementation from a more technical perspective. 
 
 ### Code Design
 
@@ -126,7 +127,7 @@ references for further reading
 
 ### Future Work
 * Termination criteria for narrow band marching.
-* Comparison with fast sweeping method and vector distance.
+* Comparison with fast sweeping method and vector distance transforms [Ref: VCVDT].
 
 
 ### References
