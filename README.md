@@ -58,13 +58,14 @@ Boundary condition cells with known distances are shaded darker grey in the left
 ### Eikonal Solvers
 The basic idea of the FMM algorithm is to propagate given information at known locations to other locations in a numerically reasonable way. Now, the way that the FMM algorithm handles this is by assuming that information close to known locations is more reliable than information further away, which is why it is said to be a propagating method. Even though the basic propagation scheme remains the same there is still flexibility when it comes to the details of how to compute information at new locations. This is what Eikonal solvers are used for in this implementation. 
 
-Up to this point we have assumed the speed of the propagating interface to be uniformly one, which is convenient since it allows us to intuitively interpret arrival times as distance. However, the FMM allows arbitrary positive speeds and does not require the speed to be the same for each cell. Also, since propagating information requires partial derivates it is possible to achieve better accuracy using higher order discretization schemes when computing these. This leads to the following four types of basic Eikonal solvers:
+Up to this point we have assumed the speed of the propagating interface to be uniformly one, which is convenient since it allows us to intuitively interpret arrival times as distance. However, the FMM allows arbitrary positive speeds and does not require the speed to be the same for each cell. Also, since propagating information requires partial derivates it is possible to achieve better accuracy using higher order discretization schemes. This leads to the following types of basic Eikonal solvers:
 * `UniformSpeedEikonalSolver`
 * `HighAccuracyUniformSpeedEikonalSolver`
 * `VaryingSpeedEikonalSolver`
 * `HighAccuracyVaryingSpeedEikonalSolver`
+* `DistanceEikonalSolver` (from Bridson book, REF!!!)
 
-These four types are provided in the same [header file](https://github.com/thinks/fast-marching-method/blob/master/include/thinks/fast_marching_method/fast_marching_method.hpp) as the rest of the code. It is of course possible to extend these further with user-defined solvers. Example usages of the different solver types are shown in the image below.
+These types are provided in the same [header file](https://github.com/thinks/fast-marching-method/blob/master/include/thinks/fast_marching_method/fast_marching_method.hpp) as the rest of the code. It is of course possible to extend these further with user-defined solvers. Example usages of the different solver types are shown in the image below.
 
 ![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/fmm_readme_eikonal_solvers.png "Eikonal solvers")
 
@@ -121,7 +122,7 @@ This section describes the FMM implementation from a more technical perspective.
 
 
 
-google coding guidelines
+[Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)
 
 references for further reading
 
@@ -139,7 +140,7 @@ references for further reading
 
 **[4]** M.W. Jones, J.A. Baerentzen, and M. Sramek. 3D Distance Fields: A Survey of Techniques and Applications. *IEEE Transactions on Visualization and Computer Graphics*, 12(4):581-599, July/August 2006.
 
-Bridson book
+**[5]** R. Bridson. Fluid Simulation for Computer Graphics. *CRC Press*, 2015.
 
 
 
