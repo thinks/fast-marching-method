@@ -118,7 +118,7 @@ $ D:/fmm-build/fast-marching-method-test.exe
 This section describes the FMM implementation from a more technical perspective. We explain design choices and give references to relevant implementation details. Finally, possible directions for future work together with references for additional material on the FMM are given.
 
 ### Simplified Fast Marching Method. 
-A key part of the FMM algorithm is the specific order in which cells are visited during arrival time propagation. Achieving this specific order requires maintaining a priority queue of tentative arrival times for cells during propagation. Additionally, since the tentative arrival time at a cell can be re-evaluated several times before obtaining its final value a cell may change position in the priority queue. In **[4]**, Jones et al. observe that increasing the tentative arrival time at a cell during recomputation is detrimental to the final result. Following this observation they propose a simple propagation scheme that allows cells to appear multiple times in the priority queue. However, this requires an additional check when taking cells from the priority queue to ensure that arrival times are only finalized once. Pseudo-code for the simplified FMM is as follows:
+A key part of the FMM algorithm is the specific order in which cells are visited during arrival time propagation. Achieving this specific order requires maintaining a priority queue of tentative arrival times for cells during propagation. Additionally, since the tentative arrival time at a cell can be re-evaluated several times before obtaining its final value a cell may change position in the priority queue. In **[4]**, Jones et al. observe that increasing the tentative arrival time at a cell during recomputation is detrimental to the final result. Following this observation they propose a simple propagation scheme that allows cells to appear multiple times in the priority queue. However, this requires an additional check when taking cells from the priority queue to ensure that arrival times are only finalized once. Pseudo-code for the simplified FMM is as follows **[4]**:
 
 ```
 Extract cell with smallest tentative arrival time from queue
@@ -128,6 +128,7 @@ If cell is not finalized
     Insert neighbor cells in queue
 ```
 
+We note here that this scheme does not require updating existing elements in the priority queue. Instead multiple tentative arrival times may be added for the same cell. However, only the smallest tentative arrival time determines when a cell is finalized, effectively ignoring larger tentative arrival times. This means that a standard priority queue may be used instead of some specialized structure that allows updating existing elements.
 
 ### Second Order Accuracy
 
