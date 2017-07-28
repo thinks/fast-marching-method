@@ -128,11 +128,16 @@ If cell is not finalized
     Insert neighbor cells in queue
 ```
 
-We note here that this scheme does not require updating existing elements in the priority queue. Instead multiple tentative arrival times may be added for the same cell. Only the smallest tentative arrival time determines when a cell is finalized, effectively ignoring larger tentative arrival times. This means that a standard priority queue may be used instead of some specialized structure that needs to accommodate updates of existing elements.
+We note that this scheme does not require updating existing elements in the priority queue. Instead multiple tentative arrival times may be added for the same cell. Only the smallest tentative arrival time determines when a cell is finalized, effectively ignoring larger tentative arrival times. This means that a standard priority queue may be used instead of some specialized structure that needs to accommodate updates of existing elements.
 
 ### Second Order Accuracy
+At the core of the FMM is the discrete approximation of gradients used to solve the Eikonal equation. Commonly, first order approximations are used, but it is possible to achieve better results using higher order discretization schemes. In **[6]** Sethian describes a second order gradient discretization scheme that he refers to as *High Accuracy FMM*. Interestingly the propagation scheme, i.e. the order in which cells are updated, is independent of the choice of Eikonal solver. The high accuracy Eikonal solver is potentially significantly more accurate than its first order counterpart. A simple example illustrates this.
 
 ![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/fmm_readme_point_source_error.png "Point source error")
+
+*Figure XX. aslkjdjk llkj.*
+
+Implemented using the simplified quadratic forms described by Rickett and Fomel in **[2]**
 
 ### Inside / Outside
 
@@ -158,6 +163,8 @@ references for further reading
 **[4]** M.W. Jones, J.A. Baerentzen, and M. Sramek. 3D Distance Fields: A Survey of Techniques and Applications. *IEEE Transactions on Visualization and Computer Graphics*, 12(4):581-599, July/August 2006.
 
 **[5]** R. Bridson. Fluid Simulation for Computer Graphics. *CRC Press*, 2015.
+
+**[6]** J.A. Sethian. Level set methods and fast marching methods. *Cambridge Monographs on Applied and Computational Mathematics*. Cambridge University Press, second edition, 1999.
 
 
 
