@@ -430,7 +430,7 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, IndexOutsideSpeedGridThrows)
   // Act.
   auto const ft = util::FunctionThrows<invalid_argument>(
     [=]() {
-      auto const unsigned_distance = fmm::UnsignedArrivalTime(
+      auto const unsigned_distance = fmm::SignedArrivalTime(
         grid_size,
         boundary_indices,
         boundary_distances,
@@ -626,7 +626,7 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, IndexOutsideSpeedGridThrow
   // Act.
   auto const ft = util::FunctionThrows<invalid_argument>(
     [=]() {
-      auto const unsigned_distance = fmm::UnsignedArrivalTime(
+      auto const unsigned_distance = fmm::SignedArrivalTime(
         grid_size,
         boundary_indices,
         boundary_distances,

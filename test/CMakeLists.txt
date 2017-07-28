@@ -38,8 +38,7 @@ INCLUDE_DIRECTORIES(
 ADD_EXECUTABLE(fast-marching-method-test
   main.cpp
   eikonal_solvers_test.cpp
-  signed_arrival_time_test.cpp
-  unsigned_arrival_time_test.cpp)
+  signed_arrival_time_test.cpp)
 
 TARGET_LINK_LIBRARIES(fast-marching-method-test gtest gtest_main)
 
