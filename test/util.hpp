@@ -208,6 +208,53 @@ constexpr std::size_t static_pow(std::size_t base, std::size_t const exponent)
 }
 
 
+//! Returns true if @a index is inside @a size, otherwise false.
+template<std::size_t N>
+bool Inside(
+  std::array<std::int32_t, N> const& index,
+  std::array<std::size_t, N> const& size)
+{
+  using namespace std;
+
+  static_assert(N > 0, "invalid dimensionality");
+
+  for (auto i = size_t{0}; i < N; ++i) {
+    // Cast is safe since we check that index[i] is greater than or
+    // equal to zero first.
+    if (!(int32_t{0} <= index[i] && static_cast<size_t>(index[i]) < size[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
+//! Returns a list of face neighbor offset for an N-dimensional cell.
+//! In 2D this is the 4-neighborhood, in 3D the 6-neighborhood, etc.
+template<std::size_t N>
+std::array<std::array<std::int32_t, N>, 2 * N> FaceNeighborOffsets()
+{
+  using namespace std;
+
+  static_assert(N > 0, "dimensionality cannot be zero");
+
+  auto offsets = array<array<int32_t, N>, size_t{2} * N>{};
+  for (auto i = size_t{0}; i < N; ++i) {
+    for (auto j = size_t{0}; j < N; ++j) {
+      if (j == i) {
+        offsets[2 * i + 0][j] = int32_t{+1};
+        offsets[2 * i + 1][j] = int32_t{-1};
+      }
+      else {
+        offsets[2 * i + 0][j] = int32_t{0};
+        offsets[2 * i + 1][j] = int32_t{0};
+      }
+    }
+  }
+  return offsets;
+}
+
+
 //! DOCS
 template<std::size_t N> inline
 std::array<std::array<std::int32_t, N>, static_pow(3, N) - 1>
@@ -455,6 +502,7 @@ void HyperSphereBoundaryCells(
   std::array<std::size_t, N> const& grid_size,
   std::array<T, N> const& grid_spacing,
   D const distance_modifier,
+  std::size_t const dilation_pass_count,
   std::vector<std::array<std::int32_t, N>>* boundary_indices,
   std::vector<T>* boundary_distances,
   std::vector<T>* distance_ground_truth_buffer = nullptr)
@@ -468,6 +516,9 @@ void HyperSphereBoundaryCells(
       new Grid<T, N>(grid_size, distance_ground_truth_buffer->front()));
   }
 
+  auto foreground_indices = vector<array<int32_t, N>>{};
+
+  // Visit each cell exactly once.
   auto index_iter = IndexIterator<N>(grid_size);
   while (index_iter.has_next()) {
     auto const index = index_iter.index();
@@ -494,13 +545,63 @@ void HyperSphereBoundaryCells(
       // The inferface passes through this cell so we freeze it.
       boundary_indices->push_back(index);
       boundary_distances->push_back(cell_distance);
+      foreground_indices.push_back(index);
     }
 
+    // Update ground truth for all cells.
     if (distance_ground_truth_grid != nullptr) {
       distance_ground_truth_grid->Cell(index) = cell_distance;
     }
 
     index_iter.Next();
+  }
+
+  if (dilation_pass_count > 0 && !foreground_indices.empty()) {
+    enum class LabelCell : uint8_t {
+      kBackground = uint8_t{0},
+      kForeground
+    };
+
+    auto label_buffer =
+      vector<LabelCell>(LinearSize(grid_size), LabelCell::kBackground);
+    auto label_grid = Grid<LabelCell, N>(grid_size, label_buffer.front());
+    for (auto const& foreground_index : foreground_indices) {
+      label_grid.Cell(foreground_index) = LabelCell::kForeground;
+    }
+
+    auto const face_neighbor_offsets = util::FaceNeighborOffsets<N>();
+    auto const neighbor_offset_begin = begin(face_neighbor_offsets);
+    auto const neighbor_offset_end = end(face_neighbor_offsets);
+
+    auto old_foreground_indices = foreground_indices;
+    auto new_foreground_indices = vector<array<int32_t, 2>>{};
+    for (auto i = size_t{0}; i < dilation_pass_count; ++i) {
+      for (auto const foreground_index : old_foreground_indices) {
+        for (auto neighbor_offset_iter = neighbor_offset_begin;
+             neighbor_offset_iter != neighbor_offset_end;
+             ++neighbor_offset_iter) {
+          auto neighbor_index = foreground_index;
+          for (auto i = size_t{0}; i < N; ++i) {
+            neighbor_index[i] += (*neighbor_offset_iter)[i];
+          }
+
+          if (Inside(neighbor_index, label_grid.size()) &&
+              label_grid.Cell(neighbor_index) == LabelCell::kBackground) {
+            auto const cell_center = CellCenter(neighbor_index, grid_spacing);
+            auto const cell_distance =
+              distance_modifier(Distance(center, cell_center) - radius);
+            boundary_indices->push_back(neighbor_index);
+            boundary_distances->push_back(cell_distance);
+
+            label_grid.Cell(neighbor_index) = LabelCell::kForeground;
+            new_foreground_indices.push_back(neighbor_index);
+          }
+        }
+      }
+    }
+
+    old_foreground_indices = new_foreground_indices;
+    new_foreground_indices = vector<array<int32_t, 2>>{};
   }
 }
 

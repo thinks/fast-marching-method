@@ -1338,7 +1338,7 @@ bool Frozen(T const d)
 //! Throws std::invalid_argument if:
 //! - The @a check_duplicate_indices is true and there is one or more
 //!   duplicate in @a indices.
-//! - Every element in @a boundary_indices must be inside @a time_grid.
+//! - Not every element in @a boundary_indices is inside @a time_grid.
 template <typename T, std::size_t N>
 void SetBoundaryCondition(
   std::vector<std::array<std::int32_t, N>> const& boundary_indices,
@@ -1606,7 +1606,7 @@ std::vector<T> ArrivalTime(
 //! i.e. Sum(q[i] * x^i) = 0, for i in [0, 2], or simpler
 //! q[0] + q[1] * x + q[2] * x^2 = 0.
 //!
-//! Returns the largest real root, if any (otherwise some kind of NaN).
+//! Returns the largest real root, if any (otherwise a NaN value).
 //! Note that we are not checking for errors here.
 template<typename T>
 T SolveEikonalQuadratic(std::array<T, 3> const& q)
@@ -1655,7 +1655,6 @@ T SolveEikonal(
   assert(!Frozen(distance_grid.Cell(index)) && "Precondition");
 
   // Find the smallest frozen neighbor (if any) in each dimension.
-  auto const neighbor_offsets = array<int32_t, 2>{{-1, 1}};
   auto frozen_neighbor_distances = array<pair<T, size_t>, N>();
   auto frozen_neighbor_distances_count = size_t{0};
   for (auto i = size_t{0}; i < N; ++i) {
@@ -1663,17 +1662,29 @@ T SolveEikonal(
     assert(!Frozen(neighbor_min_distance));
 
     // Find the smallest face neighbor for this dimension.
-    for (auto const neighbor_offset : neighbor_offsets) {
-      auto neighbor_index = index;
-      neighbor_index[i] += neighbor_offset;
-      if (Inside(neighbor_index, distance_grid.size())) {
-        // Note that if the neighbor is not frozen it will have the default
-        // distance numeric_limits<T>::max().
-        auto const neighbor_distance = distance_grid.Cell(neighbor_index);
-        if (neighbor_distance < neighbor_min_distance) {
-          neighbor_min_distance = neighbor_distance;
-          assert(Frozen(neighbor_min_distance));
-        }
+    auto neighbor_index = index;
+
+    // -1
+    neighbor_index[i] -= int32_t{1};
+    if (Inside(neighbor_index, distance_grid.size())) {
+      // Note that if the neighbor is not frozen it will have the default
+      // distance numeric_limits<T>::max().
+      auto const neighbor_distance = distance_grid.Cell(neighbor_index);
+      if (neighbor_distance < neighbor_min_distance) {
+        neighbor_min_distance = neighbor_distance;
+        assert(Frozen(neighbor_min_distance));
+      }
+    }
+
+    // +1
+    neighbor_index[i] += int32_t{2}; // -1 + 2 = 1
+    if (Inside(neighbor_index, distance_grid.size())) {
+      // Note that if the neighbor is not frozen it will have the default
+      // distance numeric_limits<T>::max().
+      auto const neighbor_distance = distance_grid.Cell(neighbor_index);
+      if (neighbor_distance < neighbor_min_distance) {
+        neighbor_min_distance = neighbor_distance;
+        assert(Frozen(neighbor_min_distance));
       }
     }
 
@@ -1795,11 +1806,15 @@ T HighAccuracySolveEikonal(
         {{neighbor_min_distance, neighbor_min_distance2}, i};
     }
     else if (neighbor_min_distance < numeric_limits<T>::max()) {
+      // One frozen neighbor in this dimension.
       frozen_neighbor_distances[frozen_neighbor_distances_count++] =
         {{neighbor_min_distance, numeric_limits<T>::max()}, i};
     }
+    // else: no frozen neighbors in this dimension.
   }
   assert(frozen_neighbor_distances_count > size_t{0} && "Precondition");
+
+  auto q = array<T, 3>{ {T{ -1 } / Squared(speed), T{ 0 }, T{ 0 }}}; // TMP!!
 
   auto arrival_time = numeric_limits<T>::quiet_NaN();
   if (frozen_neighbor_distances_count == 1) {
@@ -1811,7 +1826,7 @@ T HighAccuracySolveEikonal(
   }
   else {
     // Initialize quadratic coefficients.
-    auto q = array<T, 3>{{T{-1} / Squared(speed), T{0}, T{0}}};
+    //auto q = array<T, 3>{{T{-1} / Squared(speed), T{0}, T{0}}};
     auto const inverse_squared_grid_spacing = InverseSquared(grid_spacing);
 
     for (auto i = size_t{0}; i < frozen_neighbor_distances_count; ++i) {
@@ -1838,7 +1853,21 @@ T HighAccuracySolveEikonal(
     arrival_time = SolveEikonalQuadratic(q);
   }
 
-  ThrowIfInvalidArrivalTime(arrival_time, index);
+  //ThrowIfInvalidArrivalTime(arrival_time, index);
+  if (!(arrival_time >= T{ 0 })) {
+    auto const cell_distance = distance_grid.Cell(index);
+    for (auto i = size_t{ 0 }; i < frozen_neighbor_distances_count; ++i) {
+      cerr << "[" << i << "]:" << cell_distance << " | " << frozen_neighbor_distances[i].first.first << ", " << frozen_neighbor_distances[i].first.second << endl;
+    }
+    cerr << "q: " << ToString(q) << endl;
+    cerr << "discr: " << q[1] * q[1] - T{ 4 } *q[2] * q[0] << endl;
+    cerr << "int64: " << int64_t{ -800046 } *int64_t{ -800046 } -int64_t{ 4 } *int64_t{ 1179650 } *int64_t{ 135649 } << endl;
+
+    //auto ss = stringstream();
+    cerr << "invalid arrival time (distance) " << arrival_time << " at index " << ToString(index) << endl;
+    std::abort();
+    //throw runtime_error(ss.str());
+  }
   return arrival_time;
 }
 

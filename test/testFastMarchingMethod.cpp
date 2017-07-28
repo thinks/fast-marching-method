@@ -39,34 +39,6 @@
 
 
 namespace {
-namespace util {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-} // namespace util
-
 
 // Fixtures.
 
