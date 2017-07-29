@@ -117,7 +117,7 @@ $ D:/fmm-build/fast-marching-method-test.exe
 ## Implementation
 This section describes the FMM implementation from a more technical perspective. We explain design choices and give references to relevant implementation details. Finally, possible directions for future work together with references for additional material on the FMM are given.
 
-### Simplified Fast Marching Method. 
+### Simplified Fast Marching Method
 A key part of the FMM algorithm is the specific order in which cells are visited during arrival time propagation. Achieving this specific order requires maintaining a priority queue of tentative arrival times for cells during propagation. Since the tentative arrival time at a cell can be re-evaluated several times before obtaining its final value a cell may change position in the priority queue. The operation of finding and moving a cell in the priority queue is relatively expensive and, moreover, requires a specialized data structure. In **[4]**, Jones et al. observe that increasing the tentative arrival time at a cell during recomputation is detrimental to the final result. They therefore propose a somewhat simpler propagation scheme that allows cells to appear multiple times in the priority queue. This alleviates the need for finding and moving cells in the queue at the small cost of having to check if a cell has already been finalized. Pseudo-code for the simplified FMM is as follows **[4]**:
 
 ```
@@ -130,7 +130,7 @@ If cell is not finalized
 
 We note that this scheme does not require updating existing elements in the priority queue. Instead multiple tentative arrival times may be added for the same cell. Only the smallest tentative arrival time determines when a cell is finalized, effectively ignoring larger tentative arrival times. This means that a standard priority queue may be used instead of some specialized structure that needs to accommodate updates of existing elements.
 
-### Second Order Accuracy
+### High Accuracy Fast Marching Method
 At the core of the FMM is the discrete approximation of gradients used to solve the Eikonal equation. Commonly, first order approximations are used, but it is sometimes possible to achieve better results using higher order discretization schemes. In **[6]** Sethian describes a second order gradient discretization scheme that he refers to as *High Accuracy FMM*. The high accuracy Eikonal solver is potentially significantly more accurate than its first order counterpart. A simple example illustrates this.
 
 ![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/fmm_readme_point_source_error.png "Point source error")
