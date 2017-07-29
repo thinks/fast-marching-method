@@ -139,7 +139,7 @@ Starting from a point source at the middle of the image, arrival times were comp
 
 Finally, we use the elegant formulations provided by Rickett and Fomel in **[2]** for accumulating quadratic coefficients when solving the Eikonal equation. Their framework enables a simple way of using second order derivatives when the cell neighborhood allows it and otherwise falling back to first order derivatives. Interestingly, the propagation scheme, i.e. the order in which cells are updated, is independent of how we choose to solve the Eikonal equation.
 
-### Inside / Outside
+### Morphological Inside-Outside
 
 
 ### Code Design
