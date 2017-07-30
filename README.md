@@ -147,6 +147,7 @@ In some applications of the FMM boundary cells represent point sources and only 
 ![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/fmm_readme_inside_outside.png "Sign computation")
 
 
+Describe dilation band bbox approach to finding inside-outside wavefronts.
 
 Does not work well in 1D!
 
@@ -172,11 +173,11 @@ references for further reading
 
 **[5]** R. Bridson. Fluid Simulation for Computer Graphics. *CRC Press*, 2015.
 
-**[6]** J.A. Sethian. Level set methods and fast marching methods. *Cambridge Monographs on Applied and Computational Mathematics*. Cambridge University Press, second edition, 1999.
+**[6]** J.A. Sethian. Level set methods and fast marching methods. *Cambridge Monographs on Applied and Computational Mathematics*, Cambridge University Press, second edition, 1999.
 
 **[7]** N. Rawlinson, M. de Kool, and M. Sambridge. Seismic wavefront tracking in 3D heterogeneous media: applications with multiple data classes. *Exploration Geophysics*, 37(4):322–330, 2006.
 
-
+**[8]** S. Osher and R. Fedkiw. Level Set Methods and Dynamic Implicit Surfaces. *Springer*, 2003
 
 
 
