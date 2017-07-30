@@ -143,6 +143,9 @@ Finally, we use the elegant formulations provided by Rickett and Fomel in **[2]*
 
 ### Morphological Sign Computation
 
+![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/fmm_readme_inside_outside.png "Sign computation")
+
+Does not work well in 1D!
 
 ### Code Design
 
