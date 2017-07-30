@@ -142,8 +142,11 @@ In **[3]** Baerentzen provides numbers for the max and mean error of his impleme
 Finally, we use the elegant formulations provided by Rickett and Fomel in **[2]** for accumulating quadratic coefficients when solving the Eikonal equation. Their framework enables a simple way of using second order derivatives when the cell neighborhood allows it and otherwise falling back to first order derivatives. Interestingly, the propagation scheme, i.e. the order in which cells are updated, is independent of how we choose to solve the Eikonal equation.
 
 ### Morphological Sign Computation
+In some applications of the FMM boundary cells represent point sources and only positive travel times are of interest. The field of seismic study, e.g. **[7]**, is a good example of this. In these cases boundary cells form filled shapes and there is no concept of inside, as arrival times propagate outwards. However, in the level set community it is often desirable to convert shapes from explicit representations, such as triangle meshes, to implicit representations, i.e. distance fields. Computing distance fields using the FMM is easily achieved by settings a uniform speed equal to one on the entire domain, which in practice allows arrival time to be interpreted as distance. It is common for distance fields to represent the inside of a shape using negative values at cells whose centers are inside the shape. However, as illustrated below, a simple trick is required to achieve correct inside distances.
 
 ![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/fmm_readme_inside_outside.png "Sign computation")
+
+
 
 Does not work well in 1D!
 
@@ -170,6 +173,8 @@ references for further reading
 **[5]** R. Bridson. Fluid Simulation for Computer Graphics. *CRC Press*, 2015.
 
 **[6]** J.A. Sethian. Level set methods and fast marching methods. *Cambridge Monographs on Applied and Computational Mathematics*. Cambridge University Press, second edition, 1999.
+
+**[7]** N. Rawlinson, M. de Kool, and M. Sambridge. Seismic wavefront tracking in 3D heterogeneous media: applications with multiple data classes. *Exploration Geophysics*, 37(4):322–330, 2006.
 
 
 
