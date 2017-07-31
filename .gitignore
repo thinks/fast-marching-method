@@ -28,3 +28,5 @@
 *.app
 *.user
 test/CMakeLists.txt.user
+*.suo
+*.sqlite
