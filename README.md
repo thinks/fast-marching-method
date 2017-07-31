@@ -142,7 +142,19 @@ In **[3]** Baerentzen provides numbers for the max and mean error of his impleme
 Finally, we use the elegant formulations provided by Rickett and Fomel in **[2]** for accumulating quadratic coefficients when solving the Eikonal equation. Their framework enables a simple way of using second order derivatives when the cell neighborhood allows it and otherwise falling back to first order derivatives. Interestingly, the propagation scheme, i.e. the order in which cells are updated, is independent of how we choose to solve the Eikonal equation.
 
 ### Morphological Sign Computation
+In some applications of the FMM boundary cells represent point sources and only positive travel times are of interest. The field of seismic study (e.g. **[7]**) is a good example of this. In these cases boundary cells form filled shapes and there is no concept of inside. In other words, arrival times are only propagated outward from solid shapes. However, in the level set community it is often desirable to convert shapes from explicit representations, such as triangle meshes, to implicit representations, i.e. distance fields. Computing distance fields using the FMM is easily achieved by settings a uniform speed equal to one on the entire domain, which in practice allows arrival time to be interpreted as distance. It is common to use signed distance fields, where the inside of a shape has negative distance values. As illustrated below, a simple trick is required to achieve correct inside distances.
 
+![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/fmm_readme_inside_outside.png "Sign computation")
+
+We wish to create a signed distance field from the green circle. Cell values are shown as circles since we can interpret them as radii representing the minimum distance to the interface (the green circle in this case). From the definition of distance fields we know that cell circles are tangential to the green circle at one or more locations. The concept of negative distances is only used to distinguish between inside-outside, geometrically the tangential property applies to absolute values.
+
+For simplicity we consider only a single grid row. In the top illustration we note two issues: (1) on the left-hand side (B<sub>0</sub>) we have issues with dual contouring; (2) grid cell centers (B<sub>1</sub>) inside the shape must have negative distance values. First, dual contouring happens because the FMM algorithm is symmetric in the sense that propagated values move away from the interface. As evident in the figure, this leads to issues where the inside considers the interface to be in a different location (dashed circle) than the outside. Secondly, and perhaps more obvious, boundary cell centers inside the shape must have negative values. 
+
+In the bottom version we show the correct distance values. As mentioned briefly in **[8]**, the dual contouring issue can be resolved by sign-flipping the boundary values while propagating inward. Essentially, this means that both inward and outward propagation consider the interface to be at the same position. Note that inside values are positive while propagating and these cells need to be manually sign-flipped after inward propagation finishes. The B<sub>1</sub> boundary cell has also been negated, which gives the correct result on that side too. Now, given that we need to distinguish between inward and outward propagation, how do we know if a boundary cell neighbor is on the inside or outside?
+
+Describe dilation band bbox approach to finding inside-outside wavefronts.
+
+Does not work well in 1D!
 
 ### Code Design
 
@@ -166,9 +178,11 @@ references for further reading
 
 **[5]** R. Bridson. Fluid Simulation for Computer Graphics. *CRC Press*, 2015.
 
-**[6]** J.A. Sethian. Level set methods and fast marching methods. *Cambridge Monographs on Applied and Computational Mathematics*. Cambridge University Press, second edition, 1999.
+**[6]** J.A. Sethian. Level set methods and fast marching methods. *Cambridge Monographs on Applied and Computational Mathematics*, Cambridge University Press, second edition, 1999.
 
+**[7]** N. Rawlinson, M. de Kool, and M. Sambridge. Seismic wavefront tracking in 3D heterogeneous media: applications with multiple data classes. *Exploration Geophysics*, 37(4):322–330, 2006.
 
+**[8]** S. Osher and R. Fedkiw. Level Set Methods and Dynamic Implicit Surfaces. *Springer*, 2003
 
 
 
