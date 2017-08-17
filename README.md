@@ -152,7 +152,7 @@ For simplicity we consider only a few cells in a single grid row. In the top ill
 
 In the bottom version we show the correct distance values. As mentioned briefly in **[8]**, the dual contouring issue can be resolved by sign-flipping the boundary values while propagating inward. Note that inside values are positive while propagating and these cells need to be manually sign-flipped after inward propagation finishes. Now, given that we need to distinguish between inward and outward propagation, how do we know if a boundary cell neighbor is on the inside or outside?
 
-Describe dilation band bbox approach to finding inside-outside wavefronts.
+A morphological approach is used to determine the inside and outside areas of the shape described by the given boundary cells. First, we perform a morphological dilation of the boundary cells using the vertex neighborhood, i.e. all cells that share a vertex with a boundary cell are tagged as being part of a dilation band. Next, we perform connected component labelling of the dilation band cells. This results in one or more separate dilation bands. Every shape has an outer dilation band and in the presence of multiple dilation bands, the outer dilation band always has the largest bounding box. Other dilation bands are referred to as inner dilation bands and we know that these cells are on the inside of the shape. The image below illustrates these ideas.
 
 ![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/fmm_readme_dilation_bands.png "Inside/outside")
 
