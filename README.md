@@ -156,6 +156,8 @@ A morphological approach is used to determine the inside and outside areas of th
 
 ![alt text](https://github.com/thinks/fast-marching-method/blob/master/img/fmm_readme_dilation_bands.png "Inside/outside")
 
+The simplest case is when the given boundary cells form a single connected component. There may be an arbitrary number of dilation bands, but inside and outside can always be determined without ambiguities. Note that the input grid is padded by one cell in each direction while computing the dilation bands. The reasoning behind this is that non-closed shapes should not have insides, which would otherwise happen. In the case of two or more connected boundary components there is the possibility that one of the components is contained by one of the other components. If this is the case there is an ambiguity regarding inside and outside, since the contained component's outside will be considered to be inside by the containing component. Interestingly, the outsides of separate components will at some point interact with each other, while insides will never interact with dilation band cells from any other dilation band. In order to determine if a component is contained within another we flood fill all inside regions and check for the existence of boundary cells.
+
 
 Does not work well in 1D!
 
