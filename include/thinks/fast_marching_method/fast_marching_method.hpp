@@ -2024,7 +2024,7 @@ protected:
     std::array<T, N> const& grid_spacing,
     std::array<std::size_t, N> const& speed_grid_size,
     std::vector<T> const& speed_buffer)
-    : EikonalSolverBase(grid_spacing)
+    : EikonalSolverBase<T,N>(grid_spacing)
     , speed_grid_(speed_grid_size, speed_buffer)
   {
     for (auto const speed : speed_buffer) {
@@ -2075,8 +2075,8 @@ public:
     return detail::SolveEikonal(
       index,
       distance_grid,
-      uniform_speed(),
-      grid_spacing());
+      this->uniform_speed(),
+      this->grid_spacing());
   }
 };
 
@@ -2105,8 +2105,8 @@ public:
     return detail::HighAccuracySolveEikonal(
       index,
       distance_grid,
-      uniform_speed(),
-      grid_spacing());
+      this->uniform_speed(),
+      this->grid_spacing());
   }
 };
 
@@ -2137,7 +2137,7 @@ public:
       index,
       distance_grid,
       Speed(index),
-      grid_spacing());
+      this->grid_spacing());
   }
 };
 
@@ -2169,7 +2169,7 @@ public:
       index,
       distance_grid,
       Speed(index),
-      grid_spacing());
+      this->grid_spacing());
   }
 };
 
