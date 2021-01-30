@@ -549,7 +549,8 @@ TYPED_TEST(SignedArrivalTimeTest, VaryingSpeed)
     auto const index = time_index_iter.index();
     auto mid = true;
     for (auto i = size_t{1}; i < kDimension; ++i) {
-      if (index[i] != grid_size[i] / 2) {
+      const int32_t half = static_cast<int32_t>(grid_size[i]) / 2;
+      if (index[i] != half) {
         mid = false;
         break;
       }
@@ -646,7 +647,8 @@ TYPED_TEST(SignedArrivalTimeTest, BoxBoundary)
   while (index_iter.has_next()) {
     auto const index = index_iter.index();
     for (auto i = size_t{0}; i < kDimension; ++i) {
-      if (index[i] == 0 || index[i] == grid_size[i] - 1) {
+      const int32_t edge = static_cast<int32_t>(grid_size[i]) - 1;
+      if (index[i] == 0 || index[i] == edge) {
         boundary_indices.push_back(index);
         break;
       }
@@ -726,7 +728,8 @@ TYPED_TEST(SignedArrivalTimeTest, Checkerboard)
       if (!is_boundary(index)) {
         auto is_edge = false;
         for (auto i = size_t{0}; i < kDimension; ++i) {
-          if (index[i] == 0 || index[i] == grid_size[i] - 1) {
+          const int32_t edge = static_cast<int32_t>(grid_size[i]) - 1;
+          if (index[i] == 0 || index[i] == edge) {
             is_edge = true;
             break;
           }
