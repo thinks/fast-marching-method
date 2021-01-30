@@ -86,7 +86,7 @@ TYPED_TEST(UniformSpeedEikonalSolverTest, InvalidGridSpacingThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -128,7 +128,7 @@ TYPED_TEST(UniformSpeedEikonalSolverTest, InvalidSpeedThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -168,7 +168,7 @@ TYPED_TEST(HighAccuracyUniformSpeedEikonalSolverTest, InvalidGridSpacingThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::HighAccuracyUniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -210,7 +210,7 @@ TYPED_TEST(HighAccuracyUniformSpeedEikonalSolverTest, InvalidSpeedThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::HighAccuracyUniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -250,7 +250,7 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, InvalidGridSpacingThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::VaryingSpeedEikonalSolver<ScalarType, kDimension>
@@ -295,7 +295,7 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, InvalidSpeedThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::VaryingSpeedEikonalSolver<ScalarType, kDimension>
@@ -338,7 +338,7 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, InvalidSpeedBufferThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::VaryingSpeedEikonalSolver<ScalarType, kDimension>
@@ -372,7 +372,7 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, InvalidSpeedGridSizeThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::VaryingSpeedEikonalSolver<ScalarType, kDimension>
@@ -407,7 +407,7 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, IndexOutsideSpeedGridThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::VaryingSpeedEikonalSolver<ScalarType, kDimension>
@@ -449,7 +449,7 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidGridSpacingThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::HighAccuracyVaryingSpeedEikonalSolver<ScalarType, kDimension>
@@ -494,7 +494,7 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidSpeedThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::HighAccuracyVaryingSpeedEikonalSolver<ScalarType, kDimension>
@@ -537,7 +537,7 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidSpeedBufferThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::HighAccuracyVaryingSpeedEikonalSolver<ScalarType, kDimension>
@@ -570,7 +570,7 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidSpeedGridSizeThrows
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::HighAccuracyVaryingSpeedEikonalSolver<ScalarType, kDimension>
@@ -604,7 +604,7 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, IndexOutsideSpeedGridThrow
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::HighAccuracyVaryingSpeedEikonalSolver<ScalarType, kDimension>
@@ -645,7 +645,7 @@ TYPED_TEST(DistanceSolverTest, InvalidGridSpacingThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::DistanceSolver<ScalarType, kDimension> EikonalSolverType;

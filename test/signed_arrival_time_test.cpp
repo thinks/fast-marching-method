@@ -66,7 +66,7 @@ TYPED_TEST(SignedArrivalTimeTest, ZeroElementInGridSizeThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -106,7 +106,7 @@ TYPED_TEST(SignedArrivalTimeTest, EmptyBoundaryThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -138,7 +138,7 @@ TYPED_TEST(SignedArrivalTimeTest, FullGridBoundaryIndicesThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -179,7 +179,7 @@ TYPED_TEST(SignedArrivalTimeTest, DuplicateBoundaryIndicesThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -220,7 +220,7 @@ TYPED_TEST(SignedArrivalTimeTest, BoundaryIndexOutsideGridThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -263,7 +263,7 @@ TYPED_TEST(SignedArrivalTimeTest, BoundaryIndicesAndTimesSizeMismatchThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -302,7 +302,7 @@ TYPED_TEST(SignedArrivalTimeTest, InvalidBoundaryTimeThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -350,7 +350,7 @@ TYPED_TEST(SignedArrivalTimeTest, EikonalSolverFailThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -390,7 +390,7 @@ TYPED_TEST(SignedArrivalTimeTest, ContainedComponentThrows)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr auto kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -453,7 +453,7 @@ TYPED_TEST(SignedArrivalTimeTest, DifferentUniformSpeed)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -499,7 +499,7 @@ TYPED_TEST(SignedArrivalTimeTest, VaryingSpeed)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr auto kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::VaryingSpeedEikonalSolver<ScalarType, kDimension>
@@ -571,7 +571,7 @@ TYPED_TEST(SignedArrivalTimeTest, NonUniformGridSpacing)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -631,7 +631,7 @@ TYPED_TEST(SignedArrivalTimeTest, BoxBoundary)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -676,7 +676,7 @@ TYPED_TEST(SignedArrivalTimeTest, Checkerboard)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr auto kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -749,7 +749,7 @@ TYPED_TEST(SignedArrivalTimeTest, OverlappingBoxes)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr auto kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
@@ -818,7 +818,7 @@ TYPED_TEST(SignedArrivalTimeAccuracyTest, PointSourceAccuracy)
 {
   using namespace std;
 
-  typedef TypeParam::ScalarType ScalarType;
+  typedef typename TypeParam::ScalarType ScalarType;
   static constexpr auto kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
