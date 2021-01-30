@@ -114,7 +114,9 @@ TYPED_TEST(UniformSpeedEikonalSolverTest, InvalidGridSpacingThrows)
       // Act.
       auto const ft = util::FunctionThrows<invalid_argument>(
         [=]() {
+          [[maybe_unused]]
           auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
+          // (void)eikonal_solver;  // pre-C++11
         });
 
       // Assert.
@@ -152,6 +154,7 @@ TYPED_TEST(UniformSpeedEikonalSolverTest, InvalidSpeedThrows)
     // Act.
     auto const ft = util::FunctionThrows<invalid_argument>(
       [=]() {
+        [[maybe_unused]]
         auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
       });
 
@@ -196,6 +199,7 @@ TYPED_TEST(HighAccuracyUniformSpeedEikonalSolverTest, InvalidGridSpacingThrows)
       // Act.
       auto const ft = util::FunctionThrows<invalid_argument>(
         [=]() {
+          [[maybe_unused]]
           auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
         });
 
@@ -234,6 +238,7 @@ TYPED_TEST(HighAccuracyUniformSpeedEikonalSolverTest, InvalidSpeedThrows)
     // Act.
     auto const ft = util::FunctionThrows<invalid_argument>(
       [=]() {
+        [[maybe_unused]]
         auto const eikonal_solver = EikonalSolverType(grid_spacing, speed);
       });
 
@@ -280,6 +285,7 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, InvalidGridSpacingThrows)
       // Act.
       auto const ft = util::FunctionThrows<invalid_argument>(
         [&]() {
+          [[maybe_unused]]
           auto const eikonal_solver =
             EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
         });
@@ -324,6 +330,7 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, InvalidSpeedThrows)
     // Act.
     auto const ft = util::FunctionThrows<invalid_argument>(
       [=]() {
+        [[maybe_unused]]
         auto const eikonal_solver =
           EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
       });
@@ -359,6 +366,7 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, InvalidSpeedBufferThrows)
   // Act.
   auto const ft = util::FunctionThrows<invalid_argument>(
     [=]() {
+      [[maybe_unused]]
       auto const eikonal_solver =
         EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
     });
@@ -393,6 +401,7 @@ TYPED_TEST(VaryingSpeedEikonalSolverTest, InvalidSpeedGridSizeThrows)
     // Act.
     auto const ft = util::FunctionThrows<invalid_argument>(
       [=]() {
+        [[maybe_unused]]
         auto const eikonal_solver =
           EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
       });
@@ -479,6 +488,7 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidGridSpacingThrows)
       // Act.
       auto const ft = util::FunctionThrows<invalid_argument>(
         [&]() {
+          [[maybe_unused]]
           auto const eikonal_solver =
             EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
         });
@@ -523,6 +533,7 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidSpeedThrows)
     // Act.
     auto const ft = util::FunctionThrows<invalid_argument>(
       [=]() {
+        [[maybe_unused]]
         auto const eikonal_solver =
           EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
       });
@@ -557,6 +568,7 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidSpeedBufferThrows)
   // Act.
   auto const ft = util::FunctionThrows<invalid_argument>(
     [=]() {
+      [[maybe_unused]]
       auto const eikonal_solver =
         EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
     });
@@ -590,6 +602,7 @@ TYPED_TEST(HighAccuracyVaryingSpeedEikonalSolverTest, InvalidSpeedGridSizeThrows
     // Act.
     auto const ft = util::FunctionThrows<invalid_argument>(
       [=]() {
+        [[maybe_unused]]
         auto const eikonal_solver =
           EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer);
       });
@@ -671,6 +684,7 @@ TYPED_TEST(DistanceSolverTest, InvalidGridSpacingThrows)
       // Act.
       auto const ft = util::FunctionThrows<invalid_argument>(
         [=]() {
+          [[maybe_unused]]
           auto const eikonal_solver = EikonalSolverType(dx);
         });
 
