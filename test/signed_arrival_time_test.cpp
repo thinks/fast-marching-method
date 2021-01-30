@@ -414,6 +414,7 @@ TYPED_TEST(SignedArrivalTimeTest, ContainedComponentThrows)
     grid_size,
     grid_spacing,
     [](ScalarType const d) { return d; },
+    0,  // dilation_pass_count
     &sphere_boundary_indices1,
     &sphere_boundary_times1);
   auto sphere_boundary_indices2 = vector<array<int32_t, kDimension>>();
@@ -424,6 +425,7 @@ TYPED_TEST(SignedArrivalTimeTest, ContainedComponentThrows)
     grid_size,
     grid_spacing,
     [](ScalarType const d) { return d; },
+    0,  // dilation_pass_count
     &sphere_boundary_indices2,
     &sphere_boundary_times2);
 
