@@ -34,6 +34,9 @@
 
 namespace util {
 
+template<std::size_t N>
+class IndexIterator;
+
 template<typename S, std::size_t N>
 struct ScalarDimensionPair
 {
