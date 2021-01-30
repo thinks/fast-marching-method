@@ -577,7 +577,7 @@ void HyperSphereBoundaryCells(
     auto const neighbor_offset_end = end(face_neighbor_offsets);
 
     auto old_foreground_indices = foreground_indices;
-    auto new_foreground_indices = vector<array<int32_t, 2>>{};
+    auto new_foreground_indices = vector<array<int32_t, N>>{};
     for (auto i = size_t{0}; i < dilation_pass_count; ++i) {
       for (auto const foreground_index : old_foreground_indices) {
         for (auto neighbor_offset_iter = neighbor_offset_begin;
@@ -604,7 +604,7 @@ void HyperSphereBoundaryCells(
     }
 
     old_foreground_indices = new_foreground_indices;
-    new_foreground_indices = vector<array<int32_t, 2>>{};
+    new_foreground_indices = vector<array<int32_t, N>>{};
   }
 }
 
