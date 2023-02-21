@@ -73,11 +73,11 @@ typedef ::testing::Types<
   util::ScalarDimensionPair<double, 3>,
   util::ScalarDimensionPair<double, 4>> EikonalSolverTypes;
 
-TYPED_TEST_CASE(UniformSpeedEikonalSolverTest, EikonalSolverTypes);
-TYPED_TEST_CASE(HighAccuracyUniformSpeedEikonalSolverTest, EikonalSolverTypes);
-TYPED_TEST_CASE(VaryingSpeedEikonalSolverTest, EikonalSolverTypes);
-TYPED_TEST_CASE(HighAccuracyVaryingSpeedEikonalSolverTest, EikonalSolverTypes);
-TYPED_TEST_CASE(DistanceSolverTest, EikonalSolverTypes);
+TYPED_TEST_SUITE(UniformSpeedEikonalSolverTest, EikonalSolverTypes);
+TYPED_TEST_SUITE(HighAccuracyUniformSpeedEikonalSolverTest, EikonalSolverTypes);
+TYPED_TEST_SUITE(VaryingSpeedEikonalSolverTest, EikonalSolverTypes);
+TYPED_TEST_SUITE(HighAccuracyVaryingSpeedEikonalSolverTest, EikonalSolverTypes);
+TYPED_TEST_SUITE(DistanceSolverTest, EikonalSolverTypes);
 
 
 // UniformSpeedEikonalSolverTest fixture.
