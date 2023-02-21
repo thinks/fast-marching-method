@@ -6,7 +6,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 enable_testing(true)
 
-add_subdirectory(gtest-1.7.0)
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG        750d67d809700ae8fca6d610f7b41b71aa161808
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
 # Default to release build
 if(NOT CMAKE_BUILD_TYPE)
