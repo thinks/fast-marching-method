@@ -27,55 +27,49 @@ namespace {
 
 // Fixtures.
 
-template<typename T>
+template <typename T>
 class SignedArrivalTimeTest : public ::testing::Test {
-protected:
+ protected:
   virtual ~SignedArrivalTimeTest() {}
 };
 
-template<typename T>
+template <typename T>
 class SignedArrivalTimeAccuracyTest : public ::testing::Test {
-protected:
+ protected:
   virtual ~SignedArrivalTimeAccuracyTest() {}
 };
-
 
 // Associate types with fixtures.
 
 typedef ::testing::Types<
-  util::ScalarDimensionPair<float, 2>,
-  util::ScalarDimensionPair<float, 3>,
-  util::ScalarDimensionPair<float, 4>,
-  util::ScalarDimensionPair<double, 2>,
-  util::ScalarDimensionPair<double, 3>,
-  util::ScalarDimensionPair<double, 4>> SignedArrivalTimeTypes;
+    util::ScalarDimensionPair<float, 2>, util::ScalarDimensionPair<float, 3>,
+    util::ScalarDimensionPair<float, 4>, util::ScalarDimensionPair<double, 2>,
+    util::ScalarDimensionPair<double, 3>, util::ScalarDimensionPair<double, 4>>
+    SignedArrivalTimeTypes;
 
 typedef ::testing::Types<
-  util::ScalarDimensionPair<float, 2>,
-  util::ScalarDimensionPair<float, 3>,
-  util::ScalarDimensionPair<double, 2>,
-  util::ScalarDimensionPair<double, 3>> AccuracyTypes;
+    util::ScalarDimensionPair<float, 2>, util::ScalarDimensionPair<float, 3>,
+    util::ScalarDimensionPair<double, 2>, util::ScalarDimensionPair<double, 3>>
+    AccuracyTypes;
 
 TYPED_TEST_SUITE(SignedArrivalTimeTest, SignedArrivalTimeTypes, );
 TYPED_TEST_SUITE(SignedArrivalTimeAccuracyTest, AccuracyTypes, );
 
-
 // SignedArrivalTime fixture.
 
-TYPED_TEST(SignedArrivalTimeTest, ZeroElementInGridSizeThrows)
-{
+TYPED_TEST(SignedArrivalTimeTest, ZeroElementInGridSizeThrows) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
+      EikonalSolverType;
 
   // Arrange.
   for (auto i = size_t{0}; i < kDimension; ++i) {
     auto grid_size = util::FilledArray<kDimension>(size_t{10});
-    grid_size[i] = 0; // Zero element in i'th position.
+    grid_size[i] = 0;  // Zero element in i'th position.
     auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
     auto const speed = ScalarType{1};
 
@@ -87,14 +81,11 @@ TYPED_TEST(SignedArrivalTimeTest, ZeroElementInGridSizeThrows)
     expected_reason << "invalid size: " << util::ToString(grid_size);
 
     // Act.
-    auto const ft = util::FunctionThrows<invalid_argument>(
-      [=]() {
-        auto const signed_times = fmm::SignedArrivalTime(
-          grid_size,
-          boundary_indices,
-          boundary_distances,
+    auto const ft = util::FunctionThrows<invalid_argument>([=]() {
+      auto const signed_times = fmm::SignedArrivalTime(
+          grid_size, boundary_indices, boundary_distances,
           EikonalSolverType(grid_spacing, speed));
-      });
+    });
 
     // Assert.
     ASSERT_TRUE(ft.first);
@@ -102,47 +93,42 @@ TYPED_TEST(SignedArrivalTimeTest, ZeroElementInGridSizeThrows)
   }
 }
 
-TYPED_TEST(SignedArrivalTimeTest, EmptyBoundaryThrows)
-{
+TYPED_TEST(SignedArrivalTimeTest, EmptyBoundaryThrows) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
+      EikonalSolverType;
 
   // Arrange.
   auto const grid_size = util::FilledArray<kDimension>(size_t{10});
   auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
   auto const speed = ScalarType{1};
-  auto const boundary_indices = vector<array<int32_t, kDimension>>{}; // Empty.
-  auto const boundary_distances = vector<ScalarType>{}; // Empty.
+  auto const boundary_indices = vector<array<int32_t, kDimension>>{};  // Empty.
+  auto const boundary_distances = vector<ScalarType>{};                // Empty.
 
   // Act.
-  auto const ft = util::FunctionThrows<invalid_argument>(
-    [=]() {
-      auto const signed_times = fmm::SignedArrivalTime(
-        grid_size,
-        boundary_indices,
-        boundary_distances,
-        EikonalSolverType(grid_spacing, speed));
-    });
+  auto const ft = util::FunctionThrows<invalid_argument>([=]() {
+    auto const signed_times =
+        fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_distances,
+                               EikonalSolverType(grid_spacing, speed));
+  });
 
   // Assert.
   ASSERT_TRUE(ft.first);
   ASSERT_EQ("empty boundary condition", ft.second);
 }
 
-TYPED_TEST(SignedArrivalTimeTest, FullGridBoundaryIndicesThrows)
-{
+TYPED_TEST(SignedArrivalTimeTest, FullGridBoundaryIndicesThrows) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
+      EikonalSolverType;
 
   // Arrange.
   auto const grid_size = util::FilledArray<kDimension>(size_t{10});
@@ -158,32 +144,28 @@ TYPED_TEST(SignedArrivalTimeTest, FullGridBoundaryIndicesThrows)
   }
 
   auto const boundary_distances =
-    vector<ScalarType>(util::LinearSize(grid_size), ScalarType{1});
+      vector<ScalarType>(util::LinearSize(grid_size), ScalarType{1});
 
   // Act.
-  auto const ft = util::FunctionThrows<invalid_argument>(
-    [=]() {
-      auto const signed_distance = fmm::SignedArrivalTime(
-        grid_size,
-        boundary_indices,
-        boundary_distances,
-        EikonalSolverType(grid_spacing, speed));
-    });
+  auto const ft = util::FunctionThrows<invalid_argument>([=]() {
+    auto const signed_distance =
+        fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_distances,
+                               EikonalSolverType(grid_spacing, speed));
+  });
 
   // Assert.
   ASSERT_TRUE(ft.first);
   ASSERT_EQ("full grid boundary", ft.second);
 }
 
-TYPED_TEST(SignedArrivalTimeTest, DuplicateBoundaryIndicesThrows)
-{
+TYPED_TEST(SignedArrivalTimeTest, DuplicateBoundaryIndicesThrows) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
+      EikonalSolverType;
 
   // Arrange.
   auto const grid_size = util::FilledArray<kDimension>(size_t{10});
@@ -193,7 +175,7 @@ TYPED_TEST(SignedArrivalTimeTest, DuplicateBoundaryIndicesThrows)
   auto boundary_indices = vector<array<int32_t, kDimension>>();
   auto index_iter = util::IndexIterator<kDimension>(grid_size);
   boundary_indices.push_back(index_iter.index());
-  boundary_indices.push_back(index_iter.index()); // Same index!
+  boundary_indices.push_back(index_iter.index());  // Same index!
 
   auto const boundary_distances = vector<ScalarType>(2, ScalarType{1});
 
@@ -202,29 +184,25 @@ TYPED_TEST(SignedArrivalTimeTest, DuplicateBoundaryIndicesThrows)
                   << util::ToString(index_iter.index());
 
   // Act.
-  auto const ft = util::FunctionThrows<invalid_argument>(
-    [=]() {
-      auto const signed_distance = fmm::SignedArrivalTime(
-        grid_size,
-        boundary_indices,
-        boundary_distances,
-        EikonalSolverType(grid_spacing, speed));
-    });
+  auto const ft = util::FunctionThrows<invalid_argument>([=]() {
+    auto const signed_distance =
+        fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_distances,
+                               EikonalSolverType(grid_spacing, speed));
+  });
 
   // Assert.
   ASSERT_TRUE(ft.first);
   ASSERT_EQ(expected_reason.str(), ft.second);
 }
 
-TYPED_TEST(SignedArrivalTimeTest, BoundaryIndexOutsideGridThrows)
-{
+TYPED_TEST(SignedArrivalTimeTest, BoundaryIndexOutsideGridThrows) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
+      EikonalSolverType;
 
   // Arrange.
   auto const grid_size = util::FilledArray<kDimension>(size_t{10});
@@ -241,33 +219,30 @@ TYPED_TEST(SignedArrivalTimeTest, BoundaryIndexOutsideGridThrows)
 
   auto expected_reason = stringstream();
   expected_reason << "boundary index outside grid - "
-                  << "index: " << util::ToString(boundary_indices.back()) << ", "
+                  << "index: " << util::ToString(boundary_indices.back())
+                  << ", "
                   << "grid size: " << util::ToString(grid_size);
 
   // Act.
-  auto const ft = util::FunctionThrows<invalid_argument>(
-    [=]() {
-      auto const signed_distance = fmm::SignedArrivalTime(
-        grid_size,
-        boundary_indices,
-        boundary_times,
-        EikonalSolverType(grid_spacing, speed));
-    });
+  auto const ft = util::FunctionThrows<invalid_argument>([=]() {
+    auto const signed_distance =
+        fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_times,
+                               EikonalSolverType(grid_spacing, speed));
+  });
 
   // Assert.
   ASSERT_TRUE(ft.first);
   ASSERT_EQ(expected_reason.str(), ft.second);
 }
 
-TYPED_TEST(SignedArrivalTimeTest, BoundaryIndicesAndTimesSizeMismatchThrows)
-{
+TYPED_TEST(SignedArrivalTimeTest, BoundaryIndicesAndTimesSizeMismatchThrows) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
+      EikonalSolverType;
 
   // Arrange.
   auto const grid_size = util::FilledArray<kDimension>(size_t{10});
@@ -284,36 +259,30 @@ TYPED_TEST(SignedArrivalTimeTest, BoundaryIndicesAndTimesSizeMismatchThrows)
   auto const boundary_times = vector<ScalarType>(3, ScalarType{1});
 
   // Act.
-  auto const ft = util::FunctionThrows<invalid_argument>(
-    [=]() {
-      auto const signed_distance = fmm::SignedArrivalTime(
-        grid_size,
-        boundary_indices,
-        boundary_times,
-        EikonalSolverType(grid_spacing, speed));
-    });
+  auto const ft = util::FunctionThrows<invalid_argument>([=]() {
+    auto const signed_distance =
+        fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_times,
+                               EikonalSolverType(grid_spacing, speed));
+  });
 
   // Assert.
   ASSERT_TRUE(ft.first);
   ASSERT_EQ("boundary indices[2] / boundary times[3] size mismatch", ft.second);
 }
 
-TYPED_TEST(SignedArrivalTimeTest, InvalidBoundaryTimeThrows)
-{
+TYPED_TEST(SignedArrivalTimeTest, InvalidBoundaryTimeThrows) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
+      EikonalSolverType;
 
   // Arrange.
-  auto const invalid_boundary_times = array<ScalarType, 3>{{
-    numeric_limits<ScalarType>::max(),
-    -numeric_limits<ScalarType>::max(),
-    numeric_limits<ScalarType>::quiet_NaN()
-  }};
+  auto const invalid_boundary_times = array<ScalarType, 3>{
+      {numeric_limits<ScalarType>::max(), -numeric_limits<ScalarType>::max(),
+       numeric_limits<ScalarType>::quiet_NaN()}};
 
   auto const grid_size = util::FilledArray<kDimension>(size_t{10});
   auto const grid_spacing = util::FilledArray<kDimension>(ScalarType{1});
@@ -324,21 +293,17 @@ TYPED_TEST(SignedArrivalTimeTest, InvalidBoundaryTimeThrows)
     boundary_indices.push_back(index_iter.index());
 
     auto const boundary_times =
-      vector<ScalarType>(1, invalid_boundary_time); // Invalid!
+        vector<ScalarType>(1, invalid_boundary_time);  // Invalid!
 
     auto expected_reason = stringstream();
-    expected_reason << "invalid boundary time: "
-                    << invalid_boundary_time;
+    expected_reason << "invalid boundary time: " << invalid_boundary_time;
 
     // Act.
-    auto const ft = util::FunctionThrows<invalid_argument>(
-      [=]() {
-        auto const signed_times = fmm::SignedArrivalTime(
-          grid_size,
-          boundary_indices,
-          boundary_times,
-          EikonalSolverType(grid_spacing, speed));
-      });
+    auto const ft = util::FunctionThrows<invalid_argument>([=]() {
+      auto const signed_times =
+          fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_times,
+                                 EikonalSolverType(grid_spacing, speed));
+    });
 
     // Assert.
     ASSERT_TRUE(ft.first);
@@ -346,15 +311,14 @@ TYPED_TEST(SignedArrivalTimeTest, InvalidBoundaryTimeThrows)
   }
 }
 
-TYPED_TEST(SignedArrivalTimeTest, EikonalSolverFailThrows)
-{
+TYPED_TEST(SignedArrivalTimeTest, EikonalSolverFailThrows) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
+      EikonalSolverType;
 
   // Arrange.
   auto const grid_size = util::FilledArray<kDimension>(size_t{10});
@@ -372,29 +336,25 @@ TYPED_TEST(SignedArrivalTimeTest, EikonalSolverFailThrows)
   boundary_times.push_back(ScalarType{1});
 
   // Act.
-  auto const ft = util::FunctionThrows<runtime_error>(
-    [=]() {
-      auto const signed_times = fmm::SignedArrivalTime(
-        grid_size,
-        boundary_indices,
-        boundary_times,
-        EikonalSolverType(grid_spacing, speed));
-    });
+  auto const ft = util::FunctionThrows<runtime_error>([=]() {
+    auto const signed_times =
+        fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_times,
+                               EikonalSolverType(grid_spacing, speed));
+  });
 
   // Assert.
   ASSERT_TRUE(ft.first);
   ASSERT_EQ("invalid arrival time (distance)", ft.second.substr(size_t{0}, 31));
 }
 
-TYPED_TEST(SignedArrivalTimeTest, ContainedComponentThrows)
-{
+TYPED_TEST(SignedArrivalTimeTest, ContainedComponentThrows) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr auto kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
+      EikonalSolverType;
 
   // Arrange.
   auto const grid_size = util::FilledArray<kDimension>(size_t{20});
@@ -409,25 +369,17 @@ TYPED_TEST(SignedArrivalTimeTest, ContainedComponentThrows)
   auto sphere_boundary_indices1 = vector<array<int32_t, kDimension>>();
   auto sphere_boundary_times1 = vector<ScalarType>();
   util::HyperSphereBoundaryCells(
-    sphere_center1,
-    sphere_radius1,
-    grid_size,
-    grid_spacing,
-    [](ScalarType const d) { return d; },
-    0,  // dilation_pass_count
-    &sphere_boundary_indices1,
-    &sphere_boundary_times1);
+      sphere_center1, sphere_radius1, grid_size, grid_spacing,
+      [](ScalarType const d) { return d; },
+      0,  // dilation_pass_count
+      &sphere_boundary_indices1, &sphere_boundary_times1);
   auto sphere_boundary_indices2 = vector<array<int32_t, kDimension>>();
   auto sphere_boundary_times2 = vector<ScalarType>();
   util::HyperSphereBoundaryCells(
-    sphere_center2,
-    sphere_radius2,
-    grid_size,
-    grid_spacing,
-    [](ScalarType const d) { return d; },
-    0,  // dilation_pass_count
-    &sphere_boundary_indices2,
-    &sphere_boundary_times2);
+      sphere_center2, sphere_radius2, grid_size, grid_spacing,
+      [](ScalarType const d) { return d; },
+      0,  // dilation_pass_count
+      &sphere_boundary_indices2, &sphere_boundary_times2);
 
   auto boundary_indices = sphere_boundary_indices1;
   auto boundary_times = sphere_boundary_times1;
@@ -437,29 +389,25 @@ TYPED_TEST(SignedArrivalTimeTest, ContainedComponentThrows)
   }
 
   // Act.
-  auto const ft = util::FunctionThrows<invalid_argument>(
-    [=]() {
-      auto const signed_distance = fmm::SignedArrivalTime(
-        grid_size,
-        boundary_indices,
-        boundary_times,
-        EikonalSolverType(grid_spacing, uniform_speed));
-    });
+  auto const ft = util::FunctionThrows<invalid_argument>([=]() {
+    auto const signed_distance =
+        fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_times,
+                               EikonalSolverType(grid_spacing, uniform_speed));
+  });
 
   // Assert.
   ASSERT_TRUE(ft.first);
   ASSERT_EQ("contained component", ft.second);
 }
 
-TYPED_TEST(SignedArrivalTimeTest, DifferentUniformSpeed)
-{
+TYPED_TEST(SignedArrivalTimeTest, DifferentUniformSpeed) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
+      EikonalSolverType;
 
   // Arrange.
   auto const grid_size = util::FilledArray<kDimension>(size_t{10});
@@ -475,17 +423,13 @@ TYPED_TEST(SignedArrivalTimeTest, DifferentUniformSpeed)
   auto const speed2 = ScalarType{2};
 
   // Act.
-  auto const signed_times1 = fmm::SignedArrivalTime(
-    grid_size,
-    boundary_indices,
-    boundary_times,
-    EikonalSolverType(grid_spacing, speed1));
+  auto const signed_times1 =
+      fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_times,
+                             EikonalSolverType(grid_spacing, speed1));
 
-  auto const signed_times2 = fmm::SignedArrivalTime(
-    grid_size,
-    boundary_indices,
-    boundary_times,
-    EikonalSolverType(grid_spacing, speed2));
+  auto const signed_times2 =
+      fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_times,
+                             EikonalSolverType(grid_spacing, speed2));
 
   // Assert.
   // Check that the distance is halved when the speed is halved.
@@ -497,15 +441,14 @@ TYPED_TEST(SignedArrivalTimeTest, DifferentUniformSpeed)
   }
 }
 
-TYPED_TEST(SignedArrivalTimeTest, VaryingSpeed)
-{
+TYPED_TEST(SignedArrivalTimeTest, VaryingSpeed) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr auto kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::VaryingSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
+      EikonalSolverType;
 
   // Arrange.
   auto const grid_size = util::FilledArray<kDimension>(size_t{11});
@@ -520,7 +463,7 @@ TYPED_TEST(SignedArrivalTimeTest, VaryingSpeed)
   auto const speed_grid_size = grid_size;
   auto speed_buffer = vector<ScalarType>(util::LinearSize(speed_grid_size));
   auto speed_grid =
-    util::Grid<ScalarType, kDimension>(speed_grid_size, speed_buffer.front());
+      util::Grid<ScalarType, kDimension>(speed_grid_size, speed_buffer.front());
   auto const speed = ScalarType(1);
   auto const mirror_speed = ScalarType(2);
   auto speed_index_iter = util::IndexIterator<kDimension>(speed_grid.size());
@@ -528,8 +471,7 @@ TYPED_TEST(SignedArrivalTimeTest, VaryingSpeed)
     auto const index = speed_index_iter.index();
     if (index[0] < boundary_indices[0][0]) {
       speed_grid.Cell(index) = mirror_speed;
-    }
-    else {
+    } else {
       speed_grid.Cell(index) = speed;
     }
     speed_index_iter.Next();
@@ -537,14 +479,12 @@ TYPED_TEST(SignedArrivalTimeTest, VaryingSpeed)
 
   // Act.
   auto signed_times = fmm::SignedArrivalTime(
-    grid_size,
-    boundary_indices,
-    boundary_times,
-    EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer));
+      grid_size, boundary_indices, boundary_times,
+      EikonalSolverType(grid_spacing, speed_grid_size, speed_buffer));
 
   // Assert.
   auto time_grid =
-    util::Grid<ScalarType, kDimension>(grid_size, signed_times.front());
+      util::Grid<ScalarType, kDimension>(grid_size, signed_times.front());
 
   auto time_index_iter = util::IndexIterator<kDimension>(grid_size);
   while (time_index_iter.has_next()) {
@@ -562,23 +502,20 @@ TYPED_TEST(SignedArrivalTimeTest, VaryingSpeed)
       mirror_index[0] = 2 * boundary_indices[0][0] - index[0];
       auto const time = time_grid.Cell(index);
       auto const mirror_time = time_grid.Cell(mirror_index);
-      ASSERT_NEAR(time * speed,
-                  mirror_time * mirror_speed,
-                  1e-6);
+      ASSERT_NEAR(time * speed, mirror_time * mirror_speed, 1e-6);
     }
     time_index_iter.Next();
   }
 }
 
-TYPED_TEST(SignedArrivalTimeTest, NonUniformGridSpacing)
-{
+TYPED_TEST(SignedArrivalTimeTest, NonUniformGridSpacing) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
+      EikonalSolverType;
 
   // Arrange.
   auto const grid_size = util::FilledArray<kDimension>(size_t{11});
@@ -589,23 +526,21 @@ TYPED_TEST(SignedArrivalTimeTest, NonUniformGridSpacing)
   auto const uniform_speed = ScalarType(1);
 
   auto boundary_indices = vector<array<int32_t, kDimension>>(
-    size_t{1}, util::FilledArray<kDimension>(int32_t{5}));
+      size_t{1}, util::FilledArray<kDimension>(int32_t{5}));
   auto boundary_times = vector<ScalarType>(size_t{1}, ScalarType{0});
 
   // Act.
-  auto signed_times = fmm::SignedArrivalTime(
-    grid_size,
-    boundary_indices,
-    boundary_times,
-    EikonalSolverType(grid_spacing, uniform_speed));
+  auto signed_times =
+      fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_times,
+                             EikonalSolverType(grid_spacing, uniform_speed));
 
   // Assert.
-  auto time_grid = util::Grid<ScalarType, kDimension>(
-    grid_size, signed_times.front());
+  auto time_grid =
+      util::Grid<ScalarType, kDimension>(grid_size, signed_times.front());
   auto center_position = util::FilledArray<kDimension>(ScalarType{0});
   for (auto i = size_t{0}; i < kDimension; ++i) {
     center_position[i] =
-      (boundary_indices[0][i] + ScalarType(0.5)) * grid_spacing[i];
+        (boundary_indices[0][i] + ScalarType(0.5)) * grid_spacing[i];
   }
   auto index_iter = util::IndexIterator<kDimension>(grid_size);
   while (index_iter.has_next()) {
@@ -630,15 +565,14 @@ TYPED_TEST(SignedArrivalTimeTest, NonUniformGridSpacing)
   }
 }
 
-TYPED_TEST(SignedArrivalTimeTest, BoxBoundary)
-{
+TYPED_TEST(SignedArrivalTimeTest, BoxBoundary) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
+      EikonalSolverType;
 
   // Arrange.
   auto const grid_size = util::FilledArray<kDimension>(size_t{10});
@@ -658,17 +592,15 @@ TYPED_TEST(SignedArrivalTimeTest, BoxBoundary)
     index_iter.Next();
   }
 
-  auto boundary_times = vector<ScalarType>(
-    boundary_indices.size(), ScalarType{0});
+  auto boundary_times =
+      vector<ScalarType>(boundary_indices.size(), ScalarType{0});
 
   auto const speed = ScalarType{1};
 
   // Act.
-  auto const signed_times = fmm::SignedArrivalTime(
-    grid_size,
-    boundary_indices,
-    boundary_times,
-    EikonalSolverType(grid_spacing, speed));
+  auto const signed_times =
+      fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_times,
+                             EikonalSolverType(grid_spacing, speed));
 
   // Assert.
   for (auto const signed_time : signed_times) {
@@ -676,15 +608,14 @@ TYPED_TEST(SignedArrivalTimeTest, BoxBoundary)
   }
 }
 
-TYPED_TEST(SignedArrivalTimeTest, Checkerboard)
-{
+TYPED_TEST(SignedArrivalTimeTest, Checkerboard) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr auto kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
+      EikonalSolverType;
 
   // Arrange.
   auto const grid_size = util::FilledArray<kDimension>(size_t{10});
@@ -702,27 +633,25 @@ TYPED_TEST(SignedArrivalTimeTest, Checkerboard)
     while (index_iter.has_next()) {
       auto const index = index_iter.index();
       if (is_boundary(index)) {
-         boundary_indices.push_back(index);
+        boundary_indices.push_back(index);
       }
       index_iter.Next();
     }
   }
 
-  auto boundary_times = vector<ScalarType>(
-    boundary_indices.size(), ScalarType{0});
+  auto boundary_times =
+      vector<ScalarType>(boundary_indices.size(), ScalarType{0});
 
   auto const speed = ScalarType{1};
 
   // Act.
-  auto signed_times = fmm::SignedArrivalTime(
-    grid_size,
-    boundary_indices,
-    boundary_times,
-    EikonalSolverType(grid_spacing, speed));
+  auto signed_times =
+      fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_times,
+                             EikonalSolverType(grid_spacing, speed));
 
   // Assert.
-  auto time_grid = util::Grid<ScalarType, kDimension>(
-    grid_size, signed_times.front());
+  auto time_grid =
+      util::Grid<ScalarType, kDimension>(grid_size, signed_times.front());
   {
     auto index_iter = util::IndexIterator<kDimension>(grid_size);
     while (index_iter.has_next()) {
@@ -740,8 +669,7 @@ TYPED_TEST(SignedArrivalTimeTest, Checkerboard)
         auto const time = time_grid.Cell(index);
         if (is_edge) {
           ASSERT_GT(time, ScalarType{0});
-        }
-        else {
+        } else {
           ASSERT_LT(time, ScalarType{0});
         }
       }
@@ -750,15 +678,14 @@ TYPED_TEST(SignedArrivalTimeTest, Checkerboard)
   }
 }
 
-TYPED_TEST(SignedArrivalTimeTest, OverlappingBoxes)
-{
+TYPED_TEST(SignedArrivalTimeTest, OverlappingBoxes) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr auto kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
+      EikonalSolverType;
 
   // Arrange.
   auto const grid_size = util::FilledArray<kDimension>(size_t{16});
@@ -772,20 +699,12 @@ TYPED_TEST(SignedArrivalTimeTest, OverlappingBoxes)
 
   auto box_boundary_indices1 = vector<array<int32_t, kDimension>>();
   auto box_boundary_times1 = vector<ScalarType>();
-  util::BoxBoundaryCells(
-    box_corner1,
-    box_size1,
-    grid_size,
-    &box_boundary_indices1,
-    &box_boundary_times1);
+  util::BoxBoundaryCells(box_corner1, box_size1, grid_size,
+                         &box_boundary_indices1, &box_boundary_times1);
   auto box_boundary_indices2 = vector<array<int32_t, kDimension>>();
   auto box_boundary_times2 = vector<ScalarType>();
-  util::BoxBoundaryCells(
-    box_corner2,
-    box_size2,
-    grid_size,
-    &box_boundary_indices2,
-    &box_boundary_times2);
+  util::BoxBoundaryCells(box_corner2, box_size2, grid_size,
+                         &box_boundary_indices2, &box_boundary_times2);
 
   // Merge and remove duplicate indices.
   auto boundary_indices = box_boundary_indices1;
@@ -800,38 +719,35 @@ TYPED_TEST(SignedArrivalTimeTest, OverlappingBoxes)
   }
 
   // Act.
-  auto signed_times = fmm::SignedArrivalTime(
-    grid_size,
-    boundary_indices,
-    boundary_distances,
-    EikonalSolverType(grid_spacing, uniform_speed));
+  auto signed_times =
+      fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_distances,
+                             EikonalSolverType(grid_spacing, uniform_speed));
 
   // Assert.
-  auto time_grid = util::Grid<ScalarType, kDimension>(
-    grid_size, signed_times.front());
+  auto time_grid =
+      util::Grid<ScalarType, kDimension>(grid_size, signed_times.front());
   auto const time0 = time_grid.Cell(util::FilledArray<kDimension>(int32_t{0}));
   auto const time2 = time_grid.Cell(util::FilledArray<kDimension>(int32_t{2}));
   auto const time6 = time_grid.Cell(util::FilledArray<kDimension>(int32_t{6}));
-  auto const time14 = time_grid.Cell(util::FilledArray<kDimension>(int32_t{14}));
+  auto const time14 =
+      time_grid.Cell(util::FilledArray<kDimension>(int32_t{14}));
   ASSERT_GT(time0, ScalarType{0});
   ASSERT_LT(time2, ScalarType{0});
   ASSERT_LT(time6, ScalarType{0});
   ASSERT_LT(time14, ScalarType{0});
 }
 
-TYPED_TEST(SignedArrivalTimeAccuracyTest, PointSourceAccuracy)
-{
+TYPED_TEST(SignedArrivalTimeAccuracyTest, PointSourceAccuracy) {
   using namespace std;
 
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr auto kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
   typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
-    EikonalSolverType;
-  typedef fmm::DistanceSolver<ScalarType, kDimension>
-    DistanceSolverType;
+      EikonalSolverType;
+  typedef fmm::DistanceSolver<ScalarType, kDimension> DistanceSolverType;
   typedef fmm::HighAccuracyUniformSpeedEikonalSolver<ScalarType, kDimension>
-    HighAccuracyEikonalSolverType;
+      HighAccuracyEikonalSolverType;
 
   // Arrange.
   auto const grid_size = util::FilledArray<kDimension>(size_t{41});
@@ -840,20 +756,20 @@ TYPED_TEST(SignedArrivalTimeAccuracyTest, PointSourceAccuracy)
 
   // Simple point boundary for regular fast marching.
   auto boundary_indices = vector<array<int32_t, kDimension>>(
-    size_t{1}, util::FilledArray<kDimension>(int32_t{20}));
+      size_t{1}, util::FilledArray<kDimension>(int32_t{20}));
   auto boundary_times = vector<ScalarType>(size_t{1}, ScalarType{0});
 
   auto center_position = util::FilledArray<kDimension>(ScalarType(0));
   for (auto i = size_t{0}; i < kDimension; ++i) {
     center_position[i] =
-      (boundary_indices[0][i] + ScalarType(0.5)) * grid_spacing[i];
+        (boundary_indices[0][i] + ScalarType(0.5)) * grid_spacing[i];
   }
 
   // Compute exact distances in vertex neighborhood for high accuracy
   // fast marching.
   auto ha_boundary_indices = vector<array<int32_t, kDimension>>();
   ha_boundary_indices.push_back(
-    util::FilledArray<kDimension>(int32_t{20})); // Center.
+      util::FilledArray<kDimension>(int32_t{20}));  // Center.
   auto const vtx_neighbor_offsets = util::VertexNeighborOffsets<kDimension>();
   for (auto const& vtx_neighbor_offset : vtx_neighbor_offsets) {
     auto index = boundary_indices[0];
@@ -863,7 +779,7 @@ TYPED_TEST(SignedArrivalTimeAccuracyTest, PointSourceAccuracy)
     ha_boundary_indices.push_back(index);
   }
   auto ha_boundary_times = vector<ScalarType>();
-  ha_boundary_times.push_back(ScalarType{0}); // Center.
+  ha_boundary_times.push_back(ScalarType{0});  // Center.
   for (auto j = size_t{1}; j < ha_boundary_indices.size(); ++j) {
     auto const& index = ha_boundary_indices[j];
     auto position = util::FilledArray<kDimension>(ScalarType(0));
@@ -878,29 +794,23 @@ TYPED_TEST(SignedArrivalTimeAccuracyTest, PointSourceAccuracy)
   }
 
   // Act.
-  auto signed_time = fmm::SignedArrivalTime(
-    grid_size,
-    boundary_indices,
-    boundary_times,
-    EikonalSolverType(grid_spacing, uniform_speed));
-  auto signed_distance = fmm::SignedArrivalTime(
-    grid_size,
-    boundary_indices,
-    boundary_times,
-    DistanceSolverType(grid_spacing[0]));
+  auto signed_time =
+      fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_times,
+                             EikonalSolverType(grid_spacing, uniform_speed));
+  auto signed_distance =
+      fmm::SignedArrivalTime(grid_size, boundary_indices, boundary_times,
+                             DistanceSolverType(grid_spacing[0]));
   auto ha_signed_time = fmm::SignedArrivalTime(
-    grid_size,
-    ha_boundary_indices,
-    ha_boundary_times,
-    HighAccuracyEikonalSolverType(grid_spacing, uniform_speed));
+      grid_size, ha_boundary_indices, ha_boundary_times,
+      HighAccuracyEikonalSolverType(grid_spacing, uniform_speed));
 
   // Compute errors.
-  auto time_grid = util::Grid<ScalarType, kDimension>(
-    grid_size, signed_time.front());
-  auto distance_grid = util::Grid<ScalarType, kDimension>(
-    grid_size, signed_distance.front());
-  auto ha_time_grid = util::Grid<ScalarType, kDimension>(
-    grid_size, ha_signed_time.front());
+  auto time_grid =
+      util::Grid<ScalarType, kDimension>(grid_size, signed_time.front());
+  auto distance_grid =
+      util::Grid<ScalarType, kDimension>(grid_size, signed_distance.front());
+  auto ha_time_grid =
+      util::Grid<ScalarType, kDimension>(grid_size, ha_signed_time.front());
 
   auto time_abs_errors = vector<ScalarType>();
   auto distance_abs_errors = vector<ScalarType>();
@@ -963,8 +873,10 @@ TYPED_TEST(SignedArrivalTimeAccuracyTest, PointSourceAccuracy)
   ASSERT_LE(time_avg_abs_error, ScalarType(Bounds::avg_abs_error()));
   ASSERT_LE(distance_max_abs_error, ScalarType(Bounds::max_abs_error()));
   ASSERT_LE(distance_avg_abs_error, ScalarType(Bounds::avg_abs_error()));
-  ASSERT_LE(ha_time_max_abs_error, ScalarType(Bounds::high_accuracy_max_abs_error()));
-  ASSERT_LE(ha_time_avg_abs_error, ScalarType(Bounds::high_accuracy_avg_abs_error()));
+  ASSERT_LE(ha_time_max_abs_error,
+            ScalarType(Bounds::high_accuracy_max_abs_error()));
+  ASSERT_LE(ha_time_avg_abs_error,
+            ScalarType(Bounds::high_accuracy_avg_abs_error()));
 }
 
-} // namespace
+}  // namespace

@@ -31,66 +31,57 @@
 #include <utility>
 #include <vector>
 
-
 namespace util {
 
-template<std::size_t N>
+template <std::size_t N>
 class IndexIterator;
 
-template<typename S, std::size_t N>
-struct ScalarDimensionPair
-{
+template <typename S, std::size_t N>
+struct ScalarDimensionPair {
   typedef S ScalarType;
   static constexpr std::size_t kDimension = N;
 };
 
-
 // Numbers below inspired by the paper "ON THE IMPLEMENTATION OF FAST
 // MARCHING METHODS FOR 3D LATTICES" by J. Andreas Bærentzen.
-template<std::size_t N>
+template <std::size_t N>
 struct PointSourceAccuracyBounds;
 
-template<>
-struct PointSourceAccuracyBounds<1>
-{
+template <>
+struct PointSourceAccuracyBounds<1> {
   static constexpr double max_abs_error() { return double{1e-3}; }
   static constexpr double avg_abs_error() { return double{1e-3}; }
   static constexpr double high_accuracy_max_abs_error() { return double{1e-3}; }
   static constexpr double high_accuracy_avg_abs_error() { return double{1e-3}; }
 };
 
-template<>
-struct PointSourceAccuracyBounds<2>
-{
+template <>
+struct PointSourceAccuracyBounds<2> {
   static constexpr double max_abs_error() { return double{1.48}; }
   static constexpr double avg_abs_error() { return double{0.89}; }
   static constexpr double high_accuracy_max_abs_error() { return double{0.29}; }
   static constexpr double high_accuracy_avg_abs_error() { return double{0.14}; }
 };
 
-template<>
-struct PointSourceAccuracyBounds<3>
-{
+template <>
+struct PointSourceAccuracyBounds<3> {
   static constexpr double max_abs_error() { return double{1.51}; }
   static constexpr double avg_abs_error() { return double{0.92}; }
   static constexpr double high_accuracy_max_abs_error() { return double{0.28}; }
   static constexpr double high_accuracy_avg_abs_error() { return double{0.07}; }
 };
 
-template<>
-struct PointSourceAccuracyBounds<4>
-{
+template <>
+struct PointSourceAccuracyBounds<4> {
   static constexpr double max_abs_error() { return double{1.98}; }
   static constexpr double avg_abs_error() { return double{1.27}; }
   static constexpr double high_accuracy_max_abs_error() { return double{0.28}; }
   static constexpr double high_accuracy_avg_abs_error() { return double{0.06}; }
 };
 
-
 //! Returns array @a as a string.
-template<typename T, std::size_t N>
-std::string ToString(std::array<T, N> const& a)
-{
+template <typename T, std::size_t N>
+std::string ToString(std::array<T, N> const& a) {
   using namespace std;
 
   auto ss = stringstream();
@@ -106,11 +97,9 @@ std::string ToString(std::array<T, N> const& a)
   return ss.str();
 }
 
-
 //! Returns an array with all elements initialized to have value @a v.
-template<std::size_t N, typename T> inline
-std::array<T, N> FilledArray(T const v)
-{
+template <std::size_t N, typename T>
+inline std::array<T, N> FilledArray(T const v) {
   using namespace std;
 
   auto r = array<T, N>{};
@@ -118,22 +107,18 @@ std::array<T, N> FilledArray(T const v)
   return r;
 }
 
-
 //! Returns the product of the elements in array @a a.
 //! Note: Not checking for integer overflow here!
-template<std::size_t N> inline
-std::size_t LinearSize(std::array<std::size_t, N> const& a)
-{
+template <std::size_t N>
+inline std::size_t LinearSize(std::array<std::size_t, N> const& a) {
   using namespace std;
 
   return accumulate(begin(a), end(a), size_t{1}, multiplies<size_t>());
 }
 
-
 //! Returns the magnitude of the vector @a v.
-template<typename T, std::size_t N>
-T Magnitude(std::array<T, N> const& v)
-{
+template <typename T, std::size_t N>
+T Magnitude(std::array<T, N> const& v) {
   using namespace std;
 
   static_assert(is_floating_point<T>::value,
@@ -146,11 +131,9 @@ T Magnitude(std::array<T, N> const& v)
   return sqrt(mag_squared);
 }
 
-
 //! Returns the distance between positions @a u and @a v.
-template<typename T, std::size_t N>
-T Distance(std::array<T, N> const& u, std::array<T, N> const& v)
-{
+template <typename T, std::size_t N>
+T Distance(std::array<T, N> const& u, std::array<T, N> const& v) {
   using namespace std;
 
   static_assert(is_floating_point<T>::value,
@@ -164,7 +147,6 @@ T Distance(std::array<T, N> const& u, std::array<T, N> const& v)
   return sqrt(distance_squared);
 }
 
-
 //! Returns a pair where the first element is true if the provided function
 //! (@a func) threw an exception of the expected type. The second element is
 //! set to the exception message.
@@ -173,50 +155,41 @@ T Distance(std::array<T, N> const& u, std::array<T, N> const& v)
 //!
 //! E - The expected exception type.
 //! F - A callable type.
-template<typename E, typename F>
-std::pair<bool, std::string> FunctionThrows(F const func)
-{
+template <typename E, typename F>
+std::pair<bool, std::string> FunctionThrows(F const func) {
   using namespace std;
 
   auto thrown_expected = false;
   auto reason = string();
   try {
     func();
-  }
-  catch (exception& ex) {
+  } catch (exception& ex) {
     auto const typed_ex = dynamic_cast<E*>(&ex);
     if (typed_ex != nullptr) {
       thrown_expected = true;
       reason = typed_ex->what();
-    }
-    else {
-      throw; // Unexpected exception type, re-throw.
+    } else {
+      throw;  // Unexpected exception type, re-throw.
     }
   }
 
   return {thrown_expected, reason};
 }
 
-
 //! Returns @a base ^ @a exponent as a compile-time constant.
-constexpr std::size_t static_pow(std::size_t base, std::size_t const exponent)
-{
+constexpr std::size_t static_pow(std::size_t base, std::size_t const exponent) {
   using namespace std;
 
   // NOTE: Cannot use loops in constexpr functions in C++11, have to use
   // recursion here.
-  return exponent == size_t{0} ?
-    size_t{1} :
-    base * static_pow(base, exponent - 1);
+  return exponent == size_t{0} ? size_t{1}
+                               : base * static_pow(base, exponent - 1);
 }
 
-
 //! Returns true if @a index is inside @a size, otherwise false.
-template<std::size_t N>
-bool Inside(
-  std::array<std::int32_t, N> const& index,
-  std::array<std::size_t, N> const& size)
-{
+template <std::size_t N>
+bool Inside(std::array<std::int32_t, N> const& index,
+            std::array<std::size_t, N> const& size) {
   using namespace std;
 
   static_assert(N > 0, "invalid dimensionality");
@@ -231,12 +204,10 @@ bool Inside(
   return true;
 }
 
-
 //! Returns a list of face neighbor offset for an N-dimensional cell.
 //! In 2D this is the 4-neighborhood, in 3D the 6-neighborhood, etc.
-template<std::size_t N>
-std::array<std::array<std::int32_t, N>, 2 * N> FaceNeighborOffsets()
-{
+template <std::size_t N>
+std::array<std::array<std::int32_t, N>, 2 * N> FaceNeighborOffsets() {
   using namespace std;
 
   static_assert(N > 0, "dimensionality cannot be zero");
@@ -247,8 +218,7 @@ std::array<std::array<std::int32_t, N>, 2 * N> FaceNeighborOffsets()
       if (j == i) {
         offsets[2 * i + 0][j] = int32_t{+1};
         offsets[2 * i + 1][j] = int32_t{-1};
-      }
-      else {
+      } else {
         offsets[2 * i + 0][j] = int32_t{0};
         offsets[2 * i + 1][j] = int32_t{0};
       }
@@ -257,12 +227,10 @@ std::array<std::array<std::int32_t, N>, 2 * N> FaceNeighborOffsets()
   return offsets;
 }
 
-
 //! DOCS
-template<std::size_t N> inline
-std::array<std::array<std::int32_t, N>, static_pow(3, N) - 1>
-VertexNeighborOffsets()
-{
+template <std::size_t N>
+inline std::array<std::array<std::int32_t, N>, static_pow(3, N) - 1>
+VertexNeighborOffsets() {
   using namespace std;
 
   auto neighbor_offsets = array<array<int32_t, N>, static_pow(3, N) - 1>();
@@ -273,7 +241,8 @@ VertexNeighborOffsets()
   while (index_iter.has_next()) {
     auto offset = index_iter.index();
     for_each(begin(offset), end(offset), [](auto& d) { d -= int32_t{1}; });
-    if (!all_of(begin(offset), end(offset), [](auto const i){ return i == 0; })) {
+    if (!all_of(begin(offset), end(offset),
+                [](auto const i) { return i == 0; })) {
       neighbor_offsets[offset_index++] = offset;
     }
     index_iter.Next();
@@ -282,7 +251,6 @@ VertexNeighborOffsets()
 
   return neighbor_offsets;
 }
-
 
 //! Access a linear array as if it were an N-dimensional grid.
 //!
@@ -306,18 +274,14 @@ VertexNeighborOffsets()
 //!   1
 //!   2
 //!   3
-template<typename T, std::size_t N>
-class Grid
-{
-public:
+template <typename T, std::size_t N>
+class Grid {
+ public:
   typedef T CellType;
   typedef std::array<std::size_t, N> SizeType;
   typedef std::array<std::int32_t, N> IndexType;
 
-  Grid(SizeType const& size, T& cells)
-    : size_(size)
-    , cells_(&cells)
-  {
+  Grid(SizeType const& size, T& cells) : size_(size), cells_(&cells) {
     using namespace std;
 
     auto stride = size_t{1};
@@ -327,29 +291,21 @@ public:
     }
   }
 
-  SizeType size() const
-  {
-    return size_;
-  }
+  SizeType size() const { return size_; }
 
   //! Returns a reference to the cell at @a index. No range checking!
-  CellType& Cell(IndexType const& index)
-  {
-    return cells_[LinearIndex_(index)];
-  }
+  CellType& Cell(IndexType const& index) { return cells_[LinearIndex_(index)]; }
 
   //! Returns a const reference to the cell at @a index. No range checking!
-  CellType const& Cell(IndexType const& index) const
-  {
+  CellType const& Cell(IndexType const& index) const {
     return cells_[LinearIndex_(index)];
   }
 
-private:
+ private:
   //! Returns a linear (scalar) index into an array representing an
   //! N-dimensional grid for integer coordinate @a index.
   //! Note that this function does not check for integer overflow!
-  std::size_t LinearIndex_(IndexType const& index) const
-  {
+  std::size_t LinearIndex_(IndexType const& index) const {
     using namespace std;
 
     assert(0 <= index[0] && static_cast<size_t>(index[0]) < size_[0]);
@@ -365,7 +321,6 @@ private:
   std::array<std::size_t, N - 1> strides_;
   CellType* const cells_;
 };
-
 
 //! Iterates over a size in N dimensions.
 //!
@@ -385,15 +340,14 @@ private:
 //!   [1, 0]
 //!   [0, 1]
 //!   [1, 1]
-template<std::size_t N>
-class IndexIterator
-{
-public:
+template <std::size_t N>
+class IndexIterator {
+ public:
   explicit IndexIterator(std::array<std::size_t, N> const& size)
-    : size_(size)
-    , index_(FilledArray<N>(int32_t{0})) // Start at origin.
-    , has_next_(true)
-  {
+      : size_(size),
+        index_(FilledArray<N>(int32_t{0}))  // Start at origin.
+        ,
+        has_next_(true) {
     using namespace std;
 
     static_assert(N > 0, "must have at least one dimension");
@@ -406,30 +360,20 @@ public:
   }
 
   //! Returns the current index of the iterator.
-  std::array<std::int32_t, N> index() const
-  {
-    return index_;
-  }
+  std::array<std::int32_t, N> index() const { return index_; }
 
   //! Returns the size over which the iterator is iterating.
-  std::array<std::size_t, N> size() const
-  {
-    return size_;
-  }
+  std::array<std::size_t, N> size() const { return size_; }
 
   //! Returns true if the iterator can be incremented (i.e. Next() can be
   //! called without throwing), otherwise false.
-  bool has_next() const
-  {
-    return has_next_;
-  }
+  bool has_next() const { return has_next_; }
 
   //! Increments the index of the iterator and returns true if it can be
   //! incremented again, otherwise false.
   //!
   //! Throws std::runtime_error if the iterator cannot be incremented.
-  bool Next()
-  {
+  bool Next() {
     using namespace std;
 
     if (!has_next_) {
@@ -441,8 +385,7 @@ public:
       if (static_cast<size_t>(index_[i] + 1) < size_[i]) {
         ++index_[i];
         return true;
-      }
-      else {
+      } else {
         index_[i++] = 0;
       }
     }
@@ -452,19 +395,16 @@ public:
     return false;
   }
 
-private:
+ private:
   std::array<std::size_t, N> const size_;
   std::array<std::int32_t, N> index_;
   bool has_next_;
 };
 
-
 //! Returns the center position of the cell at @a index using @a grid_spacing.
-template<typename T, std::size_t N> inline
-std::array<T, N> CellCenter(
-  std::array<std::int32_t, N> const& index,
-  std::array<T, N> const& grid_spacing)
-{
+template <typename T, std::size_t N>
+inline std::array<T, N> CellCenter(std::array<std::int32_t, N> const& index,
+                                   std::array<T, N> const& grid_spacing) {
   using namespace std;
 
   auto cell_center = array<T, N>{};
@@ -474,15 +414,13 @@ std::array<T, N> CellCenter(
   return cell_center;
 }
 
-
 //! Returns an array of the corner positions of the cell at @a index using
 //! @a grid_spacing. The number of corner positions depends on the
 //! dimensionality of the cell.
-template<typename T, std::size_t N> inline
-std::array<std::array<T, N>, static_pow(2, N)> CellCorners(
-  std::array<std::int32_t, N> const& index,
-  std::array<T, N> const& grid_spacing)
-{
+template <typename T, std::size_t N>
+inline std::array<std::array<T, N>, static_pow(2, N)> CellCorners(
+    std::array<std::int32_t, N> const& index,
+    std::array<T, N> const& grid_spacing) {
   using namespace std;
 
   auto cell_corners = array<array<T, N>, static_pow(2, N)>{};
@@ -490,33 +428,29 @@ std::array<std::array<T, N>, static_pow(2, N)> CellCorners(
     auto const bits = bitset<N>(i);
     for (auto k = size_t{0}; k < N; ++k) {
       cell_corners[i][k] =
-        (index[k] + static_cast<int32_t>(bits[k])) * grid_spacing[k];
+          (index[k] + static_cast<int32_t>(bits[k])) * grid_spacing[k];
     }
   }
   return cell_corners;
 }
 
-
 //! DOCS
-template<typename T, std::size_t N, typename D>
+template <typename T, std::size_t N, typename D>
 void HyperSphereBoundaryCells(
-  std::array<T, N> const& center,
-  T const radius,
-  std::array<std::size_t, N> const& grid_size,
-  std::array<T, N> const& grid_spacing,
-  D const distance_modifier,
-  std::size_t const dilation_pass_count,
-  std::vector<std::array<std::int32_t, N>>* boundary_indices,
-  std::vector<T>* boundary_distances,
-  std::vector<T>* distance_ground_truth_buffer = nullptr)
-{
+    std::array<T, N> const& center, T const radius,
+    std::array<std::size_t, N> const& grid_size,
+    std::array<T, N> const& grid_spacing, D const distance_modifier,
+    std::size_t const dilation_pass_count,
+    std::vector<std::array<std::int32_t, N>>* boundary_indices,
+    std::vector<T>* boundary_distances,
+    std::vector<T>* distance_ground_truth_buffer = nullptr) {
   using namespace std;
 
   auto distance_ground_truth_grid = unique_ptr<Grid<T, N>>();
   if (distance_ground_truth_buffer != nullptr) {
     distance_ground_truth_buffer->resize(LinearSize(grid_size));
     distance_ground_truth_grid.reset(
-      new Grid<T, N>(grid_size, distance_ground_truth_buffer->front()));
+        new Grid<T, N>(grid_size, distance_ground_truth_buffer->front()));
   }
 
   auto foreground_indices = vector<array<int32_t, N>>{};
@@ -534,15 +468,14 @@ void HyperSphereBoundaryCells(
       auto const d = Distance(center, cell_corner);
       if (d < radius) {
         ++inside_count;
-      }
-      else {
+      } else {
         ++outside_count;
       }
     }
 
     auto const cell_center = CellCenter(index, grid_spacing);
     auto const cell_distance =
-      distance_modifier(Distance(center, cell_center) - radius);
+        distance_modifier(Distance(center, cell_center) - radius);
 
     if (inside_count > 0 && outside_count > 0) {
       // The inferface passes through this cell so we freeze it.
@@ -560,13 +493,10 @@ void HyperSphereBoundaryCells(
   }
 
   if (dilation_pass_count > 0 && !foreground_indices.empty()) {
-    enum class LabelCell : uint8_t {
-      kBackground = uint8_t{0},
-      kForeground
-    };
+    enum class LabelCell : uint8_t { kBackground = uint8_t{0}, kForeground };
 
     auto label_buffer =
-      vector<LabelCell>(LinearSize(grid_size), LabelCell::kBackground);
+        vector<LabelCell>(LinearSize(grid_size), LabelCell::kBackground);
     auto label_grid = Grid<LabelCell, N>(grid_size, label_buffer.front());
     for (auto const& foreground_index : foreground_indices) {
       label_grid.Cell(foreground_index) = LabelCell::kForeground;
@@ -592,7 +522,7 @@ void HyperSphereBoundaryCells(
               label_grid.Cell(neighbor_index) == LabelCell::kBackground) {
             auto const cell_center = CellCenter(neighbor_index, grid_spacing);
             auto const cell_distance =
-              distance_modifier(Distance(center, cell_center) - radius);
+                distance_modifier(Distance(center, cell_center) - radius);
             boundary_indices->push_back(neighbor_index);
             boundary_distances->push_back(cell_distance);
 
@@ -608,16 +538,14 @@ void HyperSphereBoundaryCells(
   }
 }
 
-
 //! DOCS
-template<typename T, std::size_t N>
+template <typename T, std::size_t N>
 void BoxBoundaryCells(
-  std::array<std::int32_t, N> const& box_corner,
-  std::array<std::size_t, N> const& box_size,
-  std::array<std::size_t, N> const& grid_size,
-  std::vector<std::array<std::int32_t, N>>* boundary_indices,
-  std::vector<T>* boundary_distances)
-{
+    std::array<std::int32_t, N> const& box_corner,
+    std::array<std::size_t, N> const& box_size,
+    std::array<std::size_t, N> const& grid_size,
+    std::vector<std::array<std::int32_t, N>>* boundary_indices,
+    std::vector<T>* boundary_distances) {
   using namespace std;
 
   auto box_min = box_corner;
@@ -626,15 +554,15 @@ void BoxBoundaryCells(
     box_max[i] += box_size[i];
   }
 
-  auto inside =
-    [](auto const& index, auto const& box_min, auto const& box_max) {
-      for (auto i = size_t{0}; i < N; ++i) {
-        if (!(box_min[i] <= index[i] && index[i] <= box_max[i])) {
-          return false;
-        }
+  auto inside = [](auto const& index, auto const& box_min,
+                   auto const& box_max) {
+    for (auto i = size_t{0}; i < N; ++i) {
+      if (!(box_min[i] <= index[i] && index[i] <= box_max[i])) {
+        return false;
       }
-      return true;
-    };
+    }
+    return true;
+  };
 
   auto index_iter = util::IndexIterator<N>(grid_size);
   while (index_iter.has_next()) {
@@ -653,6 +581,6 @@ void BoxBoundaryCells(
   *boundary_distances = vector<T>(boundary_indices->size(), T{0});
 }
 
-} // namespace util
+}  // namespace util
 
-#endif // FAST_MARCHING_METHOD_TEST_UTIL_HPP_INCLUDED
+#endif  // FAST_MARCHING_METHOD_TEST_UTIL_HPP_INCLUDED
