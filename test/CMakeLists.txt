@@ -1,45 +1,48 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11)
-PROJECT(fast-marching-method-test)
+cmake_minimum_required(VERSION 3.10)
+project(fast-marching-method-test)
 
-ENABLE_TESTING(true)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-ADD_SUBDIRECTORY(gtest-1.7.0)
+enable_testing(true)
+
+add_subdirectory(gtest-1.7.0)
 
 # Default to release build
-IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Release)
-ENDIF()
-MESSAGE(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-IF(MSVC)
-  SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-  SET(CompilerFlags
+if(MSVC)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+  set(CompilerFlags
           CMAKE_CXX_FLAGS
           CMAKE_CXX_FLAGS_DEBUG
           CMAKE_CXX_FLAGS_RELEASE
           CMAKE_C_FLAGS
           CMAKE_C_FLAGS_DEBUG
           CMAKE_C_FLAGS_RELEASE)
-  FOREACH(CompilerFlag ${CompilerFlags})
-    STRING(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
-  ENDFOREACH()
-  MESSAGE(STATUS "CXX flags (release): ${CMAKE_CXX_FLAGS_RELEASE}")
-  MESSAGE(STATUS "CXX flags (debug): ${CMAKE_CXX_FLAGS_DEBUG}")
-ENDIF()
+  foreach(CompilerFlag ${CompilerFlags})
+    string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
+  endforeach()
+  message(STATUS "CXX flags (release): ${CMAKE_CXX_FLAGS_RELEASE}")
+  message(STATUS "CXX flags (debug): ${CMAKE_CXX_FLAGS_DEBUG}")
+endif()
 
 # Project Compiler Flags
-# ADD_DEFINITIONS(-Wall)
+# add_definitions(-Wall)
 
-INCLUDE_DIRECTORIES(
+include_directories(
   ${gtest_SOURCE_DIR}
   ${gtest_SOURCE_DIR}/include)
 
-ADD_EXECUTABLE(fast-marching-method-test
+add_executable(fast-marching-method-test
   main.cpp
   eikonal_solvers_test.cpp
   signed_arrival_time_test.cpp)
 
-TARGET_LINK_LIBRARIES(fast-marching-method-test gtest gtest_main)
+target_link_libraries(fast-marching-method-test gtest gtest_main)
 
-ADD_TEST(NAME fast-marching-method-test COMMAND fast-marching-method-test)
+add_test(NAME fast-marching-method-test COMMAND fast-marching-method-test)
