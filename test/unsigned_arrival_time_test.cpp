@@ -57,8 +57,8 @@ typedef ::testing::Types<
   util::ScalarDimensionPair<double, 2>,
   util::ScalarDimensionPair<double, 3>> AccuracyTypes;
 
-TYPED_TEST_SUITE(UnsignedArrivalTimeTest, UnsignedArrivalTimeTypes);
-TYPED_TEST_SUITE(UnsignedArrivalTimeAccuracyTest, AccuracyTypes);
+TYPED_TEST_SUITE(UnsignedArrivalTimeTest, UnsignedArrivalTimeTypes, );
+TYPED_TEST_SUITE(UnsignedArrivalTimeAccuracyTest, AccuracyTypes, );
 
 
 // UnsignedArrivalTime fixture.

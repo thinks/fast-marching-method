@@ -68,7 +68,7 @@ typedef ::testing::Types<
   ScalarDimensionPair<double, 3>,
   ScalarDimensionPair<double, 4>> SignedDistanceTypes;
 
-TYPED_TEST_SUITE(SignedDistanceTest, SignedDistanceTypes);
+TYPED_TEST_SUITE(SignedDistanceTest, SignedDistanceTypes, );
 
 
 // SignedDistance fixture.

@@ -1246,7 +1246,7 @@ OutsideInsideNarrowBandIndices(
       auto dilation_band_areas = vector<pair<size_t, size_t>>();
       dilation_band_areas.reserve(dilation_bands.size());
       for (auto i = size_t{0}; i < dilation_bands.size(); ++i) {
-        auto const& dilation_band = dilation_bands[i];
+        [[maybe_unused]] auto const& dilation_band = dilation_bands[i];
         assert(!dilation_band.empty());
         dilation_band_areas.push_back(
           {i, HyperVolume(BoundingBox(dilation_bands[i]))});
@@ -2238,7 +2238,7 @@ std::vector<T> SignedArrivalTime(
   using namespace std;
   using namespace detail;
 
-  typedef T TimeType;
+  // typedef T TimeType;
 
   auto const boundary_time_predicate = [](auto const t) {
     return !isnan(t) && Frozen(t);

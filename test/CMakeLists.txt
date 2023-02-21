@@ -39,9 +39,6 @@ if(MSVC)
   message(STATUS "CXX flags (debug): ${CMAKE_CXX_FLAGS_DEBUG}")
 endif()
 
-# Project Compiler Flags
-# add_definitions(-Wall)
-
 include_directories(
   ${gtest_SOURCE_DIR}
   ${gtest_SOURCE_DIR}/include)
@@ -50,6 +47,12 @@ add_executable(fast-marching-method-test
   main.cpp
   eikonal_solvers_test.cpp
   signed_arrival_time_test.cpp)
+
+# Warnings Compiler Flags
+target_compile_options(${PROJECT_NAME} PRIVATE
+  $<$<CXX_COMPILER_ID:MSVC>:/W4>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
+)
 
 target_link_libraries(fast-marching-method-test gtest gtest_main)
 
