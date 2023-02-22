@@ -1,45 +1,78 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11)
-PROJECT(fast-marching-method-test)
+cmake_minimum_required(VERSION 3.10)
+project(fast-marching-method-test)
 
-ENABLE_TESTING(true)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-ADD_SUBDIRECTORY(gtest-1.7.0)
+enable_testing(true)
+
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG        750d67d809700ae8fca6d610f7b41b71aa161808
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
 # Default to release build
-IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Release)
-ENDIF()
-MESSAGE(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+if(NOT CMAKE_BUILD_TYPE)
+  #set(CMAKE_BUILD_TYPE Release)
+  set(CMAKE_BUILD_TYPE RelWithDebInfo)
+  #set(CMAKE_BUILD_TYPE Debug)
+endif()
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
-IF(MSVC)
-  SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-  SET(CompilerFlags
+if(MSVC)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+  set(CompilerFlags
           CMAKE_CXX_FLAGS
           CMAKE_CXX_FLAGS_DEBUG
           CMAKE_CXX_FLAGS_RELEASE
           CMAKE_C_FLAGS
           CMAKE_C_FLAGS_DEBUG
           CMAKE_C_FLAGS_RELEASE)
-  FOREACH(CompilerFlag ${CompilerFlags})
-    STRING(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
-  ENDFOREACH()
-  MESSAGE(STATUS "CXX flags (release): ${CMAKE_CXX_FLAGS_RELEASE}")
-  MESSAGE(STATUS "CXX flags (debug): ${CMAKE_CXX_FLAGS_DEBUG}")
-ENDIF()
+  foreach(CompilerFlag ${CompilerFlags})
+    string(REPLACE "/MD" "/MT" ${CompilerFlag} "${${CompilerFlag}}")
+  endforeach()
+  message(STATUS "CXX flags (release): ${CMAKE_CXX_FLAGS_RELEASE}")
+  message(STATUS "CXX flags (debug): ${CMAKE_CXX_FLAGS_DEBUG}")
+endif()
 
-# Project Compiler Flags
-# ADD_DEFINITIONS(-Wall)
-
-INCLUDE_DIRECTORIES(
+include_directories(
   ${gtest_SOURCE_DIR}
   ${gtest_SOURCE_DIR}/include)
 
-ADD_EXECUTABLE(fast-marching-method-test
+add_executable(fast-marching-method-test
   main.cpp
   eikonal_solvers_test.cpp
   signed_arrival_time_test.cpp)
 
-TARGET_LINK_LIBRARIES(fast-marching-method-test gtest gtest_main)
+# Warnings Compiler Flags
+target_compile_options(${PROJECT_NAME} PRIVATE
+  $<$<CXX_COMPILER_ID:MSVC>:/W4>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Wno-gnu-zero-variadic-macro-arguments>
+)
 
-ADD_TEST(NAME fast-marching-method-test COMMAND fast-marching-method-test)
+if(MSVC)
+  string( REPLACE "/DNDEBUG" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+else()
+  string( REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+endif()
+
+target_link_libraries(fast-marching-method-test gtest gtest_main)
+
+add_test(NAME fast-marching-method-test COMMAND fast-marching-method-test)
+
+
+
+add_executable(fast-marching-minimal-example
+  minimal_example.cpp)
+
+# Warnings Compiler Flags
+target_compile_options(fast-marching-minimal-example PRIVATE
+  $<$<CXX_COMPILER_ID:MSVC>:/W4>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Wno-gnu-zero-variadic-macro-arguments>
+)
