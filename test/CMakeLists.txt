@@ -65,3 +65,14 @@ endif()
 target_link_libraries(fast-marching-method-test gtest gtest_main)
 
 add_test(NAME fast-marching-method-test COMMAND fast-marching-method-test)
+
+
+
+add_executable(fast-marching-minimal-example
+  minimal_example.cpp)
+
+# Warnings Compiler Flags
+target_compile_options(fast-marching-minimal-example PRIVATE
+  $<$<CXX_COMPILER_ID:MSVC>:/W4>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Wno-gnu-zero-variadic-macro-arguments>
+)
