@@ -1928,32 +1928,6 @@ std::vector<T> SignedArrivalTime(
   return detail::ArrivalTime(grid_size, boundary_indices, boundary_times,
                              eikonal_solver, boundary_time_predicate,
                              negative_inside);
-#if 0
-  // typedef T TimeType;
-
-  detail::ThrowIfZeroElementInSize(grid_size);
-  detail::ThrowIfEmptyBoundaryIndices(boundary_indices);
-  std::for_each(
-    std::begin(boundary_indices),
-    std::end(boundary_indices),
-    [=](auto const& boundary_index) {
-      detail::ThrowIfBoundaryIndexOutsideGrid(boundary_index, grid_size);
-  });
-
-  auto narrow_band_indices = detail::OutsideInsideNarrowBandIndices(
-    boundary_indices,
-    grid_size);
-  auto outside_narrow_band_indices = narrow_band_indices.first;
-  auto inside_narrow_band_indices = narrow_band_indices.second;
-
-  return detail::SignedDistance(
-    grid_size,
-    boundary_indices,
-    boundary_distances,
-    inside_narrow_band_indices,
-    outside_narrow_band_indices,
-    eikonal_solver);
-#endif
 }
 
 }  // namespace fast_marching_method

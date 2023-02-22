@@ -51,7 +51,7 @@ add_executable(fast-marching-method-test
 # Warnings Compiler Flags
 target_compile_options(${PROJECT_NAME} PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/W4>
-  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Wno-gnu-zero-variadic-macro-arguments>
 )
 
 target_link_libraries(fast-marching-method-test gtest gtest_main)
