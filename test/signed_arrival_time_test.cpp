@@ -502,7 +502,7 @@ TYPED_TEST(SignedArrivalTimeTest, NonUniformGridSpacing) {
   auto const grid_size = util::FilledArray<kDimension>(size_t{11});
   auto grid_spacing = util::FilledArray<kDimension>(ScalarType{0});
   for (auto i = std::size_t{0}; i < kDimension; ++i) {
-    grid_spacing[i] = ScalarType{1} / (i + 1);
+    grid_spacing[i] = ScalarType(1) / (i + 1);
   }
   auto const uniform_speed = ScalarType(1);
 
