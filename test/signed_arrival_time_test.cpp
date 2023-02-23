@@ -600,8 +600,7 @@ TYPED_TEST(SignedArrivalTimeTest, Checkerboard) {
 
   auto const is_even = [](auto const i) { return i % 2 == 0; };
   auto const is_boundary = [=](auto const index) {
-    return std::all_of(std::begin(index), std::end(index), is_even) ||
-           std::none_of(std::begin(index), std::end(index), is_even);
+    return is_even( std::reduce(begin(index), end(index)) );
   };
 
   auto boundary_indices = std::vector<std::array<int32_t, kDimension>>();
