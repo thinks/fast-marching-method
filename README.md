@@ -15,12 +15,12 @@ Most of the functions in the single [header file](https://github.com/thinks/fast
 
 In the figure above, the green circle (_left_) was used as input to compute arrival times on a grid (_right_). Locations outside the circle have positive arrival times (or distances depending on interpretation), here shown in red. Similarly, locations inside the circle have negative arrival times, here shown in blue. The intensity gives the distance to the interface (i.e. circle boundary). This is why cells close to the interface appear black, since the red or blue component is small there. Next, we give an example demonstrating how to write code to generate an image similar to the one shown above.
 
-The input to the `ArrivalTime` function is given as grid cells with known distances (or arrival times depending on interpretation). The following code snippet computes a low resolution version of the image shown above.
+The input to the `ArrivalTime` function is given as grid cells with known distances (or arrival times depending on interpretation). The following code snippet (full working code [here](https://github.com/thinks/fast-marching-method/blob/master/test/minimal_example.cpp) ) computes a low resolution version of the image shown above.
 
 ```cpp
-using namespace std;
 namespace fmm = thinks::fast_marching_method;
 
+// Select points close to a true circle
 auto circle_boundary_indices = vector<array<int32_t, 2>>{
   {{5, 3}}, {{6, 3}}, {{7, 3}}, {{8, 3}}, {{9, 3}}, {{10, 3}}, {{4, 4}},
   {{5, 4}}, {{10, 4}}, {{11, 4}}, {{3, 5}}, {{4, 5}}, {{11, 5}}, {{12, 5}},
@@ -29,6 +29,8 @@ auto circle_boundary_indices = vector<array<int32_t, 2>>{
   {{5, 11}}, {{10, 11}}, {{11, 11}}, {{5, 12}}, {{6, 12}}, {{7, 12}},
   {{8, 12}}, {{9, 12}}, {{10, 12}},
 };
+
+// Specify distances of such points to the true circle
 auto circle_boundary_distances = vector<float>{
   0.0417385f, 0.0164635f, 0.0029808f, 0.0029808f, 0.0164635f, 0.0417385f,
   0.0293592f, -0.0111773f, -0.0111773f, 0.0293592f, 0.0417385f, -0.0111773f,
@@ -45,7 +47,7 @@ auto uniform_speed = 1.f;
 auto arrival_times = fmm::SignedArrivalTime(
   grid_size,
   circle_boundary_indices,
-  circle_boundary_times,
+  circle_boundary_distances,
   fmm::UniformSpeedEikonalSolver<float, 2>(grid_spacing, uniform_speed));
 ```
 

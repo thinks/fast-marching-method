@@ -65,15 +65,15 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
   auto initial_distances = std::vector<float>(grid_size[0] * grid_size[1], nan);
   for (std::size_t i = 0; i < num_seeds; ++i) {
     auto idx = circle_boundary_indices[i];
-    initial_distances[idx[0] * grid_size[1] + idx[1]] =
+    initial_distances[idx[0] + idx[1]* grid_size[0]] =
         circle_boundary_distances[i];
   }
 
   {
     std::cout << "Initial distance map (seeds):" << std::endl;
     std::size_t idx = 0;
-    for (std::size_t i = 0; i < grid_size[0]; ++i) {
-      for (std::size_t j = 0; j < grid_size[1]; ++j) {
+    for (std::size_t j = 0; j < grid_size[1]; ++j) {
+      for (std::size_t i = 0; i < grid_size[0]; ++i) {
         std::cout << std::setw(6) << std::fixed << std::setprecision(4)
                   << initial_distances[idx++] << '\t';
       }
@@ -89,8 +89,8 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
   {
     std::cout << "Distance map:" << std::endl;
     std::size_t idx = 0;
-    for (std::size_t i = 0; i < grid_size[0]; ++i) {
-      for (std::size_t j = 0; j < grid_size[1]; ++j) {
+    for (std::size_t j = 0; j < grid_size[1]; ++j) {
+      for (std::size_t i = 0; i < grid_size[0]; ++i) {
         std::cout << std::setw(6) << std::fixed << std::setprecision(4)
                   << arrival_times[idx++] << '\t';
       }
