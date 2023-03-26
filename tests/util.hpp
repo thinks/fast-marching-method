@@ -18,8 +18,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-#ifndef TEST_UTIL_HPP_
-#define TEST_UTIL_HPP_
+#ifndef TESTS_UTIL_HPP_
+#define TESTS_UTIL_HPP_
 
 #include <algorithm>
 #include <array>
@@ -552,4 +552,4 @@ void BoxBoundaryCells(
 
 }  // namespace util
 
-#endif  // TEST_UTIL_HPP_
+#endif  // TESTS_UTIL_HPP_
