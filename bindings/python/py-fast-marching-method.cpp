@@ -25,6 +25,23 @@
 namespace py = pybind11;
 namespace fmm = thinks::fast_marching_method;
 
+template <typename T, std::size_t N>
+// std::vector<T>
+py::array_t<T> UniformSpeedEikonalSignedArrivalTime(
+    std::array<std::size_t, N> const& grid_size,
+    std::vector<std::array<std::int32_t, N>> const& boundary_indices,
+    std::vector<T> const& boundary_times, std::array<T, N> const& grid_spacing,
+    T const uniform_speed) {
+  // auto eikonal_solver = fmm::UniformSpeedEikonalSolver<T, N>(grid_spacing,
+  // uniform_speed); auto eikonal_solver =
+  // fmm::HighAccuracyUniformSpeedEikonalSolver<T, N>(grid_spacing,
+  // uniform_speed);
+  auto eikonal_solver = fmm::DistanceSolver<T, N>(grid_spacing[0]);
+  std::vector<T> arrival_times = fmm::SignedArrivalTime(
+      grid_size, boundary_indices, boundary_times, eikonal_solver);
+  return py::array_t<T>(grid_size, &arrival_times[0]);
+}
+
 PYBIND11_MODULE(py_fast_marching_method, m) {
   m.doc() = R"pbdoc(
         Python bindings for the fast marching method
@@ -32,7 +49,7 @@ PYBIND11_MODULE(py_fast_marching_method, m) {
         .. currentmodule:: py_fast_marching_method
         .. autosummary::
            :toctree: _generate
-           add
+           uniform_speed_eikonal_signed_arrival_time
     )pbdoc";
 
   m.def(
@@ -41,8 +58,9 @@ PYBIND11_MODULE(py_fast_marching_method, m) {
         Some other explanation about the function.
     )pbdoc");
 
-  // m.def("signed_arrival_time", &fmm::SignedArrivalTime, R"pbdoc(
-  //     Signed arrival time
-  //     Some other explanation about the function.
-  // )pbdoc");
+  m.def("uniform_speed_eikonal_signed_arrival_time",
+        &UniformSpeedEikonalSignedArrivalTime<double, 2>, R"pbdoc(
+      Signed arrival time
+      Some other explanation about the function.
+  )pbdoc");
 }

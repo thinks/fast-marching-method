@@ -34,9 +34,9 @@
 #include <memory>
 #include <numeric>
 #include <queue>
-#include <string>
 #include <sstream>
 #include <stack>
+#include <string>
 #include <tuple>
 #include <type_traits>
 #include <unordered_map>
@@ -1340,7 +1340,7 @@ std::vector<T> ArrivalTime(
       // Negate all the inside times. Essentially, negate everything
       // computed so far. Note that this also affects the boundary cells.
       std::for_each(std::begin(time_buffer), std::end(time_buffer),
-                    [](auto& t) { t = Frozen(t) ? t * TimeType{-1} : t; });
+                    [](auto& t) { t = Frozen(t) ? t* TimeType{-1} : t; });
     }
   }
 
@@ -1378,7 +1378,7 @@ T SolveEikonalQuadratic(std::array<T, 3> const& q) {
 
   // No error-checking here, caller handles bad values.
   auto const discriminant = q[1] * q[1] - T{4} * q[2] * q[0];
-  auto const pos_root = (-q[1] + sqrt(discriminant)) / (T{2} * q[2]);
+  auto const pos_root = (-q[1] + std::sqrt(discriminant)) / (T{2} * q[2]);
   return pos_root;
 }
 
@@ -1693,8 +1693,9 @@ T SolveDistance(std::array<std::int32_t, N> const& index,
 
   auto distance = phi[0] + dx;
   if (N >= 2 && phi_count > 1 && distance > phi[1]) {
-    distance = T(0.5) * (phi[0] + phi[1] +
-                         sqrt(T(2) * Squared(dx) - Squared(phi[1] - phi[0])));
+    distance =
+        T(0.5) * (phi[0] + phi[1] +
+                  std::sqrt(T(2) * Squared(dx) - Squared(phi[1] - phi[0])));
     if (N == 3 && phi_count == 3 && distance > phi[2]) {
       auto const phi_sum = phi[0] + phi[1] + phi[2];
       auto phi_sum_squared =
