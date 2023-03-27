@@ -26,19 +26,43 @@ namespace py = pybind11;
 namespace fmm = thinks::fast_marching_method;
 
 template <typename T, std::size_t N>
-// std::vector<T>
-py::array_t<T> UniformSpeedEikonalSignedArrivalTime(
+py::array_t<T> UniformSpeedSignedArrivalTime(
     std::array<std::size_t, N> const& grid_size,
     std::vector<std::array<std::int32_t, N>> const& boundary_indices,
     std::vector<T> const& boundary_times, std::array<T, N> const& grid_spacing,
     T const uniform_speed) {
-  // auto eikonal_solver = fmm::UniformSpeedEikonalSolver<T, N>(grid_spacing,
-  // uniform_speed); auto eikonal_solver =
-  // fmm::HighAccuracyUniformSpeedEikonalSolver<T, N>(grid_spacing,
-  // uniform_speed);
-  auto eikonal_solver = fmm::DistanceSolver<T, N>(grid_spacing[0]);
+  // auto eikonal_solver = fmm::UniformSpeedEikonalSolver<T, N>
+  //   (grid_spacing, uniform_speed);
+
+  auto eikonal_solver = fmm::HighAccuracyUniformSpeedEikonalSolver<T, N>(
+      grid_spacing, uniform_speed);
+
+  // auto eikonal_solver = fmm::DistanceSolver<T, N>(grid_spacing[0]);
+
   std::vector<T> arrival_times = fmm::SignedArrivalTime(
       grid_size, boundary_indices, boundary_times, eikonal_solver);
+
+  return py::array_t<T>(grid_size, &arrival_times[0]);
+}
+
+template <typename T, std::size_t N>
+py::array_t<T> VaryingSpeedSignedArrivalTime(
+    std::array<std::size_t, N> const& grid_size,
+    std::vector<std::array<std::int32_t, N>> const& boundary_indices,
+    std::vector<T> const& boundary_times, std::array<T, N> const& grid_spacing,
+    py::array_t<T, py::array::c_style | py::array::forcecast> py_speed_buffer) {
+  auto py_speed_buffer_flat = py_speed_buffer.reshape({py_speed_buffer.size()});
+  auto speed_buffer = py_speed_buffer_flat.template cast<std::vector<T>>();
+
+  // auto eikonal_solver = fmm::VaryingSpeedEikonalSolver<T, N>
+  //   (grid_spacing, grid_size, speed_buffer);
+
+  auto eikonal_solver = fmm::HighAccuracyVaryingSpeedEikonalSolver<T, N>(
+      grid_spacing, grid_size, speed_buffer);
+
+  std::vector<T> arrival_times = fmm::SignedArrivalTime(
+      grid_size, boundary_indices, boundary_times, eikonal_solver);
+
   return py::array_t<T>(grid_size, &arrival_times[0]);
 }
 
@@ -49,18 +73,31 @@ PYBIND11_MODULE(py_fast_marching_method, m) {
         .. currentmodule:: py_fast_marching_method
         .. autosummary::
            :toctree: _generate
-           uniform_speed_eikonal_signed_arrival_time
+           uniform_speed_signed_arrival_time
+           varying_speed_signed_arrival_time
     )pbdoc";
 
-  m.def(
-      "add", [](int i, int j) { return i + j; }, R"pbdoc(
-        Add two numbers
-        Some other explanation about the function.
-    )pbdoc");
+  m.def("uniform_speed_signed_arrival_time",
+        &UniformSpeedSignedArrivalTime<double, 2>, R"pbdoc(
+      Signed arrival time under uniform speed
+      https://github.com/thinks/fast-marching-method#high-accuracy-fast-marching-method
+  )pbdoc");
 
-  m.def("uniform_speed_eikonal_signed_arrival_time",
-        &UniformSpeedEikonalSignedArrivalTime<double, 2>, R"pbdoc(
-      Signed arrival time
-      Some other explanation about the function.
+  m.def("uniform_speed_signed_arrival_time",
+        &UniformSpeedSignedArrivalTime<double, 3>, R"pbdoc(
+      Signed arrival time under uniform speed
+      https://github.com/thinks/fast-marching-method#high-accuracy-fast-marching-method
+  )pbdoc");
+
+  m.def("varying_speed_signed_arrival_time",
+        &VaryingSpeedSignedArrivalTime<double, 2>, R"pbdoc(
+      Signed arrival time under varying speed
+      https://github.com/thinks/fast-marching-method#high-accuracy-fast-marching-method
+  )pbdoc");
+
+  m.def("varying_speed_signed_arrival_time",
+        &VaryingSpeedSignedArrivalTime<double, 3>, R"pbdoc(
+      Signed arrival time under varying speed
+      https://github.com/thinks/fast-marching-method#high-accuracy-fast-marching-method
   )pbdoc");
 }
