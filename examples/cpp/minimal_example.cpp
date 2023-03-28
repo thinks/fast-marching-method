@@ -21,7 +21,7 @@
 #include <iostream>
 #include <vector>
 
-#include "../include/thinks/fast_marching_method/fast_marching_method.hpp"
+#include "../../include/thinks/fast_marching_method/fast_marching_method.hpp"
 
 int main([[maybe_unused]] int argc, [[maybe_unused]] char* argv[]) {
   namespace fmm = thinks::fast_marching_method;

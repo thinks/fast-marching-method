@@ -1,20 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
-project(fast-marching-method-test)
+project(fast-marching-method)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-
-enable_testing(true)
-
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG        750d67d809700ae8fca6d610f7b41b71aa161808
-)
-# For Windows: Prevent overriding the parent project's compiler/linker settings
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-FetchContent_MakeAvailable(googletest)
 
 # Default to release build
 if(NOT CMAKE_BUILD_TYPE)
@@ -41,20 +29,12 @@ if(MSVC)
   message(STATUS "CXX flags (debug): ${CMAKE_CXX_FLAGS_DEBUG}")
 endif()
 
-include_directories(
-  ${gtest_SOURCE_DIR}
-  ${gtest_SOURCE_DIR}/include)
-
-add_executable(fast-marching-method-test
-  main.cpp
-  eikonal_solvers_test.cpp
-  signed_arrival_time_test.cpp)
-
 # Warnings Compiler Flags
-target_compile_options(${PROJECT_NAME} PRIVATE
+set(MyWarningFlags
   $<$<CXX_COMPILER_ID:MSVC>:/W4>
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Wno-gnu-zero-variadic-macro-arguments>
 )
+# message(STATUS "Warning flags: ${MyWarningFlags}")
 
 if(MSVC)
   string( REPLACE "/DNDEBUG" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
@@ -62,17 +42,8 @@ else()
   string( REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 endif()
 
-target_link_libraries(fast-marching-method-test gtest gtest_main)
 
-add_test(NAME fast-marching-method-test COMMAND fast-marching-method-test)
-
-
-
-add_executable(fast-marching-minimal-example
-  minimal_example.cpp)
-
-# Warnings Compiler Flags
-target_compile_options(fast-marching-minimal-example PRIVATE
-  $<$<CXX_COMPILER_ID:MSVC>:/W4>
-  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Wno-gnu-zero-variadic-macro-arguments>
-)
+enable_testing()
+add_subdirectory(tests)
+add_subdirectory(examples/cpp)
+add_subdirectory(bindings/python)
