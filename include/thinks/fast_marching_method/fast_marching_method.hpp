@@ -1545,6 +1545,8 @@ T SolveEikonal(std::array<std::int32_t, N> const& index,
     if (use_eikonal_fallback && !(arrival_time >= T{0})) {
       // In case the discriminant is negative, we revert to the smallest
       // distance to a single neighbor
+      // TODO if dimension N>=3 we could try to find the smallest dimension
+      // for the Eikonal equations in dimension N-1
       auto distance = frozen_neighbor_distances[0].first;
       auto j = frozen_neighbor_distances[0].second;
       arrival_time = distance + grid_spacing[j] / speed;
@@ -1689,6 +1691,8 @@ T HighAccuracySolveEikonal(std::array<std::int32_t, N> const& index,
     if (use_eikonal_fallback && !(arrival_time >= T{0})) {
       // In case the discriminant is negative, we revert to the smallest
       // distance to a single neighbor
+      // TODO if dimension N>=3 we could try to find the smallest dimension
+      // for the Eikonal equations in dimension N-1
       auto distance = frozen_neighbor_distances[0].first.first;
       auto j = frozen_neighbor_distances[0].second;
       arrival_time = distance + grid_spacing[j] / speed;
