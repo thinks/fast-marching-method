@@ -303,7 +303,8 @@ TYPED_TEST(SignedArrivalTimeTest, EikonalSolverFailThrows) {
   typedef typename TypeParam::ScalarType ScalarType;
   static constexpr std::size_t kDimension = TypeParam::kDimension;
   namespace fmm = thinks::fast_marching_method;
-  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension>
+  // Test if eikonal solver fails when no fallback is requested
+  typedef fmm::UniformSpeedEikonalSolver<ScalarType, kDimension, false>
       EikonalSolverType;
 
   // Arrange.
@@ -600,7 +601,7 @@ TYPED_TEST(SignedArrivalTimeTest, Checkerboard) {
 
   auto const is_even = [](auto const i) { return i % 2 == 0; };
   auto const is_boundary = [=](auto const index) {
-    return is_even( std::reduce(begin(index), end(index)) );
+    return is_even(std::reduce(begin(index), end(index)));
   };
 
   auto boundary_indices = std::vector<std::array<int32_t, kDimension>>();
