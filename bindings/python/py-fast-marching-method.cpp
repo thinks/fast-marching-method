@@ -27,10 +27,27 @@ namespace fmm = thinks::fast_marching_method;
 
 template <typename T, std::size_t N>
 py::array_t<T> UniformSpeedSignedArrivalTime(
-    std::array<std::size_t, N> const& grid_size,
-    std::vector<std::array<std::int32_t, N>> const& boundary_indices,
-    std::vector<T> const& boundary_times, std::array<T, N> const& grid_spacing,
-    T const uniform_speed) {
+    std::array<std::size_t, N> const& py_grid_size,
+    std::vector<std::array<std::int32_t, N>> const& py_boundary_indices,
+    std::vector<T> const& boundary_times,
+    std::array<T, N> const& py_grid_spacing, T const uniform_speed) {
+  std::array<std::size_t, N> grid_size;
+  std::reverse_copy(py_grid_size.begin(), py_grid_size.end(),
+                    grid_size.begin());
+
+  std::array<T, N> grid_spacing;
+  std::reverse_copy(py_grid_spacing.begin(), py_grid_spacing.end(),
+                    grid_spacing.begin());
+
+  std::vector<std::array<std::int32_t, N>> boundary_indices;
+  boundary_indices.reserve(py_boundary_indices.size());
+  for (auto& py_boundary_index : py_boundary_indices) {
+    std::array<std::int32_t, N> boundary_index;
+    std::reverse_copy(py_boundary_index.begin(), py_boundary_index.end(),
+                      boundary_index.begin());
+    boundary_indices.push_back(boundary_index);
+  }
+
   // auto eikonal_solver = fmm::UniformSpeedEikonalSolver<T, N>
   //   (grid_spacing, uniform_speed);
 
@@ -42,17 +59,35 @@ py::array_t<T> UniformSpeedSignedArrivalTime(
   std::vector<T> arrival_times = fmm::SignedArrivalTime(
       grid_size, boundary_indices, boundary_times, eikonal_solver);
 
-  return py::array_t<T>(grid_size, &arrival_times[0]);
+  return py::array_t<T>(py_grid_size, &arrival_times[0]);
 }
 
 template <typename T, std::size_t N>
 py::array_t<T> VaryingSpeedSignedArrivalTime(
-    std::array<std::size_t, N> const& grid_size,
-    std::vector<std::array<std::int32_t, N>> const& boundary_indices,
-    std::vector<T> const& boundary_times, std::array<T, N> const& grid_spacing,
+    std::array<std::size_t, N> const& py_grid_size,
+    std::vector<std::array<std::int32_t, N>> const& py_boundary_indices,
+    std::vector<T> const& boundary_times,
+    std::array<T, N> const& py_grid_spacing,
     py::array_t<T, py::array::c_style | py::array::forcecast> py_speed_buffer) {
   auto py_speed_buffer_flat = py_speed_buffer.reshape({py_speed_buffer.size()});
   auto speed_buffer = py_speed_buffer_flat.template cast<std::vector<T>>();
+
+  std::array<std::size_t, N> grid_size;
+  std::reverse_copy(py_grid_size.begin(), py_grid_size.end(),
+                    grid_size.begin());
+
+  std::array<T, N> grid_spacing;
+  std::reverse_copy(py_grid_spacing.begin(), py_grid_spacing.end(),
+                    grid_spacing.begin());
+
+  std::vector<std::array<std::int32_t, N>> boundary_indices;
+  boundary_indices.reserve(py_boundary_indices.size());
+  for (auto& py_boundary_index : py_boundary_indices) {
+    std::array<std::int32_t, N> boundary_index;
+    std::reverse_copy(py_boundary_index.begin(), py_boundary_index.end(),
+                      boundary_index.begin());
+    boundary_indices.push_back(boundary_index);
+  }
 
   // auto eikonal_solver = fmm::VaryingSpeedEikonalSolver<T, N>
   //   (grid_spacing, grid_size, speed_buffer);
@@ -63,7 +98,7 @@ py::array_t<T> VaryingSpeedSignedArrivalTime(
   std::vector<T> arrival_times = fmm::SignedArrivalTime(
       grid_size, boundary_indices, boundary_times, eikonal_solver);
 
-  return py::array_t<T>(grid_size, &arrival_times[0]);
+  return py::array_t<T>(py_grid_size, &arrival_times[0]);
 }
 
 PYBIND11_MODULE(py_fast_marching_method, m) {
