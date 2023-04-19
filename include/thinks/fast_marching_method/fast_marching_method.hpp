@@ -698,7 +698,7 @@ std::array<std::array<std::int32_t, N>, 2 * N> FaceNeighborOffsets() {
 template <std::size_t N>
 std::array<std::array<std::int32_t, N>, static_pow(3, N) - 1>
 VertexNeighborOffsets() {
-  typedef std::array<int32_t, N> IndexType;
+  typedef std::array<std::int32_t, N> IndexType;
 
   static_assert(N > 0, "dimensionality cannot be zero");
 
@@ -717,7 +717,7 @@ VertexNeighborOffsets() {
     // Next index.
     auto j = std::size_t{0};
     while (j < N) {
-      if (static_cast<std::size_t>(index[j] + 1) < std::size_t{3}) {
+      if ((index[j] + 1) < std::int32_t{3}) {
         ++index[j];
         break;
       } else {
