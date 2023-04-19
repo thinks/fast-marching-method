@@ -12,6 +12,7 @@ else()
     ${CLANG_TIDY_EXE};
     -header-filter=.*fast_marching_method*;
     -checks=-*,portability-*,bugprone-*,readability-,clang-analyzer-*,perforance-*;)
+  message(STATUS "Found clang-tidy: ${CLANG_TIDY_EXE}.")
 endif()
 
 # Default to release build

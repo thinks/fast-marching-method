@@ -19,7 +19,7 @@ add_executable(fast-marching-method-test
   eikonal_solvers_test.cpp
   signed_arrival_time_test.cpp)
 
-target_link_libraries(fast-marching-method-test SYSTEM GTest::gtest GTest::gtest_main)
+target_link_libraries(fast-marching-method-test PRIVATE GTest::gtest GTest::gtest_main)
 
 # Warnings Compiler Flags
 target_compile_options(fast-marching-method-test PRIVATE ${MyWarningFlags})
