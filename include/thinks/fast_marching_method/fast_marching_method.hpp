@@ -476,9 +476,9 @@ class Grid {
   //!
   //! Preconditions:
   //! - @a index is inside the grid.
-  template<bool NotConstQuery = not const_data_ptr>
-  typename std::enable_if<NotConstQuery, CellType&>::type
-  Cell(IndexType const& index) {
+  template <bool NotConstQuery = !const_data_ptr>
+  typename std::enable_if<NotConstQuery, CellType&>::type Cell(
+      IndexType const& index) {
     assert(GridLinearIndex(index, strides_) < LinearSize(size()) &&
            "Precondition");
     return cells_[GridLinearIndex(index, strides_)];
@@ -497,7 +497,8 @@ class Grid {
  private:
   std::array<std::size_t, N> const size_;
   std::array<std::size_t, N - 1> const strides_;
-  using CellPtrType = std::conditional_t<const_data_ptr, CellType const*, CellType*>;
+  using CellPtrType =
+      std::conditional_t<const_data_ptr, CellType const*, CellType*>;
   CellPtrType cells_;
 };
 
@@ -1358,7 +1359,7 @@ std::vector<T> ArrivalTime(
       // Negate all the inside times. Essentially, negate everything
       // computed so far. Note that this also affects the boundary cells.
       std::for_each(std::begin(time_buffer), std::end(time_buffer),
-                    [](auto& t) { t = Frozen(t) ? t* TimeType{-1} : t; });
+                    [](auto& t) { t = Frozen(t) ? t * TimeType{-1} : t; });
     }
   }
 
