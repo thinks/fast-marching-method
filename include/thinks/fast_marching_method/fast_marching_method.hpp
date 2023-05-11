@@ -403,9 +403,9 @@ std::size_t GridLinearIndex(
   return k;
 }
 
-//! Access a linear std::array as if it were an N-dimensional grid.
-//! Allows mutating operations on the underlying std::array. The grid does
-//! not own the underlying std::array, but is simply an indexing structure.
+//! Access a linear array as if it were an N-dimensional grid.
+//! Allows mutating operations on the underlying array. The grid does
+//! not own the underlying array, but is simply an indexing structure.
 //!
 //! Usage:
 //!   auto size = std::array<std::size_t, 2>();
@@ -432,7 +432,7 @@ std::size_t GridLinearIndex(
 //!   cell (1,1): 3
 //!   -----
 //!   cell (0,1): 5.3
-template <typename T, std::size_t N>
+template <typename T, std::size_t N, bool const_data_ptr = false>
 class Grid {
  public:
   typedef T CellType;
@@ -450,7 +450,22 @@ class Grid {
     ThrowIfZeroElementInSize(size);
     ThrowIfInvalidCellBufferSize(size, cell_buffer.size());
 
-    assert(!cell_buffer.empty());
+    assert(!cell_buffer.empty() && "cell_buffer must not be empty");
+    cells_ = &cell_buffer.front();
+  }
+
+  //! Construct a grid from a given @a size and @a const cell_buffer. Does not
+  //! take ownership of the cell buffer, it is assumed that this buffer exists
+  //! during the life-time of the grid object.
+  //!
+  //! Preconditions:
+  //! - @a cell_buffer is not empty.
+  Grid(SizeType const& size, std::vector<T> const& cell_buffer)
+      : size_(size), strides_(GridStrides(size)), cells_(nullptr) {
+    ThrowIfZeroElementInSize(size);
+    ThrowIfInvalidCellBufferSize(size, cell_buffer.size());
+
+    assert(!cell_buffer.empty() && "cell_buffer must not be empty");
     cells_ = &cell_buffer.front();
   }
 
@@ -461,7 +476,9 @@ class Grid {
   //!
   //! Preconditions:
   //! - @a index is inside the grid.
-  CellType& Cell(IndexType const& index) {
+  template<bool NotConstQuery = not const_data_ptr>
+  typename std::enable_if<NotConstQuery, CellType&>::type
+  Cell(IndexType const& index) {
     assert(GridLinearIndex(index, strides_) < LinearSize(size()) &&
            "Precondition");
     return cells_[GridLinearIndex(index, strides_)];
@@ -480,72 +497,8 @@ class Grid {
  private:
   std::array<std::size_t, N> const size_;
   std::array<std::size_t, N - 1> const strides_;
-  CellType* cells_;
-};
-
-//! Access a linear std::array as if it were an N-dimensional grid.
-//! Does not allow mutating operations on the underlying std::array. The grid
-//! does not own the underlying std::array, but is simply an indexing structure.
-//!
-//! Usage:
-//!   auto size = std::array<std::size_t, 2>();
-//!   size[0] = 2;
-//!   size[1] = 2;
-//!   auto cells = std::vector<float>(4);
-//!   cells[0] = 0.f;
-//!   cells[1] = 1.f;
-//!   cells[2] = 2.f;
-//!   cells[3] = 3.f;
-//!   auto grid = ConstGrid<float, 2>(size, cells.front());
-//!   std::cout << "cell (0,0): " << grid.cell({{0, 0}}) << std::endl;
-//!   std::cout << "cell (1,0): " << grid.cell({{1, 0}}) << std::endl;
-//!   std::cout << "cell (0,1): " << grid.cell({{0, 1}}) << std::endl;
-//!   std::cout << "cell (1,1): " << grid.cell({{1, 1}}) << std::endl;
-//!
-//! Output:
-//!   cell (0,0): 0
-//!   cell (1,0): 1
-//!   cell (0,1): 2
-//!   cell (1,1): 3
-template <typename T, std::size_t N>
-class ConstGrid {
- public:
-  typedef T CellType;
-  typedef std::array<std::size_t, N> SizeType;
-  typedef std::array<std::int32_t, N> IndexType;
-
-  //! Construct a grid from a given @a size and @a cell_buffer. Does not
-  //! take ownership of the cell buffer, it is assumed that this buffer exists
-  //! during the life-time of the grid object.
-  //!
-  //! Preconditions:
-  //! - @a cell_buffer is not empty.
-  ConstGrid(SizeType const& size, std::vector<T> const& cell_buffer)
-      : size_(size), strides_(GridStrides(size)), cells_(nullptr) {
-    ThrowIfZeroElementInSize(size);
-    ThrowIfInvalidCellBufferSize(size, cell_buffer.size());
-
-    assert(!cell_buffer.empty() && "Precondition");
-    cells_ = &cell_buffer.front();
-  }
-
-  //! Returns the size of the grid.
-  SizeType size() const { return size_; }
-
-  //! Returns a const reference to the cell at @a index. No range checking!
-  //!
-  //! Preconditions:
-  //! - @a index is inside the grid.
-  CellType const& Cell(IndexType const& index) const {
-    assert(GridLinearIndex(index, strides_) < LinearSize(size()) &&
-           "Precondition");
-    return cells_[GridLinearIndex(index, strides_)];
-  }
-
- private:
-  std::array<std::size_t, N> const size_;
-  std::array<std::size_t, N - 1> const strides_;
-  CellType const* cells_;
+  using CellPtrType = std::conditional_t<const_data_ptr, CellType const*, CellType*>;
+  CellPtrType cells_;
 };
 
 //! Acceleration structure for keeping track of the smallest distance cell
@@ -1876,7 +1829,7 @@ class VaryingSpeedEikonalSolverBase
   }
 
  private:
-  ConstGrid<T, N> const speed_grid_;
+  Grid<T, N, true> const speed_grid_;
 };
 
 }  // namespace detail
