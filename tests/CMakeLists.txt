@@ -21,9 +21,6 @@ add_executable(fast-marching-method-test
 
 target_link_libraries(fast-marching-method-test PRIVATE GTest::gtest GTest::gtest_main)
 
-# Warnings Compiler Flags
-target_compile_options(fast-marching-method-test PRIVATE ${MyWarningFlags})
-
 add_test(NAME fast-marching-method-test COMMAND fast-marching-method-test)
 
 # Python bindings test

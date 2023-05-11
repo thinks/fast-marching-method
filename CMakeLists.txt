@@ -40,19 +40,14 @@ if(MSVC)
   message(STATUS "CXX flags (debug): ${CMAKE_CXX_FLAGS_DEBUG}")
 endif()
 
-# Warnings Compiler Flags
-set(MyWarningFlags
-  $<$<CXX_COMPILER_ID:MSVC>:/W4>
-  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Wno-gnu-zero-variadic-macro-arguments>
-)
-# message(STATUS "Warning flags: ${MyWarningFlags}")
-
+# Warnings and other compiler flags
 if(MSVC)
+  add_compile_options(/W4)
   string( REPLACE "/DNDEBUG" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 else()
+  add_compile_options(-Wall -Wextra -Wpedantic -Wno-gnu-zero-variadic-macro-arguments)
   string( REPLACE "-DNDEBUG" "" CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
 endif()
-
 
 enable_testing()
 add_subdirectory(tests)
