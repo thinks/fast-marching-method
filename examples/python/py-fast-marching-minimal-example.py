@@ -4,10 +4,10 @@ import matplotlib.pyplot as plt
 
 
 def signed_arrival_time_example():
-    grid_size = np.array([101, 101])
+    grid_size = np.array([50, 100])
     # grid_spacing = 1.0 / grid_size
     grid_spacing = np.ones(grid_size.shape)
-    boundary_indices = np.array([[50, 50]])
+    boundary_indices = np.array([[31, 75]])
     boundary_times = np.array([0.0])
     uniform_speed = 1.0
 
@@ -18,6 +18,7 @@ def signed_arrival_time_example():
     print("Max dist:", np.max(arrival_times[:]))
 
     plt.imshow(arrival_times)
+    plt.plot(boundary_indices[0,1], boundary_indices[0,0], "mo")
     plt.colorbar()
     plt.show()
 

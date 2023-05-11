@@ -4,10 +4,10 @@ from scipy import ndimage as ndi
 
 
 def test_uniform_2D():
-    grid_size = np.array([101, 101])
+    grid_size = np.array([50, 101])
     # grid_spacing = 1.0/grid_size
     grid_spacing = np.ones(grid_size.shape)
-    boundary_indices = np.array([[50, 50]])
+    boundary_indices = np.array([[20, 75]])
     boundary_times = np.array([0.0])
     uniform_speed = 1.0
 
@@ -30,10 +30,10 @@ def test_uniform_2D():
 
 
 def test_uniform_3D():
-    grid_size = np.array([101, 101, 101])
+    grid_size = np.array([30, 76, 43])
     # grid_spacing = 1.0/grid_size
     grid_spacing = np.ones(grid_size.shape)
-    boundary_indices = np.array([[50, 50, 50]])
+    boundary_indices = np.array([[9, 50, 21]])
     boundary_times = np.array([0.0])
     uniform_speed = 1.0
 
@@ -58,10 +58,10 @@ def test_uniform_3D():
 
 
 def test_varying_2D():
-    grid_size = np.array([5, 5])
+    grid_size = np.array([5, 8])
     # grid_spacing = 1.0/grid_size
     grid_spacing = np.ones(grid_size.shape)
-    boundary_indices = np.array([[2, 2]])
+    boundary_indices = np.array([[2, 5]])
     boundary_times = np.array([0.0])
     varying_speed = np.ones(grid_size)
 

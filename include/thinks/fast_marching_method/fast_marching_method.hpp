@@ -278,6 +278,71 @@ void ThrowIfInvalidArrivalTime(T const arrival_time,
   }
 }
 
+//! Throws an std::runtime_error exception if @a arrival_time is not valid.
+template <typename T, std::size_t N>
+void ThrowIfInvalidArrivalTimeWithDetails(
+    T const arrival_time, std::array<int32_t, N> const& index, T const speed,
+    std::array<T, 3> const& q, T const cell_distance,
+    std::array<std::pair<T, std::size_t>, N> const& frozen_neighbor_distances,
+    std::size_t const frozen_neighbor_distances_count) {
+  // Fail when d is NaN.
+  if (!(arrival_time >= T{0})) {
+    auto ss = std::stringstream();
+
+    ss << "invalid arrival time (distance) " << arrival_time << " at index "
+       << ToString(index) << std::endl;
+
+    // auto const cell_distance = distance_grid.Cell(index);
+    for (auto i = std::size_t{0}; i < frozen_neighbor_distances_count; ++i) {
+      ss << "[" << i << "]:" << cell_distance << " | "
+         << frozen_neighbor_distances[i].first << ", "
+         << frozen_neighbor_distances[i].second << std::endl;
+    }
+    ss << "speed: " << speed << std::endl;
+    ss << "q: " << ToString(q) << std::endl;
+    ss << "discr: " << q[1] * q[1] - T{4} * q[2] * q[0] << std::endl;
+    ss << "int64: "
+       << int64_t{-800046} * int64_t{-800046} -
+              int64_t{4} * int64_t{1179650} * int64_t{135649}
+       << std::endl;
+
+    throw std::runtime_error(ss.str());
+  }
+}
+
+//! Throws an std::runtime_error exception if @a arrival_time is not valid.
+template <typename T, std::size_t N>
+void ThrowIfInvalidArrivalTimeWithHighAccuracyDetails(
+    T const arrival_time, std::array<int32_t, N> const& index, T const speed,
+    std::array<T, 3> const& q, T const cell_distance,
+    std::array<std::pair<std::pair<T, T>, std::size_t>, N> const&
+        frozen_neighbor_distances,
+    std::size_t const frozen_neighbor_distances_count) {
+  // Fail when d is NaN.
+  if (!(arrival_time >= T{0})) {
+    auto ss = std::stringstream();
+
+    ss << "invalid arrival time (distance) " << arrival_time << " at index "
+       << ToString(index) << std::endl;
+
+    // auto const cell_distance = distance_grid.Cell(index);
+    for (auto i = std::size_t{0}; i < frozen_neighbor_distances_count; ++i) {
+      ss << "[" << i << "]:" << cell_distance << " | "
+         << frozen_neighbor_distances[i].first.first << ", "
+         << frozen_neighbor_distances[i].first.second << std::endl;
+    }
+    ss << "speed: " << speed << std::endl;
+    ss << "q: " << ToString(q) << std::endl;
+    ss << "discr: " << q[1] * q[1] - T{4} * q[2] * q[0] << std::endl;
+    ss << "int64: "
+       << int64_t{-800046} * int64_t{-800046} -
+              int64_t{4} * int64_t{1179650} * int64_t{135649}
+       << std::endl;
+
+    throw std::runtime_error(ss.str());
+  }
+}
+
 //! Throws an std::invalid_argument exception if @a speed_index is not
 //! inside @a grid_size.
 template <std::size_t N>
@@ -338,9 +403,9 @@ std::size_t GridLinearIndex(
   return k;
 }
 
-//! Access a linear std::array as if it were an N-dimensional grid.
-//! Allows mutating operations on the underlying std::array. The grid does
-//! not own the underlying std::array, but is simply an indexing structure.
+//! Access a linear array as if it were an N-dimensional grid.
+//! Allows mutating operations on the underlying array. The grid does
+//! not own the underlying array, but is simply an indexing structure.
 //!
 //! Usage:
 //!   auto size = std::array<std::size_t, 2>();
@@ -367,7 +432,7 @@ std::size_t GridLinearIndex(
 //!   cell (1,1): 3
 //!   -----
 //!   cell (0,1): 5.3
-template <typename T, std::size_t N>
+template <typename T, std::size_t N, bool const_data_ptr = false>
 class Grid {
  public:
   typedef T CellType;
@@ -385,7 +450,22 @@ class Grid {
     ThrowIfZeroElementInSize(size);
     ThrowIfInvalidCellBufferSize(size, cell_buffer.size());
 
-    assert(!cell_buffer.empty());
+    assert(!cell_buffer.empty() && "cell_buffer must not be empty");
+    cells_ = &cell_buffer.front();
+  }
+
+  //! Construct a grid from a given @a size and @a const cell_buffer. Does not
+  //! take ownership of the cell buffer, it is assumed that this buffer exists
+  //! during the life-time of the grid object.
+  //!
+  //! Preconditions:
+  //! - @a cell_buffer is not empty.
+  Grid(SizeType const& size, std::vector<T> const& cell_buffer)
+      : size_(size), strides_(GridStrides(size)), cells_(nullptr) {
+    ThrowIfZeroElementInSize(size);
+    ThrowIfInvalidCellBufferSize(size, cell_buffer.size());
+
+    assert(!cell_buffer.empty() && "cell_buffer must not be empty");
     cells_ = &cell_buffer.front();
   }
 
@@ -396,7 +476,9 @@ class Grid {
   //!
   //! Preconditions:
   //! - @a index is inside the grid.
-  CellType& Cell(IndexType const& index) {
+  template <bool NotConstQuery = !const_data_ptr>
+  typename std::enable_if<NotConstQuery, CellType&>::type Cell(
+      IndexType const& index) {
     assert(GridLinearIndex(index, strides_) < LinearSize(size()) &&
            "Precondition");
     return cells_[GridLinearIndex(index, strides_)];
@@ -415,72 +497,9 @@ class Grid {
  private:
   std::array<std::size_t, N> const size_;
   std::array<std::size_t, N - 1> const strides_;
-  CellType* cells_;
-};
-
-//! Access a linear std::array as if it were an N-dimensional grid.
-//! Does not allow mutating operations on the underlying std::array. The grid
-//! does not own the underlying std::array, but is simply an indexing structure.
-//!
-//! Usage:
-//!   auto size = std::array<std::size_t, 2>();
-//!   size[0] = 2;
-//!   size[1] = 2;
-//!   auto cells = std::vector<float>(4);
-//!   cells[0] = 0.f;
-//!   cells[1] = 1.f;
-//!   cells[2] = 2.f;
-//!   cells[3] = 3.f;
-//!   auto grid = ConstGrid<float, 2>(size, cells.front());
-//!   std::cout << "cell (0,0): " << grid.cell({{0, 0}}) << std::endl;
-//!   std::cout << "cell (1,0): " << grid.cell({{1, 0}}) << std::endl;
-//!   std::cout << "cell (0,1): " << grid.cell({{0, 1}}) << std::endl;
-//!   std::cout << "cell (1,1): " << grid.cell({{1, 1}}) << std::endl;
-//!
-//! Output:
-//!   cell (0,0): 0
-//!   cell (1,0): 1
-//!   cell (0,1): 2
-//!   cell (1,1): 3
-template <typename T, std::size_t N>
-class ConstGrid {
- public:
-  typedef T CellType;
-  typedef std::array<std::size_t, N> SizeType;
-  typedef std::array<std::int32_t, N> IndexType;
-
-  //! Construct a grid from a given @a size and @a cell_buffer. Does not
-  //! take ownership of the cell buffer, it is assumed that this buffer exists
-  //! during the life-time of the grid object.
-  //!
-  //! Preconditions:
-  //! - @a cell_buffer is not empty.
-  ConstGrid(SizeType const& size, std::vector<T> const& cell_buffer)
-      : size_(size), strides_(GridStrides(size)), cells_(nullptr) {
-    ThrowIfZeroElementInSize(size);
-    ThrowIfInvalidCellBufferSize(size, cell_buffer.size());
-
-    assert(!cell_buffer.empty() && "Precondition");
-    cells_ = &cell_buffer.front();
-  }
-
-  //! Returns the size of the grid.
-  SizeType size() const { return size_; }
-
-  //! Returns a const reference to the cell at @a index. No range checking!
-  //!
-  //! Preconditions:
-  //! - @a index is inside the grid.
-  CellType const& Cell(IndexType const& index) const {
-    assert(GridLinearIndex(index, strides_) < LinearSize(size()) &&
-           "Precondition");
-    return cells_[GridLinearIndex(index, strides_)];
-  }
-
- private:
-  std::array<std::size_t, N> const size_;
-  std::array<std::size_t, N - 1> const strides_;
-  CellType const* cells_;
+  using CellPtrType =
+      std::conditional_t<const_data_ptr, CellType const*, CellType*>;
+  CellPtrType cells_;
 };
 
 //! Acceleration structure for keeping track of the smallest distance cell
@@ -633,7 +652,7 @@ std::array<std::array<std::int32_t, N>, 2 * N> FaceNeighborOffsets() {
 template <std::size_t N>
 std::array<std::array<std::int32_t, N>, static_pow(3, N) - 1>
 VertexNeighborOffsets() {
-  typedef std::array<int32_t, N> IndexType;
+  typedef std::array<std::int32_t, N> IndexType;
 
   static_assert(N > 0, "dimensionality cannot be zero");
 
@@ -652,7 +671,7 @@ VertexNeighborOffsets() {
     // Next index.
     auto j = std::size_t{0};
     while (j < N) {
-      if (static_cast<std::size_t>(index[j] + 1) < std::size_t{3}) {
+      if ((index[j] + 1) < std::int32_t{3}) {
         ++index[j];
         break;
       } else {
@@ -1340,7 +1359,7 @@ std::vector<T> ArrivalTime(
       // Negate all the inside times. Essentially, negate everything
       // computed so far. Note that this also affects the boundary cells.
       std::for_each(std::begin(time_buffer), std::end(time_buffer),
-                    [](auto& t) { t = Frozen(t) ? t* TimeType{-1} : t; });
+                    [](auto& t) { t = Frozen(t) ? t * TimeType{-1} : t; });
     }
   }
 
@@ -1396,7 +1415,7 @@ T SolveEikonalQuadratic(std::array<T, 3> const& q) {
 //!   frozen face-neighbor of @a index.
 //! - Cells in @a distance_grid that are not frozen must have the value
 //!   std::numeric_limits<T>::max().
-template <typename T, std::size_t N>
+template <typename T, std::size_t N, bool use_eikonal_fallback = true>
 T SolveEikonal(std::array<std::int32_t, N> const& index,
                Grid<T, N> const& distance_grid, T const speed,
                std::array<T, N> const& grid_spacing) {
@@ -1451,6 +1470,9 @@ T SolveEikonal(std::array<std::int32_t, N> const& index,
   }
   assert(frozen_neighbor_distances_count > std::size_t{0} && "Precondition");
 
+  // Define and intiailise q out of if/else for error reporting convenience
+  std::array<T, 3> q = std::array<T, 3>{{T{0}, T{0}, T{0}}};
+
   auto arrival_time = std::numeric_limits<T>::quiet_NaN();
   if (frozen_neighbor_distances_count == 1) {
     // If frozen neighbor in only one dimension we don't need to solve a
@@ -1460,7 +1482,8 @@ T SolveEikonal(std::array<std::int32_t, N> const& index,
     arrival_time = distance + grid_spacing[j] / speed;
   } else {
     // Initialize quadratic coefficients.
-    auto q = std::array<T, 3>{{T{-1} / Squared(speed), T{0}, T{0}}};
+    // auto q = std::array<T, 3>{{T{-1} / Squared(speed), T{0}, T{0}}};
+    q[0] = T{-1} / Squared(speed);
     auto const inverse_squared_grid_spacing = InverseSquared(grid_spacing);
     for (auto i = std::size_t{0}; i < frozen_neighbor_distances_count; ++i) {
       auto const distance = frozen_neighbor_distances[i].first;
@@ -1471,9 +1494,28 @@ T SolveEikonal(std::array<std::int32_t, N> const& index,
       q[2] += alpha;
     }
     arrival_time = SolveEikonalQuadratic(q);
+
+    // Fallback when arrival time is negative or NaN.
+    if (use_eikonal_fallback && !(arrival_time >= T{0})) {
+      // In case the discriminant is negative, we revert to the smallest
+      // distance to a single neighbor
+      // TODO if dimension N>=3 we could try to find the smallest dimension
+      // for the Eikonal equations in dimension N-1
+      auto distance = frozen_neighbor_distances[0].first;
+      auto j = frozen_neighbor_distances[0].second;
+      arrival_time = distance + grid_spacing[j] / speed;
+      for (auto i = std::size_t{1}; i < frozen_neighbor_distances_count; ++i) {
+        distance = frozen_neighbor_distances[i].first;
+        j = frozen_neighbor_distances[i].second;
+        arrival_time =
+            std::min(arrival_time, distance + grid_spacing[j] / speed);
+      }
+    }
   }
 
-  ThrowIfInvalidArrivalTime(arrival_time, index);
+  ThrowIfInvalidArrivalTimeWithDetails(
+      arrival_time, index, speed, q, distance_grid.Cell(index),
+      frozen_neighbor_distances, frozen_neighbor_distances_count);
   return arrival_time;
 }
 
@@ -1494,7 +1536,7 @@ T SolveEikonal(std::array<std::int32_t, N> const& index,
 //!   frozen face-neighbor of @a index.
 //! - Cells in @a distance_grid that are not frozen must have the value
 //!   std::numeric_limits<T>::max().
-template <typename T, std::size_t N>
+template <typename T, std::size_t N, bool use_eikonal_fallback = true>
 T HighAccuracySolveEikonal(std::array<std::int32_t, N> const& index,
                            Grid<T, N> const& distance_grid, T const speed,
                            std::array<T, N> const& grid_spacing) {
@@ -1561,7 +1603,8 @@ T HighAccuracySolveEikonal(std::array<std::int32_t, N> const& index,
   }
   assert(frozen_neighbor_distances_count > std::size_t{0} && "Precondition");
 
-  auto q = std::array<T, 3>{{T{-1} / Squared(speed), T{0}, T{0}}};  // TMP!!
+  // Define and intiailise q out of if/else for error reporting convenience
+  std::array<T, 3> q = std::array<T, 3>{{T{0}, T{0}, T{0}}};
 
   auto arrival_time = std::numeric_limits<T>::quiet_NaN();
   if (frozen_neighbor_distances_count == 1) {
@@ -1573,6 +1616,7 @@ T HighAccuracySolveEikonal(std::array<std::int32_t, N> const& index,
   } else {
     // Initialize quadratic coefficients.
     // auto q = std::array<T, 3>{{T{-1} / Squared(speed), T{0}, T{0}}};
+    q[0] = T{-1} / Squared(speed);
     auto const inverse_squared_grid_spacing = InverseSquared(grid_spacing);
 
     for (auto i = std::size_t{0}; i < frozen_neighbor_distances_count; ++i) {
@@ -1596,29 +1640,28 @@ T HighAccuracySolveEikonal(std::array<std::int32_t, N> const& index,
       }
     }
     arrival_time = SolveEikonalQuadratic(q);
-  }
 
-  // ThrowIfInvalidArrivalTime(arrival_time, index);
-  if (!(arrival_time >= T{0})) {
-    auto const cell_distance = distance_grid.Cell(index);
-    for (auto i = std::size_t{0}; i < frozen_neighbor_distances_count; ++i) {
-      std::cerr << "[" << i << "]:" << cell_distance << " | "
-                << frozen_neighbor_distances[i].first.first << ", "
-                << frozen_neighbor_distances[i].first.second << std::endl;
+    // Fallback when arrival time is negative or NaN.
+    if (use_eikonal_fallback && !(arrival_time >= T{0})) {
+      // In case the discriminant is negative, we revert to the smallest
+      // distance to a single neighbor
+      // TODO if dimension N>=3 we could try to find the smallest dimension
+      // for the Eikonal equations in dimension N-1
+      auto distance = frozen_neighbor_distances[0].first.first;
+      auto j = frozen_neighbor_distances[0].second;
+      arrival_time = distance + grid_spacing[j] / speed;
+      for (auto i = std::size_t{1}; i < frozen_neighbor_distances_count; ++i) {
+        distance = frozen_neighbor_distances[i].first.first;
+        j = frozen_neighbor_distances[i].second;
+        arrival_time =
+            std::min(arrival_time, distance + grid_spacing[j] / speed);
+      }
     }
-    std::cerr << "q: " << ToString(q) << std::endl;
-    std::cerr << "discr: " << q[1] * q[1] - T{4} * q[2] * q[0] << std::endl;
-    std::cerr << "int64: "
-              << int64_t{-800046} * int64_t{-800046} -
-                     int64_t{4} * int64_t{1179650} * int64_t{135649}
-              << std::endl;
-
-    // auto ss = std::stringstream();
-    std::cerr << "invalid arrival time (distance) " << arrival_time
-              << " at index " << ToString(index) << std::endl;
-    std::abort();
-    // throw std::runtime_error(ss.str());
   }
+
+  ThrowIfInvalidArrivalTimeWithHighAccuracyDetails(
+      arrival_time, index, speed, q, distance_grid.Cell(index),
+      frozen_neighbor_distances, frozen_neighbor_distances_count);
   return arrival_time;
 }
 
@@ -1715,11 +1758,12 @@ T SolveDistance(std::array<std::int32_t, N> const& index,
 
 //! Base class for Eikonal solvers.
 //! Note: dtor is not virtual!
-template <typename T, std::size_t N>
+template <typename T, std::size_t N, bool use_eikonal_fallback = true>
 class EikonalSolverBase {
  public:
   typedef T ScalarType;
   static std::size_t const kDimension = N;
+  static bool const allowEikonalFallback = use_eikonal_fallback;
 
  protected:
   explicit EikonalSolverBase(std::array<T, N> const& grid_spacing)
@@ -1735,12 +1779,14 @@ class EikonalSolverBase {
 
 //! Base class for Eikonal solvers with uniform speed.
 //! Note: dtor is not virtual!
-template <typename T, std::size_t N>
-class UniformSpeedEikonalSolverBase : public EikonalSolverBase<T, N> {
+template <typename T, std::size_t N, bool use_eikonal_fallback = true>
+class UniformSpeedEikonalSolverBase
+    : public EikonalSolverBase<T, N, use_eikonal_fallback> {
  protected:
   UniformSpeedEikonalSolverBase(std::array<T, N> const& grid_spacing,
                                 T const uniform_speed)
-      : EikonalSolverBase<T, N>(grid_spacing), uniform_speed_(uniform_speed) {
+      : EikonalSolverBase<T, N, use_eikonal_fallback>(grid_spacing),
+        uniform_speed_(uniform_speed) {
     ThrowIfZeroOrNegativeOrNanSpeed(uniform_speed_);
   }
 
@@ -1756,14 +1802,15 @@ class UniformSpeedEikonalSolverBase : public EikonalSolverBase<T, N> {
 
 //! Base class for Eikonal solvers with varying speed.
 //! Note: dtor is not virtual!
-template <typename T, std::size_t N>
-class VaryingSpeedEikonalSolverBase : public EikonalSolverBase<T, N> {
+template <typename T, std::size_t N, bool use_eikonal_fallback = true>
+class VaryingSpeedEikonalSolverBase
+    : public EikonalSolverBase<T, N, use_eikonal_fallback> {
  protected:
   VaryingSpeedEikonalSolverBase(
       std::array<T, N> const& grid_spacing,
       std::array<std::size_t, N> const& speed_grid_size,
       std::vector<T> const& speed_buffer)
-      : EikonalSolverBase<T, N>(grid_spacing),
+      : EikonalSolverBase<T, N, use_eikonal_fallback>(grid_spacing),
         speed_grid_(speed_grid_size, speed_buffer) {
     for (auto const speed : speed_buffer) {
       ThrowIfZeroOrNegativeOrNanSpeed(speed);
@@ -1783,7 +1830,7 @@ class VaryingSpeedEikonalSolverBase : public EikonalSolverBase<T, N> {
   }
 
  private:
-  ConstGrid<T, N> const speed_grid_;
+  Grid<T, N, true> const speed_grid_;
 };
 
 }  // namespace detail
@@ -1791,21 +1838,21 @@ class VaryingSpeedEikonalSolverBase : public EikonalSolverBase<T, N> {
 //! Provides methods for solving the eikonal equation for a single grid cell
 //! at a time using the current distance grid. Uses a uniform speed for
 //! the entire grid.
-template <typename T, std::size_t N>
+template <typename T, std::size_t N, bool use_eikonal_fallback = true>
 class UniformSpeedEikonalSolver
-    : public detail::UniformSpeedEikonalSolverBase<T, N> {
+    : public detail::UniformSpeedEikonalSolverBase<T, N, use_eikonal_fallback> {
  public:
   explicit UniformSpeedEikonalSolver(std::array<T, N> const& grid_spacing,
                                      T const uniform_speed = T{1})
-      : detail::UniformSpeedEikonalSolverBase<T, N>(grid_spacing,
-                                                    uniform_speed) {}
+      : detail::UniformSpeedEikonalSolverBase<T, N, use_eikonal_fallback>(
+            grid_spacing, uniform_speed) {}
 
   //! Returns the distance for grid cell at @a index given the current
   //! distances (@a distance_grid) of other cells.
   T Solve(std::array<std::int32_t, N> const& index,
           detail::Grid<T, N> const& distance_grid) const {
-    return detail::SolveEikonal(index, distance_grid, this->uniform_speed(),
-                                this->grid_spacing());
+    return detail::SolveEikonal<T, N, use_eikonal_fallback>(
+        index, distance_grid, this->uniform_speed(), this->grid_spacing());
   }
 };
 
@@ -1813,20 +1860,20 @@ class UniformSpeedEikonalSolver
 //! at a time using the current distance grid. Uses a uniform speed for
 //! the entire grid. When possible uses second order derivates to achieve
 //! better accuracy.
-template <typename T, std::size_t N>
+template <typename T, std::size_t N, bool use_eikonal_fallback = true>
 class HighAccuracyUniformSpeedEikonalSolver
-    : public detail::UniformSpeedEikonalSolverBase<T, N> {
+    : public detail::UniformSpeedEikonalSolverBase<T, N, use_eikonal_fallback> {
  public:
   explicit HighAccuracyUniformSpeedEikonalSolver(
       std::array<T, N> const& grid_spacing, T const uniform_speed = T{1})
-      : detail::UniformSpeedEikonalSolverBase<T, N>(grid_spacing,
-                                                    uniform_speed) {}
+      : detail::UniformSpeedEikonalSolverBase<T, N, use_eikonal_fallback>(
+            grid_spacing, uniform_speed) {}
 
   //! Returns the distance for grid cell at @a index given the current
   //! distances (@a distance_grid) of other cells.
   T Solve(std::array<std::int32_t, N> const& index,
           detail::Grid<T, N> const& distance_grid) const {
-    return detail::HighAccuracySolveEikonal(
+    return detail::HighAccuracySolveEikonal<T, N, use_eikonal_fallback>(
         index, distance_grid, this->uniform_speed(), this->grid_spacing());
   }
 };
@@ -1834,22 +1881,22 @@ class HighAccuracyUniformSpeedEikonalSolver
 //! Provides methods for solving the eikonal equation for a single grid cell
 //! at a time using the current distance grid. A speed grid must be provided
 //! and that grid must cover the arrival time grid.
-template <typename T, std::size_t N>
+template <typename T, std::size_t N, bool use_eikonal_fallback = true>
 class VaryingSpeedEikonalSolver
-    : public detail::VaryingSpeedEikonalSolverBase<T, N> {
+    : public detail::VaryingSpeedEikonalSolverBase<T, N, use_eikonal_fallback> {
  public:
   VaryingSpeedEikonalSolver(std::array<T, N> const& grid_spacing,
                             std::array<std::size_t, N> const& speed_grid_size,
                             std::vector<T> const& speed_buffer)
-      : detail::VaryingSpeedEikonalSolverBase<T, N>(
+      : detail::VaryingSpeedEikonalSolverBase<T, N, use_eikonal_fallback>(
             grid_spacing, speed_grid_size, speed_buffer) {}
 
   //! Returns the distance for grid cell at @a index given the current
   //! distances (@a distance_grid) of other cells.
   T Solve(std::array<std::int32_t, N> const& index,
           detail::Grid<T, N> const& distance_grid) const {
-    return detail::SolveEikonal(index, distance_grid, this->Speed(index),
-                                this->grid_spacing());
+    return detail::SolveEikonal<T, N, use_eikonal_fallback>(
+        index, distance_grid, this->Speed(index), this->grid_spacing());
   }
 };
 
@@ -1857,22 +1904,22 @@ class VaryingSpeedEikonalSolver
 //! at a time using the current distance grid. A speed grid must be provided
 //! and that grid must cover the arrival time grid. When possible uses second
 //! order derivates to achieve better accuracy.
-template <typename T, std::size_t N>
+template <typename T, std::size_t N, bool use_eikonal_fallback = true>
 class HighAccuracyVaryingSpeedEikonalSolver
-    : public detail::VaryingSpeedEikonalSolverBase<T, N> {
+    : public detail::VaryingSpeedEikonalSolverBase<T, N, use_eikonal_fallback> {
  public:
   HighAccuracyVaryingSpeedEikonalSolver(
       std::array<T, N> const& grid_spacing,
       std::array<std::size_t, N> const& speed_grid_size,
       std::vector<T> const& speed_buffer)
-      : detail::VaryingSpeedEikonalSolverBase<T, N>(
+      : detail::VaryingSpeedEikonalSolverBase<T, N, use_eikonal_fallback>(
             grid_spacing, speed_grid_size, speed_buffer) {}
 
   //! Returns the distance for grid cell at @a index given the current
   //! distances (@a distance_grid) of other cells.
   T Solve(std::array<std::int32_t, N> const& index,
           detail::Grid<T, N> const& distance_grid) const {
-    return detail::HighAccuracySolveEikonal(
+    return detail::HighAccuracySolveEikonal<T, N, use_eikonal_fallback>(
         index, distance_grid, this->Speed(index), this->grid_spacing());
   }
 };
